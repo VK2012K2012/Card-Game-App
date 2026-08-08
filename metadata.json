@@ -1,6 +1,0 @@
-{
-  "name": "Card Game Hub",
-  "description": "M3 Expressive Durak card game hub with offline bots, AI model opponents, Material custom themes, and stats.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
