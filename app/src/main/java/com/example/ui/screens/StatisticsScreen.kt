@@ -1,157 +1,220 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material3.*
-import com.example.ui.theme.ExpressiveCorners
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.GameStatsEntity
 import com.example.data.MatchHistoryEntity
+import com.example.ui.theme.ExpressiveCorners
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
     stats: GameStatsEntity,
-    matchHistory: List<MatchHistoryEntity>,
-    onBack: () -> Unit
+    matchHistory: List<MatchHistoryEntity>
 ) {
-    val winRate = if (stats.totalGamesPlayed > 0) (stats.totalWins * 100 / stats.totalGamesPlayed) else 0
+    val winRate = if (stats.totalGamesPlayed == 0) 0 else stats.totalWins * 100 / stats.totalGamesPlayed
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Game Statistics & History", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        Text("Durak Career Analytics", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Overview Cards
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = ExpressiveCorners.ExtraExtraLarge,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.EmojiEvents, contentDescription = "Trophy", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(20.dp))
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Lifetime Achievements", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            StatPill(label = "Win Rate", value = "$winRate%", color = MaterialTheme.colorScheme.primary)
-                            StatPill(label = "Total Wins", value = "${stats.totalWins}", color = MaterialTheme.colorScheme.secondary)
-                            StatPill(label = "Times Durak", value = "${stats.totalLossesDurak}", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
-
-            item {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        item {
+            Column(
+                modifier = Modifier.statusBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
-                    text = "MATCH HISTORY LOGS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = "STATS",
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp
+                )
+                Text(
+                    text = "Your table record.",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
+        }
+        item {
+            RecordSummary(
+                winRate = winRate,
+                wins = stats.totalWins,
+                games = stats.totalGamesPlayed,
+                losses = stats.totalLossesDurak
+            )
+        }
+        item {
+            Text(
+                text = "RECENT MATCHES",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+        }
+        if (matchHistory.isEmpty()) {
+            item { EmptyHistory() }
+        } else {
+            items(matchHistory.take(20), key = { it.matchId }) { match ->
+                MatchHistoryRow(match)
+            }
+        }
+    }
+}
 
-            if (matchHistory.isEmpty()) {
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "No recorded matches yet. Play a game of Durak to build your streak!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            } else {
-                items(matchHistory, key = { it.matchId }) { match ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (match.isWin) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface
+@Composable
+private fun RecordSummary(
+    winRate: Int,
+    wins: Int,
+    games: Int,
+    losses: Int
+) {
+    Card(
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = ExpressiveCorners.Full,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Durak - ${match.playerPosition}",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${match.opponentCount} Bots (${match.botDifficulty}) • ${match.roundsPlayed} Rounds",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Badge(
-                                containerColor = if (match.isWin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                                contentColor = if (match.isWin) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondary
-                            ) {
-                                Text(if (match.isWin) "WIN" else "FINISHED", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontWeight = FontWeight.Bold)
-                            }
-                        }
                     }
                 }
+                Column {
+                    Text("Durak record", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        if (games == 0) "Your first match starts the record." else "Keep the good hands coming.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
+                    )
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryNumber("Win rate", "$winRate%")
+                SummaryNumber("Wins", wins.toString())
+                SummaryNumber("Games", games.toString())
+                SummaryNumber("Durak", losses.toString())
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryNumber(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.76f))
+    }
+}
+
+@Composable
+private fun EmptyHistory() {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = ExpressiveCorners.Full,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Style,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            Text("No matches yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Play a game of Durak and your results will appear here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun MatchHistoryRow(match: MatchHistoryEntity) {
+    val resultColor = if (match.isWin) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    val resultText = if (match.isWin) "WIN" else "FINISHED"
+    Card(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = resultColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                shape = ExpressiveCorners.Full,
+                color = if (match.isWin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(
+                    text = resultText,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (match.isWin) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(match.playerPosition, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "${match.opponentCount} bot${if (match.opponentCount == 1) "" else "s"} · ${match.botDifficulty} · ${match.roundsPlayed} rounds",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
