@@ -16,6 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -169,30 +178,53 @@ private fun TurnBanner(message: String) {
 
 @Composable
 private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        DeckStatus(gameState)
         Surface(
-            modifier = Modifier.weight(1f).fillMaxSize(),
             shape = ExpressiveCorners.ExtraExtraLarge,
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
         ) {
-            if (gameState.tablePairs.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-                    Text("The table is ready.\nChoose a card, then use the action below.", textAlign = TextAlign.Center, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                LazyRow(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    itemsIndexed(gameState.tablePairs, key = { _, pair -> pair.attackCard.id }) { _, pair ->
-                        InformationalTablePair(pair)
+            DeckStatus(gameState)
+        }
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .widthIn(max = 560.dp),
+            shape = ExpressiveCorners.ExtraExtraLarge,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+        ) {
+            Box(Modifier.fillMaxSize().padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                if (gameState.tablePairs.isEmpty()) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Your table is ready", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            "Select a card below, then use the action panel.",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                    ) {
+                        itemsIndexed(gameState.tablePairs, key = { _, pair -> pair.attackCard.id }) { _, pair ->
+                            InformationalTablePair(pair)
+                        }
                     }
                 }
             }
@@ -210,13 +242,19 @@ private fun InformationalTablePair(pair: TablePair) {
 
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(width = 54.dp, height = 80.dp), contentAlignment = Alignment.Center) {
-            gameState.trumpCard?.let { PlayingCardView(it, width = 43.dp, height = 64.dp, isSelectable = false) }
-            if (gameState.deck.isNotEmpty()) PlayingCardView(GameCard("deck_back", gameState.trumpSuit, Rank.ACE, isFaceUp = false), width = 43.dp, height = 64.dp, isSelectable = false)
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(Modifier.size(width = 48.dp, height = 68.dp), contentAlignment = Alignment.Center) {
+            gameState.trumpCard?.let { PlayingCardView(it, width = 39.dp, height = 58.dp, isSelectable = false) }
+            if (gameState.deck.isNotEmpty()) PlayingCardView(GameCard("deck_back", gameState.trumpSuit, Rank.ACE, isFaceUp = false), width = 39.dp, height = 58.dp, isSelectable = false)
         }
-        Text("${gameState.deck.size}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text("${gameState.trumpSuit.symbol}", style = MaterialTheme.typography.labelMedium, color = TrumpGold, fontWeight = FontWeight.ExtraBold)
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text("${gameState.deck.size} cards left", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text("Trump ${gameState.trumpSuit.symbol}", style = MaterialTheme.typography.bodySmall, color = TrumpGold, fontWeight = FontWeight.ExtraBold)
+        }
     }
 }
 
@@ -242,11 +280,27 @@ private fun ExplicitMatchActions(
     val cardCanAttack = selectedCard != null && canAddToTable(selectedCard, gameState)
     val allAttackersPassed = gameState.players.indices.filter { it != gameState.defenderIndex && !gameState.players[it].isOut }.all { it in gameState.throwInPasses }
 
-    Column(
+    Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp)
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 2.dp
     ) {
-        when {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = when {
+                    isDefending -> "DEFEND THE TABLE"
+                    isThrowIn -> "THROW-IN"
+                    else -> "YOUR ATTACK"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            when {
             isDefending -> {
                 PrimaryAction(
                     title = "${if (selectedCard == null) "Choose a card to defend" else "Defend selected card"}",
@@ -287,16 +341,28 @@ private fun ExplicitMatchActions(
                     )
                 }
             }
+            }
         }
     }
 }
 
 @Composable
 private fun PrimaryAction(title: String, enabled: Boolean, icon: @Composable () -> Unit, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "matchActionPress"
+    )
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth().height(52.dp),
+        interactionSource = interactionSource,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale },
         shape = ExpressiveCorners.Full,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
     ) {
@@ -331,7 +397,16 @@ private fun HandTray(hand: List<GameCard>, selectedCard: GameCard?, isHumanTurn:
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(bottom = 14.dp)) {
+            Text(
+                text = selectedCard?.let { "${it.rank.label} ${it.suit.symbol} selected" } ?: "Tap a card to select it",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 14.dp)
+            ) {
                 itemsIndexed(hand, key = { _, card -> card.id }) { _, card ->
                     PlayingCardView(
                         card = card,

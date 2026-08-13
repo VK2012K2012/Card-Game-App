@@ -19,14 +19,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
@@ -168,7 +168,7 @@ fun AboutAppScreen(onBack: () -> Unit) {
                 title = "GitHub project",
                 subtitle = "Source code and the latest published changes.",
                 onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) },
-                trailing = Icons.Default.OpenInNew
+                trailing = Icons.AutoMirrored.Filled.OpenInNew
             )
         }
         item {
@@ -221,7 +221,7 @@ private fun SettingsHeader(eyebrow: String, title: String, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         IconButton(onClick = onBack, modifier = Modifier.size(44.dp)) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
         Text(
             text = eyebrow,
@@ -240,7 +240,7 @@ private fun SettingsEntry(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    trailing: ImageVector = Icons.Default.ArrowForward
+    trailing: ImageVector = Icons.AutoMirrored.Filled.ArrowForward
 ) {
     Surface(
         modifier = Modifier
@@ -318,6 +318,13 @@ private fun NavigationAppearanceChoice(
                     }
                 }
             }
+            Text(
+                text = "Preview",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = content.copy(alpha = 0.7f),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -332,7 +339,7 @@ private fun NavigationAppearanceChoice(
 private fun NavigationPreview(appearance: NavigationAppearance) {
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.92f)
             .widthIn(max = 420.dp),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.background

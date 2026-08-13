@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -100,40 +101,57 @@ fun HomeHubScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.weight(1f))
-            Box(modifier = Modifier.fillMaxWidth()) {
-                SplitButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingButton = {
-                        SplitButtonDefaults.LeadingButton(
-                            onClick = { onStartDurak(LocalMatchSetup()) },
-                            shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                            contentPadding = SplitButtonDefaults.leadingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null)
-                            Text("Play Durak")
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Choose your table",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
+                    SplitButton(
+                        modifier = Modifier
+                            .fillMaxWidth(0.94f)
+                            .widthIn(max = 420.dp),
+                        leadingButton = {
+                            SplitButtonDefaults.LeadingButton(
+                                onClick = { onStartDurak(LocalMatchSetup()) },
+                                shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                                contentPadding = SplitButtonDefaults.leadingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                Text("Play Durak")
+                            }
+                        },
+                        trailingButton = {
+                            SplitButtonDefaults.TrailingButton(
+                                checked = modeMenuExpanded,
+                                onCheckedChange = { modeMenuExpanded = it },
+                                shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                                contentPadding = SplitButtonDefaults.trailingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
+                            ) {
+                                val arrowRotation by animateFloatAsState(
+                                    targetValue = if (modeMenuExpanded) 180f else 0f,
+                                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                    label = "modeMenuArrow"
+                                )
+                                Icon(
+                                    Icons.Default.ArrowDropDown,
+                                    contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                    modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+                                )
+                            }
                         }
-                    },
-                    trailingButton = {
-                        SplitButtonDefaults.TrailingButton(
-                            checked = modeMenuExpanded,
-                            onCheckedChange = { modeMenuExpanded = it },
-                            shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                            contentPadding = SplitButtonDefaults.trailingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
-                        ) {
-                            val arrowRotation by animateFloatAsState(
-                                targetValue = if (modeMenuExpanded) 180f else 0f,
-                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                label = "modeMenuArrow"
-                            )
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
-                                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
-                            )
-                        }
-                    }
-                )
+                    )
+                }
                 DropdownMenu(
                     expanded = modeMenuExpanded,
                     onDismissRequest = { modeMenuExpanded = false }
@@ -156,7 +174,6 @@ fun HomeHubScreen(
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
         }
     }
 
