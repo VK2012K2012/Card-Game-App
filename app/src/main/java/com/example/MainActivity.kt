@@ -10,9 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +32,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,9 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.screens.AboutAppScreen
 import com.example.ui.screens.DesignCustomizationScreen
 import com.example.ui.screens.DurakGameScreen
@@ -188,7 +184,7 @@ private fun AppRootScaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             when (appearance) {
-                NavigationAppearance.STANDARD -> StandardNavigationBar(destination, onDestinationChange)
+                NavigationAppearance.STANDARD -> Material3ExpressiveNavigationBar(destination, onDestinationChange)
                 NavigationAppearance.COMPACT -> CompactNavigationDock(destination, onDestinationChange)
             }
         },
@@ -196,64 +192,58 @@ private fun AppRootScaffold(
     )
 }
 
+/** The default: a real Material 3 labeled NavigationBar with a persistent active pill. */
 @Composable
-private fun StandardNavigationBar(
+private fun Material3ExpressiveNavigationBar(
     destination: RootDestination,
     onDestinationChange: (RootDestination) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.98f))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .navigationBarsPadding()
-            .padding(start = 10.dp, top = 6.dp, end = 10.dp, bottom = 4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        NavigationBar(
+            modifier = Modifier.fillMaxWidth().height(72.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
+            windowInsets = WindowInsets(0, 0, 0, 0)
         ) {
-            StandardDestination(RootDestination.PLAY, Icons.Default.PlayArrow, destination, onDestinationChange)
-            StandardDestination(RootDestination.STATS, Icons.Default.BarChart, destination, onDestinationChange)
-            StandardDestination(RootDestination.SETTINGS, Icons.Default.Settings, destination, onDestinationChange)
+            NavigationDestinationItem(RootDestination.PLAY, Icons.Default.PlayArrow, destination, onDestinationChange)
+            NavigationDestinationItem(RootDestination.STATS, Icons.Default.BarChart, destination, onDestinationChange)
+            NavigationDestinationItem(RootDestination.SETTINGS, Icons.Default.Settings, destination, onDestinationChange)
         }
     }
 }
 
 @Composable
-private fun StandardDestination(
+private fun NavigationDestinationItem(
     item: RootDestination,
     icon: ImageVector,
     destination: RootDestination,
     onDestinationChange: (RootDestination) -> Unit
 ) {
     val selected = destination == item
-    val corner by animateDpAsState(
-        targetValue = if (selected) 22.dp else 16.dp,
-        animationSpec = tween(180, easing = FastOutSlowInEasing),
-        label = "standardNavCorner"
-    )
     Column(
         modifier = Modifier
-            .width(94.dp)
-            .height(58.dp)
-            .clip(RoundedCornerShape(corner))
+            .width(88.dp)
+            .height(64.dp)
+            .clip(ExpressiveCorners.Full)
             .clickable { onDestinationChange(item) },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
+        verticalArrangement = Arrangement.Center
     ) {
         Surface(
-            modifier = Modifier.size(width = 48.dp, height = 28.dp),
-            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.size(width = 56.dp, height = 32.dp),
+            shape = ExpressiveCorners.Full,
             color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = item.label,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(25.dp),
                     tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -261,9 +251,7 @@ private fun StandardDestination(
         Text(
             text = item.label,
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 0.sp
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -300,15 +288,10 @@ private fun CompactDestination(
     onDestinationChange: (RootDestination) -> Unit
 ) {
     val selected = destination == item
-    val corner by animateDpAsState(
-        targetValue = if (selected) 24.dp else 20.dp,
-        animationSpec = tween(180, easing = FastOutSlowInEasing),
-        label = "compactNavCorner"
-    )
     Box(
         modifier = Modifier
             .size(width = 76.dp, height = 48.dp)
-            .clip(RoundedCornerShape(corner))
+            .clip(ExpressiveCorners.Full)
             .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background)
             .clickable { onDestinationChange(item) },
         contentAlignment = Alignment.Center

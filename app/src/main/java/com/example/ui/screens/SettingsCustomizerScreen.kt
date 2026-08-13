@@ -9,23 +9,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,7 +81,7 @@ fun SettingsCustomizerScreen(
             SettingsEntry(
                 icon = Icons.Default.Tune,
                 title = "Design customization",
-                subtitle = "Choose your bottom navigation style.",
+                subtitle = "Choose how the bar at the bottom of the app looks.",
                 onClick = onOpenDesign
             )
         }
@@ -88,7 +89,7 @@ fun SettingsCustomizerScreen(
             SettingsEntry(
                 icon = Icons.Default.Info,
                 title = "About app",
-                subtitle = "Version, source, and credits.",
+                subtitle = "Version, source code, and credits.",
                 onClick = onOpenAbout
             )
         }
@@ -109,21 +110,21 @@ fun DesignCustomizationScreen(
         item {
             SettingsHeader(
                 eyebrow = "DESIGN CUSTOMIZATION",
-                title = "Navigation that fits you.",
+                title = "Choose your bottom bar.",
                 onBack = onBack
             )
         }
         item {
             Text(
-                text = "The selected style is saved on this device and applies immediately.",
+                text = "Tap one option below. The change is saved on this phone and appears immediately.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         item {
             NavigationAppearanceChoice(
-                title = "Standard",
-                subtitle = "Labeled Material navigation with a soft active indicator.",
+                title = "Material 3 Expressive",
+                subtitle = "The normal navigation bar. Every page shows an icon and its name. The selected page has a colored rounded pill.",
                 appearance = NavigationAppearance.STANDARD,
                 selected = currentAppearance == NavigationAppearance.STANDARD,
                 onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) }
@@ -131,8 +132,8 @@ fun DesignCustomizationScreen(
         }
         item {
             NavigationAppearanceChoice(
-                title = "Compact dock",
-                subtitle = "A low icon dock with more room for the game.",
+                title = "Compact icon dock",
+                subtitle = "A smaller bar with icons only. It gives more room to the game, but page names are hidden.",
                 appearance = NavigationAppearance.COMPACT,
                 selected = currentAppearance == NavigationAppearance.COMPACT,
                 onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) }
@@ -299,43 +300,138 @@ private fun NavigationAppearanceChoice(
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = content)
                     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = content.copy(alpha = 0.78f))
                 }
-                if (selected) Icon(Icons.Default.Check, contentDescription = "Selected", tint = content)
+                if (selected) {
+                    Surface(shape = ExpressiveCorners.Full, color = content.copy(alpha = 0.14f)) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = content)
+                            Text("Active", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = content)
+                        }
+                    }
+                }
             }
-            NavigationPreview(appearance = appearance, activeColor = content, selected = selected)
+            Text(
+                text = "LIVE PREVIEW — THIS IS WHAT YOU WILL SEE",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.7.sp,
+                color = content.copy(alpha = 0.72f)
+            )
+            NavigationPreview(appearance = appearance)
         }
     }
 }
 
 @Composable
-private fun NavigationPreview(appearance: NavigationAppearance, activeColor: androidx.compose.ui.graphics.Color, selected: Boolean) {
+private fun NavigationPreview(appearance: NavigationAppearance) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(28.dp)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Card Game Hub",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f)
+                )
+            }
+            when (appearance) {
+                NavigationAppearance.STANDARD -> LabeledNavigationPreview()
+                NavigationAppearance.COMPACT -> CompactNavigationPreview()
+            }
+        }
+    }
+}
+
+@Composable
+private fun LabeledNavigationPreview() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
-            .background(activeColor.copy(alpha = 0.08f), ExpressiveCorners.ExtraExtraLarge)
-            .padding(horizontal = 12.dp),
+            .height(72.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 6.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (appearance == NavigationAppearance.STANDARD) {
-            listOf("Play", "Stats", "Settings").forEachIndexed { index, label ->
-                val isActive = index == 0
-                Text(
-                    text = label,
-                    modifier = if (isActive) Modifier.background(activeColor.copy(alpha = 0.16f), ExpressiveCorners.Full).padding(horizontal = 9.dp, vertical = 4.dp) else Modifier,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
-                    color = activeColor
+        PreviewLabeledItem(Icons.Default.PlayArrow, "Play", selected = true)
+        PreviewLabeledItem(Icons.Default.BarChart, "Stats", selected = false)
+        PreviewLabeledItem(Icons.Default.Settings, "Settings", selected = false)
+    }
+}
+
+@Composable
+private fun PreviewLabeledItem(icon: ImageVector, label: String, selected: Boolean) {
+    Column(
+        modifier = Modifier.height(60.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            modifier = Modifier.size(width = 52.dp, height = 30.dp),
+            shape = ExpressiveCorners.Full,
+            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(19.dp),
+                    tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else {
-            repeat(3) { index ->
-                Surface(
-                    modifier = Modifier.size(width = if (index == 0) 44.dp else 24.dp, height = 20.dp),
-                    shape = ExpressiveCorners.Full,
-                    color = if (index == 0) activeColor.copy(alpha = 0.20f) else activeColor.copy(alpha = 0.08f)
-                ) {}
-            }
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CompactNavigationPreview() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 28.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PreviewDockItem(Icons.Default.PlayArrow, selected = true)
+        PreviewDockItem(Icons.Default.BarChart, selected = false)
+        PreviewDockItem(Icons.Default.Settings, selected = false)
+    }
+}
+
+@Composable
+private fun PreviewDockItem(icon: ImageVector, selected: Boolean) {
+    Surface(
+        modifier = Modifier.size(width = 56.dp, height = 36.dp),
+        shape = ExpressiveCorners.Full,
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(21.dp),
+                tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
