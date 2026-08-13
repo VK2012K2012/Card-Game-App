@@ -11,13 +11,7 @@ data class GameStatsEntity(
     val totalLossesDurak: Int = 0,
     val totalBitoClears: Int = 0,
     val totalTrumpsPlayed: Int = 0,
-    val selectedThemePalette: String = "EMERALD",
-    val selectedFeltStyle: String = "CLASSIC_FELT",
-    val selectedCardBack: String = "RED_SCROLL",
-    val selectedDeckSize: Int = 36,
-    val isSoundEnabled: Boolean = true,
-    val isHapticsEnabled: Boolean = true,
-    val useAiBotByDefault: Boolean = false
+    val selectedDeckSize: Int = 36
 )
 
 @Entity(tableName = "match_history")

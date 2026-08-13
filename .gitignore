@@ -1,0 +1,18 @@
+# Android Studio and local machine configuration
+.idea/
+*.iml
+local.properties
+
+# Build and Gradle caches
+.gradle/
+.kotlin/
+build/
+**/build/
+
+# Signing material
+*.jks
+*.keystore
+
+# Operating system files
+.DS_Store
+Thumbs.db

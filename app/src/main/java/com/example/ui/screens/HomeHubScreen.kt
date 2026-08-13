@@ -1,42 +1,74 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.GameStatsEntity
 import com.example.durak.model.BotDifficulty
 import com.example.durak.model.GameMode
+import com.example.durak.model.LocalMatchSetup
+import com.example.durak.model.OpponentEngine
 import com.example.ui.theme.ExpressiveCorners
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeHubScreen(
     stats: GameStatsEntity,
-    onStartDurak: (playerCount: Int, mode: GameMode, deckSize: Int, botDiff: BotDifficulty) -> Unit,
-    onOpenMultiplayer: () -> Unit,
-    onOpenCustomizer: () -> Unit,
+    onStartDurak: (LocalMatchSetup) -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenStats: () -> Unit
 ) {
-    var selectedPlayerCount by remember { mutableStateOf(2) }
-    var selectedMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
-    var selectedBotDiff by remember { mutableStateOf(BotDifficulty.LOCAL_NEURAL_AI) }
-    var selectedDeckSize by remember { mutableStateOf(36) }
-    var showQuickSetupSheet by remember { mutableStateOf(false) }
+    var showMatchSetup by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -44,405 +76,271 @@ fun HomeHubScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
+                            modifier = Modifier.size(40.dp),
                             shape = ExpressiveCorners.Full,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(38.dp)
+                            color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("♠", fontSize = 20.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("♠", fontSize = 22.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(Modifier.size(12.dp))
                         Column {
-                            Text(
-                                "Card Game Hub",
-                                fontWeight = FontWeight.ExtraBold,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Text(
-                                "Durak · Material You Live Theme",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Text("Card Game Hub", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                            Text("Local game night, ready when you are", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenCustomizer) {
-                        Icon(Icons.Default.Palette, contentDescription = "Themes", tint = MaterialTheme.colorScheme.onSurface)
-                    }
                     IconButton(onClick = onOpenStats) {
-                        Icon(Icons.Default.BarChart, contentDescription = "Stats", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Default.BarChart, contentDescription = "Open activity")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Open settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 3.dp
-            ) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onOpenMultiplayer,
-                    icon = { Icon(Icons.Default.Groups, contentDescription = "Multiplayer") },
-                    label = { Text("Lobby") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onOpenCustomizer,
-                    icon = { Icon(Icons.Default.Palette, contentDescription = "Themes") },
-                    label = { Text("Display") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onOpenStats,
-                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
-                    label = { Text("Stats") }
-                )
-            }
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showQuickSetupSheet = true },
-                icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Play") },
-                text = { Text("New Match", fontWeight = FontWeight.Bold) },
-                shape = ExpressiveCorners.Full,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(innerPadding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Hero Banner: Daily Challenge / Master the Fool
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onStartDurak(2, GameMode.PODKIDNOY, 36, BotDifficulty.LOCAL_NEURAL_AI)
-                        },
-                    shape = ExpressiveCorners.ExtraExtraLarge,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                )
-                            )
-                            .padding(22.dp)
-                    ) {
-                        Column {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Surface(
-                                    shape = ExpressiveCorners.Full,
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                                ) {
-                                    Text(
-                                        text = "DAILY CHALLENGE",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                                    )
-                                }
-                                Surface(
-                                    shape = ExpressiveCorners.Full,
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Memory,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Text(
-                                text = "Master the Fool",
-                                style = MaterialTheme.typography.displaySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "Face the local neural bot in a 36-card tactical duel — 100% offline",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            Button(
-                                onClick = {
-                                    onStartDurak(2, GameMode.PODKIDNOY, 36, BotDifficulty.LOCAL_NEURAL_AI)
-                                },
-                                shape = ExpressiveCorners.Full,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Play Challenge Now", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Section Label: Game Modes Bento Grid
-            item {
-                Text(
-                    text = "GAME MODES & ENGINE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                HeroDurakCard(
+                    onQuickPlay = { onStartDurak(LocalMatchSetup()) },
+                    onCustomize = { showMatchSetup = true }
                 )
             }
-
-            // Bento Grid Row 1: Local Neural AI vs Base Rule Bot
             item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    BentoTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Memory,
-                        iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        title = "Neural AI",
-                        subtitle = "Offline On-Device",
-                        onClick = { onStartDurak(2, GameMode.PODKIDNOY, 36, BotDifficulty.LOCAL_NEURAL_AI) }
-                    )
-                    BentoTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.SmartToy,
-                        iconContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = "Base Rule Bot",
-                        subtitle = "Classic Heuristics",
-                        onClick = { onStartDurak(2, GameMode.PODKIDNOY, 36, BotDifficulty.EASY) }
-                    )
-                }
+                Text("YOUR TABLE", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
-
-            // Bento Grid Row 2: Multiplayer & Custom Setup
             item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    BentoTile(
-                        modifier = Modifier.weight(1f),
+                StatsStrip(stats = stats, onOpenStats = onOpenStats)
+            }
+            item {
+                Text("MORE WAYS TO PLAY", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FutureModeRow(
+                        icon = Icons.Default.AutoAwesome,
+                        title = "Smart bot",
+                        subtitle = "On-device model opponent — foundation ready",
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    FutureModeRow(
                         icon = Icons.Default.Groups,
-                        iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        title = "Multiplayer",
-                        subtitle = "Crossplay Room Code",
-                        onClick = onOpenMultiplayer
+                        title = "Play with friends",
+                        subtitle = "Secure multiplayer rooms are coming next",
+                        tint = MaterialTheme.colorScheme.secondary
                     )
-                    BentoTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Tune,
-                        iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        title = "Custom Setup",
-                        subtitle = "Players & Variants",
-                        onClick = { showQuickSetupSheet = true }
+                    FutureModeRow(
+                        icon = Icons.Default.MoreHoriz,
+                        title = "More card games",
+                        subtitle = "The hub is ready to grow beyond Durak",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
+            item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
 
-            // Recent Achievements / Player Stats
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = ExpressiveCorners.ExtraExtraLarge,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    if (showMatchSetup) {
+        DurakMatchSetupSheet(
+            onDismiss = { showMatchSetup = false },
+            onStart = { setup ->
+                showMatchSetup = false
+                onStartDurak(setup)
+            }
+        )
+    }
+}
+
+@Composable
+private fun HeroDurakCard(onQuickPlay: () -> Unit, onCustomize: () -> Unit) {
+    Card(
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.tertiaryContainer)
+                    )
+                )
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            AssistChip(
+                onClick = onCustomize,
+                label = { Text("DURAK · OFFLINE", fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    leadingIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+            Text("A good hand.\nA sharper move.", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.ExtraBold)
+            Text("Play a complete local Durak match against bots. No account, connection, or wait required.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.88f))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = onQuickPlay,
+                    shape = ExpressiveCorners.Full,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Match History Stats",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            IconButton(onClick = onOpenStats) {
-                                Icon(Icons.Default.ChevronRight, contentDescription = "Stats", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        val winRate = if (stats.totalGamesPlayed > 0) (stats.totalWins * 100 / stats.totalGamesPlayed) else 0
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            StatPill(
-                                label = "Win Rate",
-                                value = "$winRate%",
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            StatPill(
-                                label = "Wins",
-                                value = "${stats.totalWins}",
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            StatPill(
-                                label = "Games Played",
-                                value = "${stats.totalGamesPlayed}",
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.size(6.dp))
+                    Text("Play Durak", fontWeight = FontWeight.Bold)
                 }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(88.dp))
+                AssistChip(
+                    onClick = onCustomize,
+                    label = { Text("Set up match") },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
             }
         }
+    }
+}
 
-        // Quick Setup Bottom Sheet
-        if (showQuickSetupSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showQuickSetupSheet = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
+@Composable
+private fun StatsStrip(stats: GameStatsEntity, onOpenStats: () -> Unit) {
+    val winRate = if (stats.totalGamesPlayed == 0) 0 else (stats.totalWins * 100 / stats.totalGamesPlayed)
+    Surface(
+        onClick = onOpenStats,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatPill("Win rate", "$winRate%", MaterialTheme.colorScheme.primary)
+            StatPill("Wins", stats.totalWins.toString(), MaterialTheme.colorScheme.secondary)
+            StatPill("Played", stats.totalGamesPlayed.toString(), MaterialTheme.colorScheme.tertiary)
+        }
+    }
+}
+
+@Composable
+private fun FutureModeRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    tint: Color
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(modifier = Modifier.size(44.dp), shape = ExpressiveCorners.Full, color = tint.copy(alpha = 0.16f)) {
+                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = tint) }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Text("SOON", style = MaterialTheme.typography.labelSmall, color = tint, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DurakMatchSetupSheet(onDismiss: () -> Unit, onStart: (LocalMatchSetup) -> Unit) {
+    var playerCount by remember { mutableIntStateOf(2) }
+    var deckSize by remember { mutableIntStateOf(36) }
+    var difficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
+    var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
+    var opponentEngine by remember { mutableStateOf(OpponentEngine.CLASSIC) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        LazyColumn(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 24.dp, bottom = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Set up your table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Everything below plays entirely offline.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            item {
+                SetupChoiceGroup("Players") {
+                    listOf(2, 3, 4).forEach { count ->
+                        SetupChip("$count players", playerCount == count) { playerCount = count }
+                    }
+                }
+            }
+            item {
+                SetupChoiceGroup("Deck") {
+                    listOf(24, 36, 52).forEach { count ->
+                        SetupChip("$count cards", deckSize == count) { deckSize = count }
+                    }
+                }
+            }
+            item {
+                SetupChoiceGroup("Classic bot difficulty") {
+                    BotDifficulty.entries.forEach { value ->
+                        SetupChip(value.displayName, difficulty == value) { difficulty = value }
+                    }
+                }
+            }
+            item {
+                SetupChoiceGroup("Rules") {
+                    SetupChip(GameMode.PODKIDNOY.title, gameMode == GameMode.PODKIDNOY) { gameMode = GameMode.PODKIDNOY }
+                    SetupChip(GameMode.CLASSIC.title, gameMode == GameMode.CLASSIC) { gameMode = GameMode.CLASSIC }
+                }
+            }
+            item {
+                SetupChoiceGroup("Opponent engine") {
+                    SetupChip(OpponentEngine.CLASSIC.displayName, opponentEngine == OpponentEngine.CLASSIC) { opponentEngine = OpponentEngine.CLASSIC }
+                    SetupChip("Smart bot · Preview", opponentEngine == OpponentEngine.SMART_ON_DEVICE) { opponentEngine = OpponentEngine.SMART_ON_DEVICE }
+                }
+            }
+            item {
+                if (opponentEngine == OpponentEngine.SMART_ON_DEVICE) {
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer) {
+                        Text("Smart bot is reserved for a future bundled on-device model. This match stays offline and uses the Classic bot safely for now.", modifier = Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Button(
+                    onClick = {
+                        onStart(
+                            LocalMatchSetup(playerCount, gameMode, deckSize, difficulty, opponentEngine).normalized()
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = ExpressiveCorners.Full
                 ) {
-                    Text(
-                        text = "Durak Match Setup",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // Player Count
-                    Text("Players Count", style = MaterialTheme.typography.titleSmall)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        listOf(2, 3, 4).forEach { count ->
-                            FilterChip(
-                                selected = (selectedPlayerCount == count),
-                                onClick = { selectedPlayerCount = count },
-                                label = { Text("$count Players") },
-                                shape = ExpressiveCorners.Full
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Bot Engine Selection (Base Bot vs Local Neural AI)
-                    Text("Opponent Engine (100% Offline)", style = MaterialTheme.typography.titleSmall)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        listOf(
-                            BotDifficulty.EASY to "Base Rule-based Bot",
-                            BotDifficulty.MEDIUM to "Standard Heuristic Bot",
-                            BotDifficulty.HARD to "Master Card Counter",
-                            BotDifficulty.LOCAL_NEURAL_AI to "Local Neural AI Bot"
-                        ).forEach { (diff, labelText) ->
-                            FilterChip(
-                                selected = (selectedBotDiff == diff),
-                                onClick = { selectedBotDiff = diff },
-                                label = { Text(labelText) },
-                                shape = ExpressiveCorners.Full,
-                                leadingIcon = {
-                                    if (diff == BotDifficulty.LOCAL_NEURAL_AI) {
-                                        Icon(Icons.Default.Memory, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    } else {
-                                        Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Game Mode
-                    Text("Rules Variant", style = MaterialTheme.typography.titleSmall)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        GameMode.values().forEach { mode ->
-                            FilterChip(
-                                selected = (selectedMode == mode),
-                                onClick = { selectedMode = mode },
-                                label = { Text(mode.title.split(" ").first()) },
-                                shape = ExpressiveCorners.Full
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(22.dp))
-
-                    Button(
-                        onClick = {
-                            showQuickSetupSheet = false
-                            onStartDurak(selectedPlayerCount, selectedMode, selectedDeckSize, selectedBotDiff)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = ExpressiveCorners.Full,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("Start Match", style = MaterialTheme.typography.titleMedium)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Start local match", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -450,51 +348,28 @@ fun HomeHubScreen(
 }
 
 @Composable
-private fun BentoTile(
-    modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconContainerColor: Color,
-    iconTint: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .height(136.dp)
-            .clickable { onClick() },
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Surface(
-                shape = ExpressiveCorners.Full,
-                color = iconContainerColor,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
-                }
-            }
-            Column {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+private fun SetupChoiceGroup(title: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
     }
+}
+
+@Composable
+private fun SetupChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        shape = ExpressiveCorners.Full,
+        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer)
+    )
 }
 
 @Composable
 fun StatPill(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = MaterialTheme.typography.headlineSmall, color = color)
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.headlineSmall, color = color, fontWeight = FontWeight.ExtraBold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

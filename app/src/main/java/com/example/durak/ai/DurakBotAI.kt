@@ -20,7 +20,7 @@ object DurakBotAI {
 
         if (isAttacker) {
             val candidateCards = bot.hand.filter { card ->
-                engine.canAttackWith(card, state.tablePairs, defender.hand.size)
+                engine.canAttackWith(card, state.tablePairs, state.defenderHandSizeAtRoundStart)
             }
 
             if (candidateCards.isEmpty() || (state.tablePairs.isNotEmpty() && shouldPassAttack(candidateCards, state, bot.difficulty))) {
@@ -60,7 +60,7 @@ object DurakBotAI {
                     candidates.minByOrNull { it.rank.value }!!
                 }
             }
-            BotDifficulty.HARD, BotDifficulty.LOCAL_NEURAL_AI -> {
+            BotDifficulty.HARD -> {
                 // Save trumps for endgame, pick non-trump with lowest value
                 val nonTrumps = candidates.filter { !it.isTrump }
                 if (nonTrumps.isNotEmpty()) {
@@ -75,7 +75,7 @@ object DurakBotAI {
     private fun selectDefendCard(candidates: List<Card>, attackCard: Card, trumpSuit: Suit, difficulty: BotDifficulty): Card {
         return when (difficulty) {
             BotDifficulty.EASY -> candidates.random()
-            BotDifficulty.MEDIUM, BotDifficulty.HARD, BotDifficulty.LOCAL_NEURAL_AI -> {
+            BotDifficulty.MEDIUM, BotDifficulty.HARD -> {
                 // Same suit defenders first, then lowest trump
                 val sameSuit = candidates.filter { it.suit == attackCard.suit }
                 if (sameSuit.isNotEmpty()) {

@@ -1,88 +1,106 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import com.example.ui.theme.ExpressiveCorners
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.durak.ai.AiAdviceResult
 import com.example.durak.game.DurakGameState
 import com.example.durak.game.GamePhase
-import com.example.durak.model.Card
+import com.example.durak.model.Card as GameCard
+import com.example.durak.model.Rank
+import com.example.durak.model.Suit
 import com.example.durak.model.TablePair
-import com.example.ui.components.*
+import com.example.ui.components.BotAvatarBadge
+import com.example.ui.components.PlayingCardView
+import com.example.ui.components.TableFeltBackground
+import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.TrumpGold
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun DurakGameScreen(
     gameState: DurakGameState,
-    selectedCard: Card?,
-    aiAdvice: AiAdviceResult?,
-    isAiLoading: Boolean,
-    onSelectCard: (Card) -> Unit,
-    onPlayAttack: (Card) -> Unit,
-    onPlayDefend: (Card, Int) -> Unit,
-    onPassOrClear: () -> Unit,
+    selectedCard: GameCard?,
+    onSelectCard: (GameCard) -> Unit,
+    onPlayAttack: (GameCard) -> Unit,
+    onPlayDefend: (GameCard, Int) -> Unit,
+    onFinishRound: () -> Unit,
     onTakeTable: () -> Unit,
-    onRequestAiAdvice: () -> Unit,
-    onApplyAiMove: () -> Unit,
-    onOpenCustomizer: () -> Unit,
     onExitGame: () -> Unit
 ) {
-    var showAiSheet by remember { mutableStateOf(false) }
-
-    val humanPlayer = gameState.players.firstOrNull { it.isHuman }
+    val human = gameState.players.firstOrNull { it.isHuman }
     val botPlayers = gameState.players.filter { !it.isHuman }
+    val isHumanTurn = gameState.currentTurnPlayerIndex == HUMAN_INDEX
+    val isHumanAttacker = gameState.attackerIndex == HUMAN_INDEX
+    val isHumanDefender = gameState.defenderIndex == HUMAN_INDEX
+    val turnMessage = buildTurnMessage(gameState, isHumanAttacker, isHumanDefender)
 
-    val isHumanAttacker = (gameState.attackerIndex == 0)
-    val isHumanDefender = (gameState.defenderIndex == 0)
-    val isHumanTurn = (gameState.currentTurnPlayerIndex == 0)
-
-    TableFeltBackground(modifier = Modifier.fillMaxSize()) {
+    TableFeltBackground(Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Durak Table", fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
-                                Text("R${gameState.roundCount}")
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Durak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                            AssistChip(
+                                onClick = {},
+                                label = { Text("ROUND ${gameState.roundCount}", fontWeight = FontWeight.Bold) },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
+                            )
                         }
                     },
                     navigationIcon = {
                         IconButton(onClick = onExitGame) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            onRequestAiAdvice()
-                            showAiSheet = true
-                        }) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "AI Coach", tint = MaterialTheme.colorScheme.tertiary)
-                        }
-                        IconButton(onClick = onOpenCustomizer) {
-                            Icon(Icons.Default.Palette, contentDescription = "Themes")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave match")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -91,421 +109,316 @@ fun DurakGameScreen(
             containerColor = Color.Transparent
         ) { innerPadding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Top Bot Avatars Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    botPlayers.forEach { bot ->
-                        val botIdx = gameState.players.indexOf(bot)
-                        BotAvatarBadge(
-                            player = bot,
-                            isCurrentTurn = (gameState.currentTurnPlayerIndex == botIdx),
-                            isDefender = (gameState.defenderIndex == botIdx),
-                            isAttacker = (gameState.attackerIndex == botIdx)
-                        )
-                    }
-                }
-
-                // Middle Table Area: Trump Card + Deck Pile + Table Field Pairs
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Left Side: Deck & Trump Widget
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            // Trump Card flipped face up under deck
-                            gameState.trumpCard?.let { trump ->
-                                PlayingCardView(
-                                    card = trump,
-                                    width = 46.dp,
-                                    height = 68.dp,
-                                    isSelectable = false,
-                                    modifier = Modifier.offset(x = 12.dp, y = 12.dp)
-                                )
-                            }
-                            // Deck Face Down Card
-                            if (gameState.deck.isNotEmpty()) {
-                                PlayingCardView(
-                                    card = Card("deck_back", gameState.trumpSuit, com.example.durak.model.Rank.ACE, isFaceUp = false),
-                                    width = 46.dp,
-                                    height = 68.dp,
-                                    isSelectable = false
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
-                            Text("${gameState.deck.size} Left")
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = "Trump: ${gameState.trumpSuit.symbol}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (gameState.trumpSuit.isRed) Color(0xFFEF4444) else Color.White
-                        )
-                    }
-
-                    // Right Side: Attack & Defense Card Table Pairs Grid
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .background(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.25f),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (gameState.tablePairs.isEmpty()) {
-                            Text(
-                                text = if (isHumanAttacker) "Your turn to attack! Select a card below." else "Waiting for attack...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        } else {
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                items(gameState.tablePairs.indices.toList()) { pairIdx ->
-                                    val pair = gameState.tablePairs[pairIdx]
-                                    TablePairSlot(
-                                        pair = pair,
-                                        pairIndex = pairIdx,
-                                        isHumanDefender = isHumanDefender,
-                                        selectedCard = selectedCard,
-                                        onDefendWithSelected = {
-                                            selectedCard?.let { card ->
-                                                onPlayDefend(card, pairIdx)
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Action Message Banner
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(
-                        text = gameState.lastActionMessage,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-
-                // Action Control Buttons Row (Pass/Clear, Take, Attack/Play, AI Assist)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (isHumanDefender) {
-                        Button(
-                            onClick = onTakeTable,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(Icons.Default.CallReceived, contentDescription = "Take")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Take Cards")
-                        }
-                    }
-
-                    if (isHumanAttacker || gameState.gamePhase == GamePhase.WAITING_FOR_THROW_IN) {
-                        Button(
-                            onClick = onPassOrClear,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = "Done")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (gameState.tablePairs.isEmpty()) "Pass" else "Clear (Bito)")
-                        }
-                    }
-
-                    if (selectedCard != null && isHumanTurn && isHumanAttacker) {
-                        Button(
-                            onClick = { onPlayAttack(selectedCard) },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                        ) {
-                            Icon(Icons.Default.CallMade, contentDescription = "Play")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Attack")
-                        }
-                    }
-                }
-
-                // Bottom Player Hand Area
-                humanPlayer?.let { human ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Your Hand (${human.hand.size})",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Tap a card to select",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                )
-                            }
-                            if (isHumanTurn) {
-                                Surface(
-                                    shape = ExpressiveCorners.Full,
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        text = "YOUR TURN",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Selected Card Info Callout Pill
-                        selectedCard?.let { card ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "Selected: ",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = "${card.rank.label} of ${card.suit.suitName} ${card.suit.symbol}",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = if (card.suit.isRed) Color(0xFFE11D48) else MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        if (card.isTrump) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = Color(0xFFEAB308)
-                                            ) {
-                                                Text(
-                                                    text = "TRUMP",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
-                                                    color = Color.Black,
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    if (isHumanTurn && isHumanAttacker) {
-                                        Button(
-                                            onClick = { onPlayAttack(card) },
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                            shape = ExpressiveCorners.Full
-                                        ) {
-                                            Text("Play Card", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        val spacing = if (human.hand.size > 8) (-6).dp else 4.dp
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(spacing),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
-                            items(human.hand) { card ->
-                                val isSelected = (selectedCard?.id == card.id)
-                                PlayingCardView(
-                                    card = card,
-                                    width = 72.dp,
-                                    height = 106.dp,
-                                    isSelected = isSelected,
-                                    onClick = {
-                                        onSelectCard(card)
-                                    },
-                                    modifier = Modifier.offset(y = if (isSelected) (-16).dp else 0.dp)
-                                )
-                            }
-                        }
-                    }
-                }
+                OpponentStrip(gameState, botPlayers)
+                TurnStatus(turnMessage, isHumanTurn)
+                TableArea(
+                    gameState = gameState,
+                    selectedCard = selectedCard,
+                    isHumanDefender = isHumanDefender && isHumanTurn,
+                    onPlayDefend = onPlayDefend,
+                    modifier = Modifier.weight(1f)
+                )
+                MatchActions(
+                    gameState = gameState,
+                    selectedCard = selectedCard,
+                    isHumanTurn = isHumanTurn,
+                    isHumanAttacker = isHumanAttacker,
+                    isHumanDefender = isHumanDefender,
+                    onPlayAttack = onPlayAttack,
+                    onFinishRound = onFinishRound,
+                    onTakeTable = onTakeTable
+                )
+                PlayerHand(
+                    hand = human?.hand.orEmpty(),
+                    selectedCard = selectedCard,
+                    isHumanTurn = isHumanTurn,
+                    isHumanAttacker = isHumanAttacker,
+                    isHumanDefender = isHumanDefender,
+                    gameState = gameState,
+                    onSelectCard = onSelectCard
+                )
             }
         }
 
-        // AI Advisor Sheet
-        if (showAiSheet) {
-            AiAdvisorBottomSheet(
-                advice = aiAdvice,
-                isLoading = isAiLoading,
-                onDismiss = { showAiSheet = false },
-                onApplyMove = onApplyAiMove
-            )
-        }
-
-        // Game Over Dialog
         if (gameState.isGameOver) {
-            AlertDialog(
-                onDismissRequest = { },
-                title = { Text(text = if (gameState.durakPlayerName == "You") "You are the Durak! 🃏" else "Victory! 🎉") },
-                text = {
-                    Column {
-                        Text(
-                            text = if (gameState.durakPlayerName == "You")
-                                "You ran out of trumps and became the Fool."
-                            else
-                                "${gameState.durakPlayerName} is the Durak! Great game!"
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Rounds played: ${gameState.roundCount}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = onExitGame) {
-                        Text("Return to Hub")
-                    }
-                }
+            MatchResultDialog(gameState, onExitGame)
+        }
+    }
+}
+
+@Composable
+private fun OpponentStrip(gameState: DurakGameState, bots: List<com.example.durak.model.Player>) {
+    if (bots.isEmpty()) return
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 2.dp)) {
+        itemsIndexed(bots, key = { _, player -> player.id }) { _, bot ->
+            val index = gameState.players.indexOfFirst { it.id == bot.id }
+            BotAvatarBadge(
+                player = bot,
+                isCurrentTurn = gameState.currentTurnPlayerIndex == index,
+                isDefender = gameState.defenderIndex == index,
+                isAttacker = gameState.attackerIndex == index
             )
         }
     }
 }
 
 @Composable
-fun TablePairSlot(
-    pair: TablePair,
-    pairIndex: Int,
+private fun TurnStatus(message: String, isHumanTurn: Boolean) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = if (isHumanTurn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(10.dp),
+                shape = ExpressiveCorners.Full,
+                color = if (isHumanTurn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+            ) {}
+            Text(message, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = if (isHumanTurn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+@Composable
+private fun TableArea(
+    gameState: DurakGameState,
+    selectedCard: GameCard?,
     isHumanDefender: Boolean,
-    selectedCard: Card?,
-    onDefendWithSelected: () -> Unit
+    onPlayDefend: (GameCard, Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val canDefendThisSlot = isHumanDefender && !pair.isDefended
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        DeckStatus(gameState)
+        Surface(
+            modifier = Modifier.weight(1f).height(210.dp),
+            shape = ExpressiveCorners.ExtraExtraLarge,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        ) {
+            if (gameState.tablePairs.isEmpty()) {
+                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("The table is ready\nfor the opening card", textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    itemsIndexed(gameState.tablePairs, key = { _, pair -> pair.attackCard.id }) { index, pair ->
+                        TablePairSlot(pair, index, selectedCard, gameState.trumpSuit, isHumanDefender, onPlayDefend)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeckStatus(gameState: DurakGameState) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(width = 64.dp, height = 94.dp), contentAlignment = Alignment.Center) {
+            gameState.trumpCard?.let { trump ->
+                PlayingCardView(trump, width = 50.dp, height = 74.dp, isSelectable = false, modifier = Modifier.offset(x = 9.dp, y = 10.dp))
+            }
+            if (gameState.deck.isNotEmpty()) {
+                PlayingCardView(GameCard("deck_back", gameState.trumpSuit, Rank.ACE, isFaceUp = false), width = 50.dp, height = 74.dp, isSelectable = false)
+            }
+        }
+        Surface(shape = ExpressiveCorners.Full, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)) {
+            Text("${gameState.deck.size} left", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+        Text("TRUMP ${gameState.trumpSuit.symbol}", style = MaterialTheme.typography.labelSmall, color = TrumpGold, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+@Composable
+private fun MatchActions(
+    gameState: DurakGameState,
+    selectedCard: GameCard?,
+    isHumanTurn: Boolean,
+    isHumanAttacker: Boolean,
+    isHumanDefender: Boolean,
+    onPlayAttack: (GameCard) -> Unit,
+    onFinishRound: () -> Unit,
+    onTakeTable: () -> Unit
+) {
+    val canAttack = isHumanTurn && isHumanAttacker && selectedCard != null && gameState.gamePhase in setOf(GamePhase.ATTACKING, GamePhase.WAITING_FOR_THROW_IN)
+    val canFinish = isHumanTurn && isHumanAttacker && gameState.gamePhase == GamePhase.WAITING_FOR_THROW_IN && gameState.tablePairs.isNotEmpty() && gameState.tablePairs.all { it.isDefended }
+    val canTake = isHumanTurn && isHumanDefender && gameState.gamePhase == GamePhase.DEFENDING && gameState.tablePairs.isNotEmpty()
+
+    AnimatedVisibility(visible = canAttack || canFinish || canTake, enter = fadeIn(tween(160)), exit = fadeOut(tween(120))) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (canTake) {
+                Button(
+                    onClick = onTakeTable,
+                    modifier = Modifier.weight(1f),
+                    shape = ExpressiveCorners.Full,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                ) {
+                    Icon(Icons.Default.KeyboardDoubleArrowDown, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Take cards", fontWeight = FontWeight.Bold)
+                }
+            }
+            if (canFinish) {
+                Button(onClick = onFinishRound, modifier = Modifier.weight(1f), shape = ExpressiveCorners.Full) {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Finish round", fontWeight = FontWeight.Bold)
+                }
+            }
+            if (canAttack) {
+                Button(
+                    onClick = { selectedCard?.let(onPlayAttack) },
+                    modifier = Modifier.weight(1f),
+                    shape = ExpressiveCorners.Full,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary, contentColor = MaterialTheme.colorScheme.onTertiary)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (gameState.tablePairs.isEmpty()) "Open attack" else "Throw in", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerHand(
+    hand: List<GameCard>,
+    selectedCard: GameCard?,
+    isHumanTurn: Boolean,
+    isHumanAttacker: Boolean,
+    isHumanDefender: Boolean,
+    gameState: DurakGameState,
+    onSelectCard: (GameCard) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text("YOUR HAND · ${hand.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                val hint = when {
+                    !isHumanTurn -> "Waiting for the other player"
+                    isHumanAttacker -> "Choose a card to attack"
+                    isHumanDefender -> "Choose a card, then tap the attack it beats"
+                    else -> "Choose a card"
+                }
+                Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (isHumanTurn) {
+                Surface(shape = ExpressiveCorners.Full, color = MaterialTheme.colorScheme.primaryContainer) {
+                    Text("YOUR TURN", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(if (hand.size > 8) (-8).dp else 4.dp), contentPadding = PaddingValues(top = 10.dp, bottom = 8.dp)) {
+            itemsIndexed(hand, key = { _, card -> card.id }) { _, card ->
+                val isSelected = selectedCard?.id == card.id
+                val lift by animateDpAsState(if (isSelected) (-14).dp else 0.dp, label = "cardLift")
+                PlayingCardView(
+                    card = card,
+                    width = 68.dp,
+                    height = 100.dp,
+                    isSelected = isSelected,
+                    isSelectable = isHumanTurn,
+                    onClick = { onSelectCard(card) },
+                    modifier = Modifier.offset(y = lift)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TablePairSlot(
+    pair: TablePair,
+    index: Int,
+    selectedCard: GameCard?,
+    trumpSuit: Suit,
+    isHumanDefender: Boolean,
+    onPlayDefend: (GameCard, Int) -> Unit
+) {
+    val selectedBeatsAttack = selectedCard?.let { it.beats(pair.attackCard, trumpSuit) } == true
+    val canPlaceDefense = isHumanDefender && !pair.isDefended && selectedCard != null && selectedBeatsAttack
+    val borderColor = when {
+        canPlaceDefense -> MaterialTheme.colorScheme.primary
+        isHumanDefender && !pair.isDefended && selectedCard != null -> MaterialTheme.colorScheme.error
+        else -> Color.Transparent
+    }
     Box(
         modifier = Modifier
-            .width(80.dp)
-            .height(125.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .then(
-                if (canDefendThisSlot && selectedCard != null) {
-                    Modifier
-                        .border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-                        .clickable { onDefendWithSelected() }
-                } else Modifier
-            )
+            .width(88.dp)
+            .height(128.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .border(2.dp, borderColor, MaterialTheme.shapes.medium)
+            .then(if (canPlaceDefense) Modifier.clickable { selectedCard?.let { onPlayDefend(it, index) } } else Modifier)
     ) {
-        // Attack Card
-        PlayingCardView(
-            card = pair.attackCard,
-            width = 68.dp,
-            height = 100.dp,
-            isSelectable = false
-        )
-
-        // Defense Card offset on top
-        val defCard = pair.defenseCard
-        if (defCard != null) {
-            PlayingCardView(
-                card = defCard,
-                width = 68.dp,
-                height = 100.dp,
-                isSelectable = false,
-                modifier = Modifier.offset(x = 12.dp, y = 20.dp)
-            )
-        } else if (canDefendThisSlot) {
-            // Placeholder hint slot if not defended yet
+        PlayingCardView(pair.attackCard, width = 68.dp, height = 100.dp, isSelectable = false)
+        if (pair.defenseCard != null) {
+            PlayingCardView(pair.defenseCard, width = 68.dp, height = 100.dp, isSelectable = false, modifier = Modifier.offset(x = 16.dp, y = 24.dp))
+        } else {
             Surface(
-                onClick = onDefendWithSelected,
-                shape = RoundedCornerShape(8.dp),
-                color = if (selectedCard != null) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.35f),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (selectedCard != null) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.5f)),
-                modifier = Modifier
-                    .offset(x = 12.dp, y = 20.dp)
-                    .size(width = 68.dp, height = 100.dp)
+                modifier = Modifier.offset(x = 16.dp, y = 24.dp).size(width = 68.dp, height = 100.dp),
+                shape = MaterialTheme.shapes.small,
+                color = if (canPlaceDefense) MaterialTheme.colorScheme.primaryContainer else Color.Black.copy(alpha = 0.20f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (canPlaceDefense) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.4f))
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(4.dp)) {
                     Text(
-                        text = if (selectedCard != null) "BEAT HERE ⚡" else "BEAT ME",
+                        if (selectedCard == null) "DEFEND" else if (canPlaceDefense) "PLAY HERE" else "CAN'T BEAT",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 10.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color = if (selectedCard != null) MaterialTheme.colorScheme.onPrimaryContainer else Color.White
+                        color = if (canPlaceDefense) MaterialTheme.colorScheme.onPrimaryContainer else Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
     }
 }
+
+@Composable
+private fun MatchResultDialog(gameState: DurakGameState, onExit: () -> Unit) {
+    val title = when {
+        gameState.isDraw -> "A shared finish"
+        gameState.durakPlayerName == "You" -> "You are the Durak"
+        else -> "You made it out"
+    }
+    val message = when {
+        gameState.isDraw -> "Everyone finished their cards at the same time."
+        gameState.durakPlayerName == "You" -> "Your opponents emptied their hands first. Regroup and try another table."
+        else -> "${gameState.durakPlayerName} is the Durak. Your hand is clear."
+    }
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(message)
+                Text("${gameState.roundCount} rounds played", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            Button(onClick = onExit, shape = ExpressiveCorners.Full) { Text("Back to game hub", fontWeight = FontWeight.Bold) }
+        }
+    )
+}
+
+private fun buildTurnMessage(state: DurakGameState, humanIsAttacker: Boolean, humanIsDefender: Boolean): String = when {
+    state.isGameOver -> state.lastActionMessage
+    state.currentTurnPlayerIndex == HUMAN_INDEX && humanIsAttacker && state.gamePhase == GamePhase.WAITING_FOR_THROW_IN -> "Your attack is defended. Throw in or finish the round."
+    state.currentTurnPlayerIndex == HUMAN_INDEX && humanIsAttacker -> "Your attack. Lead with a card."
+    state.currentTurnPlayerIndex == HUMAN_INDEX && humanIsDefender -> "Your defense. Beat each attack or take the table."
+    else -> "${state.players.getOrNull(state.currentTurnPlayerIndex)?.name ?: "Opponent"} is thinking."
+}
+
+private const val HUMAN_INDEX = 0

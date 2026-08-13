@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,10 +28,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.durak.model.Card
-import com.example.durak.model.CardBackStyle
-import com.example.ui.theme.LocalCardAppTheme
 import com.example.ui.theme.TrumpGold
 
+/**
+ * A single playing card, front or back.
+ *
+ * Uses a stable identity ([card.id] is expected to be a stable key wherever
+ * this is placed inside a `LazyRow`/`LazyColumn`) and animates selection with
+ * a spring so re-selecting doesn't cause a visual "pop"/flicker.
+ */
 @Composable
 fun PlayingCardView(
     card: Card,
@@ -39,10 +45,13 @@ fun PlayingCardView(
     height: Dp = 100.dp,
     isSelected: Boolean = false,
     isSelectable: Boolean = true,
-    cardBackStyle: CardBackStyle = LocalCardAppTheme.current.cardBackStyle,
     onClick: (() -> Unit)? = null
 ) {
-    val elevation by animateFloatAsState(targetValue = if (isSelected) 14f else 3f, label = "cardElevation")
+    val elevation by animateFloatAsState(
+        targetValue = if (isSelected) 14f else 3f,
+        animationSpec = spring(dampingRatio = 0.7f),
+        label = "cardElevation"
+    )
 
     val shape = RoundedCornerShape(10.dp)
     val borderColor = when {
@@ -71,11 +80,11 @@ fun PlayingCardView(
             ),
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = if (card.isFaceUp) Color(0xFFFFFFFF) else Color(0xFF1E293B)
+            containerColor = if (card.isFaceUp) Color(0xFFFFFFFF) else Color(0xFF14202B)
         )
     ) {
         if (!card.isFaceUp) {
-            CardBackGraphic(cardBackStyle = cardBackStyle, modifier = Modifier.fillMaxSize())
+            CardBackGraphic(modifier = Modifier.fillMaxSize())
         } else {
             CardFaceGraphic(card = card, width = width, height = height)
         }
@@ -84,14 +93,14 @@ fun PlayingCardView(
 
 @Composable
 fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
-    val suitColor = if (card.suit.isRed) Color(0xFFE11D48) else Color(0xFF0F172A)
+    val suitColor = if (card.suit.isRed) Color(0xFFD3273E) else Color(0xFF0F172A)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(4.dp)
     ) {
-        // Top Left Rank & Suit (Large & Bold)
+        // Top Left Rank & Suit
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.TopStart)
@@ -112,7 +121,7 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
             )
         }
 
-        // Trump Badge in top right if trump card
+        // Trump Badge
         if (card.isTrump) {
             Box(
                 modifier = Modifier
@@ -121,18 +130,16 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
                     .padding(horizontal = 3.dp, vertical = 1.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Trump",
-                        tint = Color.Black,
-                        modifier = Modifier.size(10.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = "Trump",
+                    tint = Color.Black,
+                    modifier = Modifier.size(10.dp)
+                )
             }
         }
 
-        // Center Emblem / Large Rank + Suit combo for instant recognition
+        // Center emblem
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -178,23 +185,11 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
     }
 }
 
+/** Single, polished card-back motif — deep navy with a fine gold lattice and center emblem. */
 @Composable
-fun CardBackGraphic(cardBackStyle: CardBackStyle, modifier: Modifier = Modifier) {
-    val primaryColor = when (cardBackStyle) {
-        CardBackStyle.RED_SCROLL -> Color(0xFF991B1B)
-        CardBackStyle.GOLD_LATTICE -> Color(0xFFB45309)
-        CardBackStyle.EMERALD_FEATHER -> Color(0xFF047857)
-        CardBackStyle.CYBER_HEX -> Color(0xFF6B21A8)
-        CardBackStyle.NOIR -> Color(0xFF111827)
-    }
-
-    val accentColor = when (cardBackStyle) {
-        CardBackStyle.RED_SCROLL -> Color(0xFFFEE2E2)
-        CardBackStyle.GOLD_LATTICE -> Color(0xFFFEF3C7)
-        CardBackStyle.EMERALD_FEATHER -> Color(0xFFD1FAE5)
-        CardBackStyle.CYBER_HEX -> Color(0xFF06B6D4)
-        CardBackStyle.NOIR -> Color(0xFF94A3B8)
-    }
+fun CardBackGraphic(modifier: Modifier = Modifier) {
+    val primaryColor = Color(0xFF14202B)
+    val accentColor = TrumpGold
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
@@ -202,40 +197,37 @@ fun CardBackGraphic(cardBackStyle: CardBackStyle, modifier: Modifier = Modifier)
 
         drawRect(color = primaryColor)
 
-        // Inner border frame
         drawRoundRect(
-            color = accentColor.copy(alpha = 0.8f),
+            color = accentColor.copy(alpha = 0.65f),
             topLeft = Offset(w * 0.08f, h * 0.08f),
             size = Size(w * 0.84f, h * 0.84f),
             cornerRadius = CornerRadius(6f, 6f),
-            style = Stroke(width = 2f)
+            style = Stroke(width = 1.6f)
         )
 
-        // Lattice pattern / emblem
         val step = 14f
         var x = 0f
         while (x < w) {
             drawLine(
-                color = accentColor.copy(alpha = 0.25f),
+                color = accentColor.copy(alpha = 0.16f),
                 start = Offset(x, 0f),
                 end = Offset(x + h, h),
-                strokeWidth = 1.5f
+                strokeWidth = 1f
             )
             drawLine(
-                color = accentColor.copy(alpha = 0.25f),
+                color = accentColor.copy(alpha = 0.16f),
                 start = Offset(x, h),
                 end = Offset(x + h, 0f),
-                strokeWidth = 1.5f
+                strokeWidth = 1f
             )
             x += step
         }
 
-        // Center emblem circle
         drawCircle(
-            color = accentColor.copy(alpha = 0.9f),
-            radius = w * 0.18f,
+            color = accentColor.copy(alpha = 0.85f),
+            radius = w * 0.16f,
             center = Offset(w / 2f, h / 2f),
-            style = Stroke(width = 2.5f)
+            style = Stroke(width = 2f)
         )
     }
 }

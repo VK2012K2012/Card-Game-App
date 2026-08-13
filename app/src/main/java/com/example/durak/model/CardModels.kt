@@ -33,58 +33,59 @@ data class Card(
     val isFaceUp: Boolean = true
 ) {
     fun beats(other: Card, trumpSuit: Suit): Boolean {
-        if (this.suit == other.suit) {
-            return this.rank.value > other.rank.value
-        }
-        if (this.suit == trumpSuit && other.suit != trumpSuit) {
-            return true
-        }
-        return false
+        if (suit == other.suit) return rank.value > other.rank.value
+        return suit == trumpSuit && other.suit != trumpSuit
     }
 }
 
 data class TablePair(
     val attackCard: Card,
-    var defenseCard: Card? = null
+    val defenseCard: Card? = null
 ) {
     val isDefended: Boolean get() = defenseCard != null
 }
 
 enum class GameMode(val title: String, val description: String) {
-    PODKIDNOY("Throw-in (Podkidnoy)", "Players can throw in cards matching ranks on the table"),
-    PEREVODNOY("Transfer (Perevodnoy)", "Defender can transfer attack to next player with matching rank card"),
-    CLASSIC("Classic Durak", "Standard 1-v-1 or 4-player classic rules")
+    PODKIDNOY("Throw-in", "Match ranks already on the table to throw in cards"),
+    PEREVODNOY("Transfer", "Transfer an attack with a matching rank card"),
+    CLASSIC("Classic", "Standard Durak rules without transfer")
 }
 
 enum class BotDifficulty(val displayName: String, val description: String) {
-    EASY("Base Bot (Rule-based)", "Classic offline rule-based bot with fast tactical decisions"),
-    MEDIUM("Standard Heuristic Bot", "Conserves trumps and tracks table card counts"),
-    HARD("Master Card Counter", "Strategic card counter, saves high trumps for endgame"),
-    LOCAL_NEURAL_AI("Local AI (Gemma 3B)", "100% Offline neural AI engine running locally on device")
+    EASY("Beginner", "Relaxed pace with simple, occasionally random choices"),
+    MEDIUM("Standard", "Balanced tactics for an everyday match"),
+    HARD("Expert", "Preserves strong trumps and plays a sharper endgame")
 }
 
-enum class ThemePalette(val displayName: String, val primaryHex: Long, val seedColor: Long) {
-    DEEP_FOREST("Deep Forest M3E", 0xFF19241F, 0xFFAFD43E),
-    EMERALD("Emerald Felt", 0xFF0F5A47, 0xFF10B981),
-    CRIMSON("Ruby Velvet", 0xFF881337, 0xFFE11D48),
-    SAPPHIRE("Midnight Club", 0xFF1E3A8A, 0xFF3B82F6),
-    VEGAS_GOLD("Vegas Gold", 0xFF78350F, 0xFFF59E0B),
-    CYBER_PURPLE("Cyber Royale", 0xFF581C87, 0xFFA855F7)
+/**
+ * The on-device option is deliberately local-only. Until a bundled model strategy is installed,
+ * it transparently falls back to the Classic strategy instead of ever making a network request.
+ */
+enum class OpponentEngine(val displayName: String, val description: String, val isAvailable: Boolean) {
+    CLASSIC("Classic bot", "Reliable offline tactical bot", true),
+    SMART_ON_DEVICE("Smart bot", "Future on-device model; currently uses Classic bot", false)
 }
 
-enum class FeltStyle(val displayName: String) {
-    CLASSIC_FELT("Classic Felt"),
-    ROYAL_VELVET("Royal Velvet"),
-    DARK_WOOD("Dark Mahogany"),
-    NEON_GRID("Cyber Grid")
-}
+/** A validated, serializable representation of a local Durak match. */
+data class LocalMatchSetup(
+    val playerCount: Int = 2,
+    val gameMode: GameMode = GameMode.PODKIDNOY,
+    val deckSize: Int = 36,
+    val botDifficulty: BotDifficulty = BotDifficulty.MEDIUM,
+    val opponentEngine: OpponentEngine = OpponentEngine.CLASSIC
+) {
+    fun normalized(): LocalMatchSetup = copy(
+        playerCount = playerCount.coerceIn(2, 4),
+        deckSize = when (deckSize) {
+            24, 36, 52 -> deckSize
+            else -> 36
+        },
+        // Transfer requires its own state transition and is not yet exposed as a playable rule.
+        gameMode = if (gameMode == GameMode.PEREVODNOY) GameMode.PODKIDNOY else gameMode
+    )
 
-enum class CardBackStyle(val displayName: String) {
-    RED_SCROLL("Classic Red Scroll"),
-    GOLD_LATTICE("Royal Gold Lattice"),
-    EMERALD_FEATHER("Emerald Feather"),
-    CYBER_HEX("Cyber Hex Pattern"),
-    NOIR("Midnight Noir")
+    fun botDifficulties(): List<BotDifficulty> =
+        List((normalized().playerCount - 1).coerceAtLeast(1)) { botDifficulty }
 }
 
 data class Player(

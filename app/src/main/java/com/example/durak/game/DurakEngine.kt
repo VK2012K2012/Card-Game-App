@@ -14,12 +14,14 @@ data class DurakGameState(
     val defenderIndex: Int = 1,
     val currentTurnPlayerIndex: Int = 0,
     val tablePairs: List<TablePair> = emptyList(),
+    val defenderHandSizeAtRoundStart: Int = 6,
     val bitoCount: Int = 0,
     val gamePhase: GamePhase = GamePhase.SETUP,
     val gameLog: List<String> = emptyList(),
     val winnerPlayerNames: List<String> = emptyList(),
     val durakPlayerName: String? = null,
     val isGameOver: Boolean = false,
+    val isDraw: Boolean = false,
     val roundCount: Int = 1,
     val lastActionMessage: String = ""
 )
@@ -59,6 +61,8 @@ class DurakEngine {
         deckSize: Int = 36,
         gameMode: GameMode = GameMode.PODKIDNOY
     ): DurakGameState {
+        require(playerNames.size in 2..4) { "Durak supports 2 to 4 local players." }
+        require(deckSize in setOf(24, 36, 52)) { "Use a 24, 36, or 52-card deck." }
         val rawDeck = createInitialDeck(deckSize)
         val trump = rawDeck.last()
         val trumpSuit = trump.suit
@@ -124,6 +128,7 @@ class DurakEngine {
             defenderIndex = firstDefenderIndex,
             currentTurnPlayerIndex = firstAttackerIndex,
             tablePairs = emptyList(),
+            defenderHandSizeAtRoundStart = players[firstDefenderIndex].hand.size,
             bitoCount = 0,
             gamePhase = GamePhase.ATTACKING,
             gameLog = log,
@@ -144,9 +149,19 @@ class DurakEngine {
         })
     }
 
-    fun canAttackWith(card: Card, tablePairs: List<TablePair>, defenderHandSize: Int): Boolean {
+    /**
+     * Standard Durak throw-in rule: the table may never hold more than 6 attack
+     * pairs total, AND it may never hold more pairs than the defender started
+     * this round with in hand (the defender's *original* hand size before any
+     * cards were removed this round) — otherwise the defender could be forced
+     * to take more cards than they physically hold. [defenderOriginalHandSize]
+     * must be captured once at the start of the round, not read live, since the
+     * defender's hand shrinks as they successfully beat attacks.
+     */
+    fun canAttackWith(card: Card, tablePairs: List<TablePair>, defenderOriginalHandSize: Int): Boolean {
+        val maxPairs = minOf(6, defenderOriginalHandSize)
         if (tablePairs.isEmpty()) return true
-        if (tablePairs.size >= 6 || tablePairs.size >= defenderHandSize) return false
+        if (tablePairs.size >= maxPairs) return false
         val ranksOnTable = mutableSetOf<Rank>()
         for (pair in tablePairs) {
             ranksOnTable.add(pair.attackCard.rank)
@@ -170,10 +185,15 @@ class DurakEngine {
         playerIndex: Int,
         card: Card
     ): DurakGameState {
+        if (state.isGameOver || playerIndex !in state.players.indices ||
+            state.currentTurnPlayerIndex != playerIndex || state.attackerIndex != playerIndex ||
+            state.gamePhase !in setOf(GamePhase.ATTACKING, GamePhase.WAITING_FOR_THROW_IN)
+        ) return state
+
         val player = state.players[playerIndex]
         val defender = state.players[state.defenderIndex]
 
-        if (!canAttackWith(card, state.tablePairs, defender.hand.size)) {
+        if (player.hand.none { it.id == card.id } || !canAttackWith(card, state.tablePairs, state.defenderHandSizeAtRoundStart)) {
             return state.copy(lastActionMessage = "Cannot attack with ${card.rank.label} ${card.suit.symbol}!")
         }
 
@@ -202,7 +222,9 @@ class DurakEngine {
         defendingCard: Card,
         pairIndexToDefend: Int
     ): DurakGameState {
-        if (pairIndexToDefend !in state.tablePairs.indices) return state
+        if (state.isGameOver || state.currentTurnPlayerIndex != state.defenderIndex ||
+            state.gamePhase != GamePhase.DEFENDING || pairIndexToDefend !in state.tablePairs.indices
+        ) return state
         val targetPair = state.tablePairs[pairIndexToDefend]
         if (targetPair.isDefended) return state
 
@@ -211,6 +233,7 @@ class DurakEngine {
         }
 
         val defender = state.players[state.defenderIndex]
+        if (defender.hand.none { it.id == defendingCard.id }) return state
         defender.hand.removeIf { it.id == defendingCard.id }
 
         val updatedPairs = state.tablePairs.toMutableList()
@@ -233,6 +256,10 @@ class DurakEngine {
     }
 
     fun executeBitoClear(state: DurakGameState): DurakGameState {
+        if (state.isGameOver || state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } ||
+            state.currentTurnPlayerIndex != state.attackerIndex ||
+            state.gamePhase != GamePhase.WAITING_FOR_THROW_IN
+        ) return state
         val cardsCleared = state.tablePairs.size * 2
         val newBitoCount = state.bitoCount + cardsCleared
         val newLogs = state.gameLog.toMutableList()
@@ -243,7 +270,8 @@ class DurakEngine {
         // Winner check
         val winners = checkWinners(nextPlayers, nextDeck)
         val isOver = winners.size >= nextPlayers.size - 1
-        val durak = if (isOver) nextPlayers.firstOrNull { !it.isOut }?.name else null
+        val isDraw = isOver && winners.size == nextPlayers.size
+        val durak = if (isOver && !isDraw) nextPlayers.firstOrNull { !it.isOut }?.name else null
 
         // Next turn: defender becomes attacker if they successfully defended!
         val activeIndices = nextPlayers.indices.filter { !nextPlayers[it].isOut }
@@ -259,6 +287,7 @@ class DurakEngine {
             players = nextPlayers,
             deck = nextDeck,
             tablePairs = emptyList(),
+            defenderHandSizeAtRoundStart = nextPlayers.getOrNull(nextDefenderIndex)?.hand?.size ?: 6,
             bitoCount = newBitoCount,
             attackerIndex = nextAttackerIndex,
             defenderIndex = nextDefenderIndex,
@@ -268,8 +297,13 @@ class DurakEngine {
             winnerPlayerNames = winners,
             durakPlayerName = durak,
             isGameOver = isOver,
+            isDraw = isDraw,
             roundCount = state.roundCount + 1,
-            lastActionMessage = if (isOver) "Game Over! $durak is the Durak!" else "${nextPlayers[nextAttackerIndex].name}'s turn to attack"
+            lastActionMessage = when {
+                isDraw -> "Game over — everyone finished their cards."
+                isOver -> "Game over — $durak is the Durak."
+                else -> "${nextPlayers[nextAttackerIndex].name}'s turn to attack"
+            }
         )
     }
 
@@ -291,7 +325,8 @@ class DurakEngine {
 
         val winners = checkWinners(nextPlayers, nextDeck)
         val isOver = winners.size >= nextPlayers.size - 1
-        val durak = if (isOver) nextPlayers.firstOrNull { !it.isOut }?.name else null
+        val isDraw = isOver && winners.size == nextPlayers.size
+        val durak = if (isOver && !isDraw) nextPlayers.firstOrNull { !it.isOut }?.name else null
 
         // Defender took cards, so they skip their turn to attack. The player AFTER defender attacks next!
         val nextAttackerIndex = getNextActivePlayerIndex(nextPlayers, state.defenderIndex)
@@ -301,6 +336,7 @@ class DurakEngine {
             players = nextPlayers,
             deck = nextDeck,
             tablePairs = emptyList(),
+            defenderHandSizeAtRoundStart = nextPlayers.getOrNull(nextDefenderIndex)?.hand?.size ?: 6,
             attackerIndex = nextAttackerIndex,
             defenderIndex = nextDefenderIndex,
             currentTurnPlayerIndex = nextAttackerIndex,
@@ -309,8 +345,13 @@ class DurakEngine {
             winnerPlayerNames = winners,
             durakPlayerName = durak,
             isGameOver = isOver,
+            isDraw = isDraw,
             roundCount = state.roundCount + 1,
-            lastActionMessage = if (isOver) "Game Over! $durak is the Durak!" else "${nextPlayers[nextAttackerIndex].name}'s turn to attack"
+            lastActionMessage = when {
+                isDraw -> "Game over — everyone finished their cards."
+                isOver -> "Game over — $durak is the Durak."
+                else -> "${nextPlayers[nextAttackerIndex].name}'s turn to attack"
+            }
         )
     }
 
@@ -333,6 +374,7 @@ class DurakEngine {
 
         for (idx in order) {
             val p = players[idx]
+            if (p.isOut) continue
             while (p.hand.size < 6 && mutableDeck.isNotEmpty()) {
                 p.hand.add(mutableDeck.removeAt(0))
             }
@@ -364,6 +406,6 @@ class DurakEngine {
             next = (next + 1) % players.size
             attempts++
         }
-        return next
+        return if (attempts >= players.size) currentIndex else next
     }
 }

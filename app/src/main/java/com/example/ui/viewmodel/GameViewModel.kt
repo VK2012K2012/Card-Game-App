@@ -3,258 +3,213 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.*
-import com.example.durak.ai.AiAdviceResult
+import com.example.data.AppDatabase
+import com.example.data.GameRepository
+import com.example.data.GameStatsEntity
+import com.example.data.MatchHistoryEntity
 import com.example.durak.ai.BotMoveDecision
 import com.example.durak.ai.DurakBotAI
-import com.example.durak.ai.LocalAiAdvisor
 import com.example.durak.game.DurakEngine
 import com.example.durak.game.DurakGameState
 import com.example.durak.game.GamePhase
-import com.example.durak.model.*
-import com.example.ui.theme.CardAppThemeState
+import com.example.durak.model.Card
+import com.example.durak.model.LocalMatchSetup
+import com.example.durak.model.OpponentEngine
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: GameRepository
+    private val repository = GameRepository(AppDatabase.getDatabase(application).gameDao())
     private val engine = DurakEngine()
 
-    // Persistent Room stats
-    val statsFlow: StateFlow<GameStatsEntity>
-    val historyFlow: StateFlow<List<MatchHistoryEntity>>
+    val statsFlow: StateFlow<GameStatsEntity> = repository.stats
+        .map { it ?: GameStatsEntity() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GameStatsEntity())
 
-    // Game state
+    val historyFlow: StateFlow<List<MatchHistoryEntity>> = repository.matchHistory
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private val _gameState = MutableStateFlow(DurakGameState())
     val gameState: StateFlow<DurakGameState> = _gameState.asStateFlow()
 
-    // Selected Card by Human Player
     private val _selectedCard = MutableStateFlow<Card?>(null)
     val selectedCard: StateFlow<Card?> = _selectedCard.asStateFlow()
 
-    // AI Coach advice
-    private val _aiAdvice = MutableStateFlow<AiAdviceResult?>(null)
-    val aiAdvice: StateFlow<AiAdviceResult?> = _aiAdvice.asStateFlow()
+    private var botJob: Job? = null
+    private var activeSessionId = 0L
+    private var recordedSessionId: Long? = null
+    private var activeSetup = LocalMatchSetup()
 
-    private val _isAiLoading = MutableStateFlow(false)
-    val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
+    fun startNewGame(setup: LocalMatchSetup) {
+        botJob?.cancel()
+        activeSessionId += 1
+        recordedSessionId = null
+        _selectedCard.value = null
 
-    // Custom Theme state
-    private val _themeState = MutableStateFlow(CardAppThemeState())
-    val themeState: StateFlow<CardAppThemeState> = _themeState.asStateFlow()
-
-    init {
-        val database = AppDatabase.getDatabase(application)
-        repository = GameRepository(database.gameDao())
-
-        statsFlow = repository.stats.map { entity ->
-            entity ?: GameStatsEntity()
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = GameStatsEntity()
-        )
-
-        historyFlow = repository.matchHistory.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-        // Sync Theme state when Room loads
-        viewModelScope.launch {
-            statsFlow.collect { stats ->
-                val palette = try { ThemePalette.valueOf(stats.selectedThemePalette) } catch (e: Exception) { ThemePalette.EMERALD }
-                val felt = try { FeltStyle.valueOf(stats.selectedFeltStyle) } catch (e: Exception) { FeltStyle.CLASSIC_FELT }
-                val back = try { CardBackStyle.valueOf(stats.selectedCardBack) } catch (e: Exception) { CardBackStyle.RED_SCROLL }
-                _themeState.value = CardAppThemeState(
-                    palette = palette,
-                    feltStyle = felt,
-                    cardBackStyle = back
-                )
-            }
-        }
-    }
-
-    fun startNewGame(
-        playerCount: Int = 2,
-        mode: GameMode = GameMode.PODKIDNOY,
-        deckSize: Int = 36,
-        botDifficulties: List<BotDifficulty> = listOf(BotDifficulty.MEDIUM)
-    ) {
-        val playerNames = mutableListOf("You")
-        for (i in 1 until playerCount) {
-            val diff = botDifficulties.getOrElse(i - 1) { BotDifficulty.MEDIUM }
-            playerNames.add(if (diff == BotDifficulty.LOCAL_NEURAL_AI) "Gemma 3B AI" else "Bot $i")
+        activeSetup = setup.normalized()
+        val playerNames = buildList {
+            add("You")
+            repeat(activeSetup.playerCount - 1) { index -> add("Bot ${index + 1}") }
         }
 
         val initial = engine.startNewGame(
             playerNames = playerNames,
             humanIsFirst = true,
-            botDifficulties = botDifficulties,
-            deckSize = deckSize,
-            gameMode = mode
+            botDifficulties = activeSetup.botDifficulties(),
+            deckSize = activeSetup.deckSize,
+            gameMode = activeSetup.gameMode
         )
-        _gameState.value = initial
-        _selectedCard.value = null
-        _aiAdvice.value = null
+        _gameState.value = if (activeSetup.opponentEngine == OpponentEngine.SMART_ON_DEVICE) {
+            initial.copy(
+                gameLog = initial.gameLog + "Smart on-device bot is not installed yet; Classic bot is playing locally.",
+                lastActionMessage = "Classic bot is active locally while Smart bot is in preview."
+            )
+        } else {
+            initial
+        }
+        checkTriggerBotMove(activeSessionId)
+    }
 
-        checkTriggerBotMove()
+    fun abandonMatch() {
+        botJob?.cancel()
+        _selectedCard.value = null
+        activeSessionId += 1
     }
 
     fun selectCard(card: Card) {
-        if (_selectedCard.value?.id == card.id) {
-            _selectedCard.value = null
-        } else {
-            _selectedCard.value = card
-        }
+        val state = _gameState.value
+        val isHumanTurn = state.currentTurnPlayerIndex == HUMAN_INDEX
+        val cardInHand = state.players.getOrNull(HUMAN_INDEX)?.hand?.any { it.id == card.id } == true
+        if (state.isGameOver || !isHumanTurn || !cardInHand) return
+        _selectedCard.value = if (_selectedCard.value?.id == card.id) null else card
     }
 
     fun playHumanAttack(card: Card) {
-        val currentState = _gameState.value
-        val humanIndex = 0
-        if (currentState.currentTurnPlayerIndex != humanIndex) return
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
+            state.attackerIndex != HUMAN_INDEX ||
+            state.gamePhase !in setOf(GamePhase.ATTACKING, GamePhase.WAITING_FOR_THROW_IN)
+        ) return
 
-        val newState = engine.playAttackCard(currentState, humanIndex, card)
-        _gameState.value = newState
+        _gameState.value = engine.playAttackCard(state, HUMAN_INDEX, card)
         _selectedCard.value = null
-
-        checkTriggerBotMove()
+        checkTriggerBotMove(activeSessionId)
     }
 
     fun playHumanDefend(defendingCard: Card, pairIndexToDefend: Int) {
-        val currentState = _gameState.value
-        val humanIndex = 0
-        if (currentState.defenderIndex != humanIndex) return
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
+            state.defenderIndex != HUMAN_INDEX || state.gamePhase != GamePhase.DEFENDING ||
+            pairIndexToDefend !in state.tablePairs.indices
+        ) return
 
-        val newState = engine.playDefendCard(currentState, defendingCard, pairIndexToDefend)
-        _gameState.value = newState
+        _gameState.value = engine.playDefendCard(state, defendingCard, pairIndexToDefend)
         _selectedCard.value = null
-
-        checkTriggerBotMove()
+        checkTriggerBotMove(activeSessionId)
     }
 
-    fun humanPassOrClear() {
-        val currentState = _gameState.value
-        if (currentState.gamePhase == GamePhase.WAITING_FOR_THROW_IN || currentState.gamePhase == GamePhase.ATTACKING) {
-            val newState = engine.executeBitoClear(currentState)
-            _gameState.value = newState
-            _selectedCard.value = null
-            checkTriggerBotMove()
-        }
+    fun humanFinishRound() {
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
+            state.attackerIndex != HUMAN_INDEX || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN ||
+            state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended }
+        ) return
+
+        _gameState.value = engine.executeBitoClear(state)
+        _selectedCard.value = null
+        checkTriggerBotMove(activeSessionId)
     }
 
     fun humanTakeTable() {
-        val currentState = _gameState.value
-        if (currentState.defenderIndex == 0) {
-            val newState = engine.executeDefenderTake(currentState)
-            _gameState.value = newState
-            _selectedCard.value = null
-            checkTriggerBotMove()
-        }
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
+            state.defenderIndex != HUMAN_INDEX || state.gamePhase != GamePhase.DEFENDING ||
+            state.tablePairs.isEmpty()
+        ) return
+
+        _gameState.value = engine.executeDefenderTake(state)
+        _selectedCard.value = null
+        checkTriggerBotMove(activeSessionId)
     }
 
-    fun requestAiAdvice() {
-        viewModelScope.launch {
-            _isAiLoading.value = true
-            val currentState = _gameState.value
-            val humanHand = currentState.players.firstOrNull { it.isHuman }?.hand ?: emptyList()
-            val result = LocalAiAdvisor.getStrategicAdvice(currentState, humanHand)
-            _aiAdvice.value = result
-            _isAiLoading.value = false
-        }
-    }
-
-    fun applyRecommendedCard() {
-        val adviceCard = _aiAdvice.value?.recommendedCard ?: return
-        val currentState = _gameState.value
-        if (currentState.currentTurnPlayerIndex == 0) {
-            if (currentState.defenderIndex == 0) {
-                val undefIdx = currentState.tablePairs.indexOfFirst { !it.isDefended }
-                if (undefIdx != -1) {
-                    playHumanDefend(adviceCard, undefIdx)
-                }
-            } else {
-                playHumanAttack(adviceCard)
-            }
-        }
-    }
-
-    private fun checkTriggerBotMove() {
-        val currentState = _gameState.value
-        if (currentState.isGameOver) {
-            recordGameFinish(currentState)
+    private fun checkTriggerBotMove(sessionId: Long) {
+        if (sessionId != activeSessionId) return
+        val state = _gameState.value
+        if (state.isGameOver) {
+            recordGameFinishOnce(state, sessionId)
             return
         }
 
-        val currentPlayer = currentState.players.getOrNull(currentState.currentTurnPlayerIndex)
-        if (currentPlayer != null && !currentPlayer.isHuman && !currentPlayer.isOut) {
-            viewModelScope.launch {
-                delay(800) // Realistic bot delay
-                executeBotTurn(currentState.currentTurnPlayerIndex)
+        val player = state.players.getOrNull(state.currentTurnPlayerIndex)
+        if (player != null && !player.isHuman && !player.isOut) {
+            botJob?.cancel()
+            botJob = viewModelScope.launch {
+                delay(BOT_TURN_DELAY_MS)
+                if (sessionId == activeSessionId) executeBotTurn(state.currentTurnPlayerIndex, sessionId)
             }
         }
     }
 
-    private fun executeBotTurn(botIndex: Int) {
-        val currentState = _gameState.value
-        val decision = DurakBotAI.decideBotMove(currentState, botIndex, engine)
+    private fun executeBotTurn(botIndex: Int, sessionId: Long) {
+        if (sessionId != activeSessionId) return
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != botIndex || state.players.getOrNull(botIndex)?.isHuman != false) return
 
-        val newState = when (decision) {
-            is BotMoveDecision.Attack -> engine.playAttackCard(currentState, botIndex, decision.card)
-            is BotMoveDecision.Defend -> engine.playDefendCard(currentState, decision.card, decision.pairIndex)
-            is BotMoveDecision.PassOrDone -> {
-                if (currentState.gamePhase == GamePhase.WAITING_FOR_THROW_IN || currentState.gamePhase == GamePhase.ATTACKING) {
-                    engine.executeBitoClear(currentState)
+        // Both available and preview engines are local. Smart-on-device deliberately falls back
+        // to this deterministic strategy until a bundled model strategy is packaged.
+        val decision = DurakBotAI.decideBotMove(state, botIndex, engine)
+        _gameState.value = when (decision) {
+            is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)
+            is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
+            BotMoveDecision.PassOrDone -> {
+                if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
+                    engine.executeBitoClear(state)
                 } else {
-                    currentState
+                    state
                 }
             }
-            is BotMoveDecision.TakeTable -> engine.executeDefenderTake(currentState)
+            BotMoveDecision.TakeTable -> engine.executeDefenderTake(state)
         }
-
-        _gameState.value = newState
-        checkTriggerBotMove()
+        checkTriggerBotMove(sessionId)
     }
 
-    private fun recordGameFinish(state: DurakGameState) {
+    private fun recordGameFinishOnce(state: DurakGameState, sessionId: Long) {
+        if (recordedSessionId == sessionId) return
+        recordedSessionId = sessionId
+
         viewModelScope.launch {
-            val humanIsDurak = (state.durakPlayerName == "You")
-            val humanIsWinner = state.winnerPlayerNames.contains("You")
-
-            val currentStats = statsFlow.value
-            val updatedStats = currentStats.copy(
-                totalGamesPlayed = currentStats.totalGamesPlayed + 1,
-                totalWins = if (humanIsWinner) currentStats.totalWins + 1 else currentStats.totalWins,
-                totalLossesDurak = if (humanIsDurak) currentStats.totalLossesDurak + 1 else currentStats.totalLossesDurak
+            val humanIsDurak = state.durakPlayerName == "You"
+            val humanWon = !state.isDraw && state.winnerPlayerNames.contains("You")
+            val position = when {
+                state.isDraw -> "Draw"
+                humanWon -> "Winner"
+                humanIsDurak -> "Durak"
+                else -> "Safe"
+            }
+            repository.recordFinishedMatch(
+                match = MatchHistoryEntity(
+                    playerPosition = position,
+                    opponentCount = (state.players.size - 1).coerceAtLeast(1),
+                    botDifficulty = activeSetup.botDifficulty.name,
+                    isWin = humanWon,
+                    roundsPlayed = state.roundCount
+                ),
+                humanWon = humanWon,
+                humanWasDurak = humanIsDurak
             )
-            repository.saveStats(updatedStats)
-
-            val match = MatchHistoryEntity(
-                playerPosition = if (humanIsWinner) "1st Place (Winner)" else if (humanIsDurak) "Durak (Fool)" else "Safe",
-                opponentCount = state.players.size - 1,
-                botDifficulty = state.players.getOrNull(1)?.difficulty?.name ?: "MEDIUM",
-                isWin = humanIsWinner,
-                roundsPlayed = state.roundCount
-            )
-            repository.recordMatch(match, humanIsWinner, humanIsDurak)
         }
     }
 
-    fun updateTheme(palette: ThemePalette, feltStyle: FeltStyle, cardBackStyle: CardBackStyle) {
-        val newTheme = CardAppThemeState(palette = palette, feltStyle = feltStyle, cardBackStyle = cardBackStyle)
-        _themeState.value = newTheme
-        viewModelScope.launch {
-            val current = statsFlow.value
-            repository.saveStats(
-                current.copy(
-                    selectedThemePalette = palette.name,
-                    selectedFeltStyle = feltStyle.name,
-                    selectedCardBack = cardBackStyle.name
-                )
-            )
-        }
+    private companion object {
+        const val HUMAN_INDEX = 0
+        const val BOT_TURN_DELAY_MS = 650L
     }
 }

@@ -1,16 +1,11 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
@@ -21,7 +16,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.durak.model.BotDifficulty
 import com.example.durak.model.Player
 
 @Composable
@@ -54,14 +48,12 @@ fun BotAvatarBadge(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
-            // Avatar Icon Circle
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(
                         if (player.isHuman) MaterialTheme.colorScheme.primaryContainer
-                        else if (player.difficulty == BotDifficulty.LOCAL_NEURAL_AI) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant
                     ),
                 contentAlignment = Alignment.Center
@@ -71,12 +63,6 @@ fun BotAvatarBadge(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Human",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                } else if (player.difficulty == BotDifficulty.LOCAL_NEURAL_AI) {
-                    Icon(
-                        imageVector = Icons.Default.Memory,
-                        contentDescription = "Offline Gemma 3B AI Bot",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 } else {
                     Icon(
