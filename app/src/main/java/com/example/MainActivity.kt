@@ -33,6 +33,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -192,69 +195,52 @@ private fun AppRootScaffold(
     )
 }
 
-/** The default: a real Material 3 labeled NavigationBar with a persistent active pill. */
+/**
+ * The standard option deliberately uses the framework Material 3 navigation components.
+ * NavigationBarDefaults.windowInsets owns system navigation-bar padding, avoiding a custom
+ * wrapper or fixed height that would make the bar taller than the Material specification.
+ */
 @Composable
 private fun Material3ExpressiveNavigationBar(
     destination: RootDestination,
     onDestinationChange: (RootDestination) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .navigationBarsPadding()
+    NavigationBar(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp,
+        windowInsets = NavigationBarDefaults.windowInsets
     ) {
-        NavigationBar(
-            modifier = Modifier.fillMaxWidth().height(72.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 0.dp,
-            windowInsets = WindowInsets(0, 0, 0, 0)
-        ) {
-            NavigationDestinationItem(RootDestination.PLAY, Icons.Default.PlayArrow, destination, onDestinationChange)
-            NavigationDestinationItem(RootDestination.STATS, Icons.Default.BarChart, destination, onDestinationChange)
-            NavigationDestinationItem(RootDestination.SETTINGS, Icons.Default.Settings, destination, onDestinationChange)
+        RootDestination.entries.forEach { item ->
+            NavigationBarItem(
+                selected = destination == item,
+                onClick = { onDestinationChange(item) },
+                icon = {
+                    Icon(
+                        imageVector = iconFor(item),
+                        contentDescription = item.label
+                    )
+                },
+                label = { Text(item.label) },
+                alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.secondary,
+                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
         }
     }
 }
 
-@Composable
-private fun NavigationDestinationItem(
-    item: RootDestination,
-    icon: ImageVector,
-    destination: RootDestination,
-    onDestinationChange: (RootDestination) -> Unit
-) {
-    val selected = destination == item
-    Column(
-        modifier = Modifier
-            .width(88.dp)
-            .height(64.dp)
-            .clip(ExpressiveCorners.Full)
-            .clickable { onDestinationChange(item) },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            modifier = Modifier.size(width = 56.dp, height = 32.dp),
-            shape = ExpressiveCorners.Full,
-            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = item.label,
-                    modifier = Modifier.size(25.dp),
-                    tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Text(
-            text = item.label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+private fun iconFor(item: RootDestination): ImageVector = when (item) {
+    RootDestination.PLAY -> Icons.Default.PlayArrow
+    RootDestination.STATS -> Icons.Default.BarChart
+    RootDestination.SETTINGS -> Icons.Default.Settings
 }
+
 
 @Composable
 private fun CompactNavigationDock(

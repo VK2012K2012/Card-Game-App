@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +32,9 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -354,52 +358,52 @@ private fun NavigationPreview(appearance: NavigationAppearance) {
     }
 }
 
+/** This uses the same official Material 3 components as the persistent app navigation. */
 @Composable
 private fun LabeledNavigationPreview() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+    NavigationBar(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp,
+        // The preview is embedded in a card, so it must not reserve the device system-bar area.
+        windowInsets = WindowInsets(0, 0, 0, 0)
     ) {
-        PreviewLabeledItem(Icons.Default.PlayArrow, "Play", selected = true)
-        PreviewLabeledItem(Icons.Default.BarChart, "Stats", selected = false)
-        PreviewLabeledItem(Icons.Default.Settings, "Settings", selected = false)
+        NavigationBarItem(
+            selected = true,
+            onClick = {},
+            icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+            label = { Text("Play") },
+            alwaysShowLabel = true,
+            colors = previewNavigationItemColors()
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = {},
+            icon = { Icon(Icons.Default.BarChart, contentDescription = null) },
+            label = { Text("Stats") },
+            alwaysShowLabel = true,
+            colors = previewNavigationItemColors()
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = {},
+            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+            label = { Text("Settings") },
+            alwaysShowLabel = true,
+            colors = previewNavigationItemColors()
+        )
     }
 }
 
 @Composable
-private fun PreviewLabeledItem(icon: ImageVector, label: String, selected: Boolean) {
-    Column(
-        modifier = Modifier.height(60.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            modifier = Modifier.size(width = 52.dp, height = 30.dp),
-            shape = ExpressiveCorners.Full,
-            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(19.dp),
-                    tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
+private fun previewNavigationItemColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    selectedTextColor = MaterialTheme.colorScheme.secondary,
+    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+)
+
 
 @Composable
 private fun CompactNavigationPreview() {
