@@ -2,57 +2,60 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
-import com.example.performance.MemoryDiagnostics
+import com.example.NavigationAppearance
 import com.example.ui.theme.ExpressiveCorners
 
 private const val SOURCE_URL = "https://github.com/VK2012K2012/Card-Game-App"
 
 @Composable
-fun SettingsCustomizerScreen() {
-    val context = LocalContext.current
-    var diagnosticStatus by remember { mutableStateOf<String?>(null) }
-
+fun SettingsCustomizerScreen(
+    onOpenDesign: () -> Unit,
+    onOpenAbout: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             Column(
@@ -67,135 +70,178 @@ fun SettingsCustomizerScreen() {
                     letterSpacing = 1.1.sp
                 )
                 Text(
-                    text = "The good details.",
+                    text = "Make it yours.",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
         }
         item {
-            AboutCard()
-        }
-        item {
-            SettingsLabel("UPDATES & SOURCE")
-        }
-        item {
-            ActionRow(
-                icon = Icons.Default.SystemUpdate,
-                title = "Check the project on GitHub",
-                subtitle = "View releases, updates, and the source code.",
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL)))
-                }
+            SettingsEntry(
+                icon = Icons.Default.Tune,
+                title = "Design customization",
+                subtitle = "Choose your bottom navigation style.",
+                onClick = onOpenDesign
             )
         }
         item {
-            ActionRow(
+            SettingsEntry(
+                icon = Icons.Default.Info,
+                title = "About app",
+                subtitle = "Version, source, and credits.",
+                onClick = onOpenAbout
+            )
+        }
+    }
+}
+
+@Composable
+fun DesignCustomizationScreen(
+    currentAppearance: NavigationAppearance,
+    onAppearanceChange: (NavigationAppearance) -> Unit,
+    onBack: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            SettingsHeader(
+                eyebrow = "DESIGN CUSTOMIZATION",
+                title = "Navigation that fits you.",
+                onBack = onBack
+            )
+        }
+        item {
+            Text(
+                text = "The selected style is saved on this device and applies immediately.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        item {
+            NavigationAppearanceChoice(
+                title = "Standard",
+                subtitle = "Labeled Material navigation with a soft active indicator.",
+                appearance = NavigationAppearance.STANDARD,
+                selected = currentAppearance == NavigationAppearance.STANDARD,
+                onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) }
+            )
+        }
+        item {
+            NavigationAppearanceChoice(
+                title = "Compact dock",
+                subtitle = "A low icon dock with more room for the game.",
+                appearance = NavigationAppearance.COMPACT,
+                selected = currentAppearance == NavigationAppearance.COMPACT,
+                onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) }
+            )
+        }
+    }
+}
+
+@Composable
+fun AboutAppScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            SettingsHeader(
+                eyebrow = "ABOUT APP",
+                title = "Card Game Hub.",
+                onBack = onBack
+            )
+        }
+        item {
+            SettingsEntry(
                 icon = Icons.Default.Code,
-                title = "Version ${BuildConfig.VERSION_NAME}",
-                subtitle = "Build ${BuildConfig.VERSION_CODE} · Offline Durak",
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL)))
-                },
-                trailingIcon = Icons.Default.OpenInNew
+                title = "GitHub project",
+                subtitle = "Source code and the latest published changes.",
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) },
+                trailing = Icons.Default.OpenInNew
             )
-        }
-        if (BuildConfig.DEBUG) {
-            item { SettingsLabel("DEVELOPER DIAGNOSTICS") }
-            item {
-                DiagnosticCard(
-                    status = diagnosticStatus,
-                    isSupported = MemoryDiagnostics.isSupported(),
-                    onRun = {
-                        MemoryDiagnostics.requestHeapProfile(context) { diagnosticStatus = it }
-                    }
-                )
-            }
         }
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
+                shape = ExpressiveCorners.ExtraExtraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerLow
             ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                     Text(
-                        text = "Made by developers with love.",
+                        "Build ${BuildConfig.VERSION_CODE}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AboutCard() {
-    Card(
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(22.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        item {
             Surface(
-                modifier = Modifier.size(54.dp),
-                shape = ExpressiveCorners.Full,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                modifier = Modifier.fillMaxWidth(),
+                shape = ExpressiveCorners.ExtraExtraLarge,
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("♠", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(
+                        "Made by developers with love.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("Card Game Hub", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                Text(
-                    "Durak for local play, one good hand at a time.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
             }
         }
     }
 }
 
 @Composable
-private fun SettingsLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.sp
-    )
+private fun SettingsHeader(eyebrow: String, title: String, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier.statusBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        IconButton(onClick = onBack, modifier = Modifier.size(44.dp)) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+        }
+        Text(
+            text = eyebrow,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.1.sp
+        )
+        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+    }
 }
 
 @Composable
-private fun ActionRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun SettingsEntry(
+    icon: ImageVector,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    trailingIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.OpenInNew
+    trailing: ImageVector = Icons.Default.ArrowForward
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(ExpressiveCorners.ExtraExtraLarge)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(
@@ -216,42 +262,79 @@ private fun ActionRow(
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(trailingIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                imageVector = trailing,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
-private fun DiagnosticCard(
-    status: String?,
-    isSupported: Boolean,
-    onRun: () -> Unit
+private fun NavigationAppearanceChoice(
+    title: String,
+    subtitle: String,
+    appearance: NavigationAppearance,
+    selected: Boolean,
+    onSelected: () -> Unit
 ) {
-    Card(
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
+    val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(ExpressiveCorners.ExtraExtraLarge)
+            .clickable(onClick = onSelected),
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = container
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Memory, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
-                Column {
-                    Text("Memory check", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        if (isSupported) "Requests a local heap profile only when you tap the button." else "Requires Android 15 or newer.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = content)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = content.copy(alpha = 0.78f))
                 }
+                if (selected) Icon(Icons.Default.Check, contentDescription = "Selected", tint = content)
             }
-            Button(onClick = onRun, enabled = isSupported) {
-                Text("Request local profile")
+            NavigationPreview(appearance = appearance, activeColor = content, selected = selected)
+        }
+    }
+}
+
+@Composable
+private fun NavigationPreview(appearance: NavigationAppearance, activeColor: androidx.compose.ui.graphics.Color, selected: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .background(activeColor.copy(alpha = 0.08f), ExpressiveCorners.ExtraExtraLarge)
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (appearance == NavigationAppearance.STANDARD) {
+            listOf("Play", "Stats", "Settings").forEachIndexed { index, label ->
+                val isActive = index == 0
+                Text(
+                    text = label,
+                    modifier = if (isActive) Modifier.background(activeColor.copy(alpha = 0.16f), ExpressiveCorners.Full).padding(horizontal = 9.dp, vertical = 4.dp) else Modifier,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
+                    color = activeColor
+                )
             }
-            status?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            repeat(3) { index ->
+                Surface(
+                    modifier = Modifier.size(width = if (index == 0) 44.dp else 24.dp, height = 20.dp),
+                    shape = ExpressiveCorners.Full,
+                    color = if (index == 0) activeColor.copy(alpha = 0.20f) else activeColor.copy(alpha = 0.08f)
+                ) {}
             }
         }
     }

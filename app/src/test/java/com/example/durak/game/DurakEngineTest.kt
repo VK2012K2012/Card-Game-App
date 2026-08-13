@@ -122,6 +122,33 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `bot keeps throw-in turn after bot defender answers before human is asked`() {
+        val openingAttack = card("opening_attack", Suit.HEARTS, Rank.SIX)
+        val followUp = card("follow_up", Suit.CLUBS, Rank.SIX)
+        val openingDefense = card("opening_defense", Suit.HEARTS, Rank.SEVEN)
+        val human = Player("human", "You", true, hand = mutableListOf())
+        val attacker = Player("attacker", "Bot 1", false, hand = mutableListOf(openingAttack, followUp))
+        val defender = Player("defender", "Bot 2", false, hand = mutableListOf(openingDefense))
+        val start = DurakGameState(
+            players = listOf(human, attacker, defender),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 1,
+            defenderIndex = 2,
+            currentTurnPlayerIndex = 1,
+            defenderHandSizeAtRoundStart = 6,
+            gamePhase = GamePhase.ATTACKING
+        )
+
+        val afterAttack = engine.playAttackCard(start, 1, openingAttack)
+        val afterDefense = engine.playDefendCard(afterAttack, openingDefense, pairIndexToDefend = 0)
+
+        assertEquals(GamePhase.WAITING_FOR_THROW_IN, afterDefense.gamePhase)
+        assertEquals(1, afterDefense.currentTurnPlayerIndex)
+        assertTrue(afterDefense.lastThrowInActorIndex == 1)
+    }
+
+    @Test
     fun `legal attack and defense move the round through expected phases`() {
         val attack = card("attack", Suit.HEARTS, Rank.SIX)
         val defense = card("defense", Suit.HEARTS, Rank.SEVEN)

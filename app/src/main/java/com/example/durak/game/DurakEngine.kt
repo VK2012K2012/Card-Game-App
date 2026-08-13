@@ -25,6 +25,8 @@ data class DurakGameState(
     val roundCount: Int = 1,
     /** Active non-defenders who have explicitly declined another throw-in this round. */
     val throwInPasses: Set<Int> = emptySet(),
+    /** Most recent non-defender to play or pass during the current throw-in rotation. */
+    val lastThrowInActorIndex: Int? = null,
     val lastActionMessage: String = ""
 )
 
@@ -221,7 +223,10 @@ class DurakEngine {
             tablePairs = updatedPairs,
             currentTurnPlayerIndex = state.defenderIndex,
             gamePhase = GamePhase.DEFENDING,
-            throwInPasses = if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN) state.throwInPasses + playerIndex else emptySet(),
+            // Playing a card is not the same as passing. Keep a throw-in player eligible
+            // until they explicitly select Pass throw-in after all desired legal cards.
+            throwInPasses = if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN) state.throwInPasses else emptySet(),
+            lastThrowInActorIndex = playerIndex,
             gameLog = newLogs,
             lastActionMessage = "${defender.name} must defend against ${card.rank.label}${card.suit.symbol}"
         )
@@ -261,7 +266,25 @@ class DurakEngine {
             gameLog = newLogs,
             lastActionMessage = if (allDefended) "All attacks beaten. Each attacker may throw in or pass." else "${defender.name} needs to defend remaining attacks."
         )
-        return if (allDefended) advanceToNextThrowIn(defendedState, state.defenderIndex) else defendedState
+        if (!allDefended) return defendedState
+
+        val lastThrowInActor = state.lastThrowInActorIndex
+        val canContinueBotSequence = lastThrowInActor != null &&
+            !state.players[lastThrowInActor].isHuman &&
+            !state.players[state.defenderIndex].isHuman &&
+            lastThrowInActor != state.defenderIndex &&
+            lastThrowInActor !in state.throwInPasses
+        return if (canContinueBotSequence) {
+            // Give the bot another uninterrupted decision: it may add every legal card, then
+            // explicitly pass. This keeps secondary human attackers out of bot-only turns.
+            defendedState.copy(
+                currentTurnPlayerIndex = lastThrowInActor,
+                gamePhase = GamePhase.WAITING_FOR_THROW_IN,
+                lastActionMessage = "${state.players[lastThrowInActor].name}: continue throwing in or pass."
+            )
+        } else {
+            advanceToNextThrowIn(defendedState, lastThrowInActor ?: state.defenderIndex)
+        }
     }
 
     fun executeBitoClear(state: DurakGameState): DurakGameState {
@@ -309,6 +332,7 @@ class DurakEngine {
             isDraw = isDraw,
             roundCount = state.roundCount + 1,
             throwInPasses = emptySet(),
+            lastThrowInActorIndex = null,
             lastActionMessage = when {
                 isDraw -> "Game over — everyone finished their cards."
                 isOver -> "Game over — $durak is the Durak."
@@ -358,6 +382,7 @@ class DurakEngine {
             isDraw = isDraw,
             roundCount = state.roundCount + 1,
             throwInPasses = emptySet(),
+            lastThrowInActorIndex = null,
             lastActionMessage = when {
                 isDraw -> "Game over — everyone finished their cards."
                 isOver -> "Game over — $durak is the Durak."
@@ -378,6 +403,7 @@ class DurakEngine {
 
         val passed = state.copy(
             throwInPasses = state.throwInPasses + playerIndex,
+            lastThrowInActorIndex = playerIndex,
             gameLog = state.gameLog + "${state.players[playerIndex].name} passes the throw-in.",
             lastActionMessage = "${state.players[playerIndex].name} passes."
         )

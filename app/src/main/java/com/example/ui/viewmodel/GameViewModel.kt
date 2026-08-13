@@ -94,10 +94,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun playHumanAttack(card: Card) {
         val state = _gameState.value
-        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
-            state.attackerIndex != HUMAN_INDEX ||
-            state.gamePhase !in setOf(GamePhase.ATTACKING, GamePhase.WAITING_FOR_THROW_IN)
-        ) return
+        val isOpeningAttack = state.gamePhase == GamePhase.ATTACKING && state.attackerIndex == HUMAN_INDEX
+        val isHumanThrowIn = state.gamePhase == GamePhase.WAITING_FOR_THROW_IN &&
+            state.defenderIndex != HUMAN_INDEX && HUMAN_INDEX !in state.throwInPasses
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX || (!isOpeningAttack && !isHumanThrowIn)) return
 
         _gameState.value = engine.playAttackCard(state, HUMAN_INDEX, card)
         _selectedCard.value = null
@@ -164,36 +164,61 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             botJob?.cancel()
             botJob = viewModelScope.launch {
                 delay(BOT_TURN_DELAY_MS)
-                if (sessionId == activeSessionId) executeBotTurn(state.currentTurnPlayerIndex, sessionId)
+                playConsecutiveBotTurns(sessionId)
             }
         }
     }
 
-    private fun executeBotTurn(botIndex: Int, sessionId: Long) {
-        if (sessionId != activeSessionId) return
-        val state = _gameState.value
-        if (state.isGameOver || state.currentTurnPlayerIndex != botIndex || state.players.getOrNull(botIndex)?.isHuman != false) return
-
-        // Both available and preview engines are local. Smart-on-device deliberately falls back
-        // to this deterministic strategy until a bundled model strategy is packaged.
-        val decision = DurakBotAI.decideBotMove(state, botIndex, engine)
-        _gameState.value = when (decision) {
-            is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)
-            is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
-            BotMoveDecision.PassOrDone -> {
-                if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
-                    if (botIndex == state.attackerIndex && engine.isBitoReady(state)) {
-                        engine.executeBitoClear(state)
-                    } else {
-                        engine.passThrowIn(state, botIndex)
-                    }
-                } else {
-                    state
-                }
+    /**
+     * Resolve every uninterrupted bot decision as one short sequence. The sequence stops
+     * immediately if a human decision is required, so the player is never skipped or asked
+     * to intervene between bots that are still meant to act.
+     */
+    private suspend fun playConsecutiveBotTurns(sessionId: Long) {
+        var actions = 0
+        while (sessionId == activeSessionId && actions < MAX_BOT_SEQUENCE_ACTIONS) {
+            val state = _gameState.value
+            if (state.isGameOver) {
+                recordGameFinishOnce(state, sessionId)
+                return
             }
-            BotMoveDecision.TakeTable -> engine.executeDefenderTake(state)
+
+            val botIndex = state.currentTurnPlayerIndex
+            val player = state.players.getOrNull(botIndex)
+            if (player == null || player.isHuman || player.isOut) return
+
+            // Both available and preview engines are local. Smart-on-device deliberately falls
+            // back to this deterministic strategy until a bundled model strategy is packaged.
+            val decision = DurakBotAI.decideBotMove(state, botIndex, engine)
+            val nextState = when (decision) {
+                is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)
+                is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
+                BotMoveDecision.PassOrDone -> {
+                    if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
+                        if (botIndex == state.attackerIndex && engine.isBitoReady(state)) {
+                            engine.executeBitoClear(state)
+                        } else {
+                            engine.passThrowIn(state, botIndex)
+                        }
+                    } else {
+                        state
+                    }
+                }
+                BotMoveDecision.TakeTable -> engine.executeDefenderTake(state)
+            }
+
+            // Do not loop forever if an unexpected bot decision is not legal for the state.
+            if (nextState === state) return
+            _gameState.value = nextState
+            actions += 1
+
+            val nextPlayer = nextState.players.getOrNull(nextState.currentTurnPlayerIndex)
+            if (nextState.isGameOver || nextPlayer == null || nextPlayer.isHuman || nextPlayer.isOut) {
+                if (nextState.isGameOver) recordGameFinishOnce(nextState, sessionId)
+                return
+            }
+            delay(BOT_SEQUENCE_DELAY_MS)
         }
-        checkTriggerBotMove(sessionId)
     }
 
     private fun recordGameFinishOnce(state: DurakGameState, sessionId: Long) {
@@ -226,5 +251,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         const val HUMAN_INDEX = 0
         const val BOT_TURN_DELAY_MS = 650L
+        const val BOT_SEQUENCE_DELAY_MS = 260L
+        const val MAX_BOT_SEQUENCE_ACTIONS = 24
     }
 }

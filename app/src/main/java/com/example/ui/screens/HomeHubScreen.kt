@@ -127,8 +127,8 @@ fun HomeHubScreen(
 }
 
 /**
- * A large Material 3 Expressive action: pressing morphs its corners toward a square
- * while subtly compressing the surface, then restores the relaxed shape on release.
+ * A large Material 3 Expressive action: pressing tightens the corners into a softer
+ * rounded form while subtly compressing the surface, then restores the relaxed shape.
  */
 @Composable
 private fun MorphAction(
@@ -144,7 +144,7 @@ private fun MorphAction(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
-        targetValue = if (pressed) 12.dp else 30.dp,
+        targetValue = if (pressed) 22.dp else 34.dp,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "cornerMorph"
     )
