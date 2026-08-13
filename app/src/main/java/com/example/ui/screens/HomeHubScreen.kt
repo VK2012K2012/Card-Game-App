@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SplitButton
 import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -107,50 +108,96 @@ fun HomeHubScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 560.dp),
+                    shape = RoundedCornerShape(36.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 3.dp
                 ) {
-                    Text(
-                        text = "Choose your table",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold
-                    )
-                    SplitButton(
-                        modifier = Modifier
-                            .fillMaxWidth(0.94f)
-                            .widthIn(max = 420.dp),
-                        leadingButton = {
-                            SplitButtonDefaults.LeadingButton(
-                                onClick = { onStartDurak(LocalMatchSetup()) },
-                                shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                contentPadding = SplitButtonDefaults.leadingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                Text("Play Durak")
-                            }
-                        },
-                        trailingButton = {
-                            SplitButtonDefaults.TrailingButton(
-                                checked = modeMenuExpanded,
-                                onCheckedChange = { modeMenuExpanded = it },
-                                shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                contentPadding = SplitButtonDefaults.trailingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
-                            ) {
-                                val arrowRotation by animateFloatAsState(
-                                    targetValue = if (modeMenuExpanded) 180f else 0f,
-                                    animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                    label = "modeMenuArrow"
-                                )
-                                Icon(
-                                    Icons.Default.ArrowDropDown,
-                                    contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
-                                    modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
-                                )
-                            }
+                    Column(
+                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "QUICK START",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.2.sp
+                        )
+                        Text(
+                            text = "Your next table",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Offline Durak with local bots. Choose a mode from the arrow when you want to tune the match.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ModePill("2 players")
+                            ModePill("36 cards")
+                            ModePill("Standard bot")
                         }
-                    )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(76.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            SplitButton(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .widthIn(max = 520.dp)
+                                    .height(76.dp),
+                                leadingButton = {
+                                    SplitButtonDefaults.LeadingButton(
+                                        onClick = { onStartDurak(LocalMatchSetup()) },
+                                        shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                                        contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp)
+                                    ) {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                        Text("Play Durak", fontWeight = FontWeight.ExtraBold)
+                                    }
+                                },
+                                trailingButton = {
+                                    SplitButtonDefaults.TrailingButton(
+                                        checked = modeMenuExpanded,
+                                        onCheckedChange = { modeMenuExpanded = it },
+                                        shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
+                                    ) {
+                                        val arrowRotation by animateFloatAsState(
+                                            targetValue = if (modeMenuExpanded) 180f else 0f,
+                                            animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                            label = "modeMenuArrow"
+                                        )
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                            modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        Text(
+                            text = "Tap the arrow to configure players, deck, rules, or bot difficulty.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = modeMenuExpanded,
@@ -192,6 +239,22 @@ fun HomeHubScreen(
  * A large Material 3 Expressive action: pressing tightens the corners into a softer
  * rounded form while subtly compressing the surface, then restores the relaxed shape.
  */
+@Composable
+private fun ModePill(label: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
 @Composable
 private fun MorphAction(
     title: String,
