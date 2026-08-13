@@ -23,6 +23,8 @@ data class DurakGameState(
     val isGameOver: Boolean = false,
     val isDraw: Boolean = false,
     val roundCount: Int = 1,
+    /** Active non-defenders who have explicitly declined another throw-in this round. */
+    val throwInPasses: Set<Int> = emptySet(),
     val lastActionMessage: String = ""
 )
 
@@ -186,9 +188,16 @@ class DurakEngine {
         card: Card
     ): DurakGameState {
         if (state.isGameOver || playerIndex !in state.players.indices ||
-            state.currentTurnPlayerIndex != playerIndex || state.attackerIndex != playerIndex ||
+            state.currentTurnPlayerIndex != playerIndex ||
             state.gamePhase !in setOf(GamePhase.ATTACKING, GamePhase.WAITING_FOR_THROW_IN)
         ) return state
+
+        // In a multi-player round each non-defender gets a deliberate throw-in turn.
+        val isOpeningAttacker = playerIndex == state.attackerIndex && state.gamePhase == GamePhase.ATTACKING
+        val isEligibleThrowIn = playerIndex != state.defenderIndex &&
+            playerIndex !in state.throwInPasses &&
+            state.gamePhase == GamePhase.WAITING_FOR_THROW_IN
+        if (!isOpeningAttacker && !isEligibleThrowIn) return state
 
         val player = state.players[playerIndex]
         val defender = state.players[state.defenderIndex]
@@ -212,6 +221,7 @@ class DurakEngine {
             tablePairs = updatedPairs,
             currentTurnPlayerIndex = state.defenderIndex,
             gamePhase = GamePhase.DEFENDING,
+            throwInPasses = if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN) state.throwInPasses + playerIndex else emptySet(),
             gameLog = newLogs,
             lastActionMessage = "${defender.name} must defend against ${card.rank.label}${card.suit.symbol}"
         )
@@ -243,22 +253,21 @@ class DurakEngine {
         newLogs.add("${defender.name} defends with ${defendingCard.rank.label}${defendingCard.suit.symbol}")
 
         val allDefended = updatedPairs.all { it.isDefended }
-        val nextPhase = if (allDefended) GamePhase.WAITING_FOR_THROW_IN else GamePhase.DEFENDING
-        val nextTurnIndex = if (allDefended) state.attackerIndex else state.defenderIndex
-
-        return state.copy(
+        val defendedState = state.copy(
             tablePairs = updatedPairs,
-            currentTurnPlayerIndex = nextTurnIndex,
-            gamePhase = nextPhase,
+            currentTurnPlayerIndex = state.defenderIndex,
+            gamePhase = if (allDefended) GamePhase.WAITING_FOR_THROW_IN else GamePhase.DEFENDING,
+            throwInPasses = state.throwInPasses,
             gameLog = newLogs,
-            lastActionMessage = if (allDefended) "All attacks beaten! Throw in or Clear (Bito)." else "${defender.name} needs to defend remaining attacks."
+            lastActionMessage = if (allDefended) "All attacks beaten. Each attacker may throw in or pass." else "${defender.name} needs to defend remaining attacks."
         )
+        return if (allDefended) advanceToNextThrowIn(defendedState, state.defenderIndex) else defendedState
     }
 
     fun executeBitoClear(state: DurakGameState): DurakGameState {
         if (state.isGameOver || state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } ||
             state.currentTurnPlayerIndex != state.attackerIndex ||
-            state.gamePhase != GamePhase.WAITING_FOR_THROW_IN
+            state.gamePhase != GamePhase.WAITING_FOR_THROW_IN || !isBitoReady(state)
         ) return state
         val cardsCleared = state.tablePairs.size * 2
         val newBitoCount = state.bitoCount + cardsCleared
@@ -299,6 +308,7 @@ class DurakEngine {
             isGameOver = isOver,
             isDraw = isDraw,
             roundCount = state.roundCount + 1,
+            throwInPasses = emptySet(),
             lastActionMessage = when {
                 isDraw -> "Game over — everyone finished their cards."
                 isOver -> "Game over — $durak is the Durak."
@@ -347,12 +357,56 @@ class DurakEngine {
             isGameOver = isOver,
             isDraw = isDraw,
             roundCount = state.roundCount + 1,
+            throwInPasses = emptySet(),
             lastActionMessage = when {
                 isDraw -> "Game over — everyone finished their cards."
                 isOver -> "Game over — $durak is the Durak."
                 else -> "${nextPlayers[nextAttackerIndex].name}'s turn to attack"
             }
         )
+    }
+
+    /** True only after every active non-defender has had a chance to throw in. */
+    fun isBitoReady(state: DurakGameState): Boolean = eligibleThrowInPlayers(state).all { it in state.throwInPasses }
+
+    /** Records a deliberate pass and gives the next eligible attacker one clear turn. */
+    fun passThrowIn(state: DurakGameState, playerIndex: Int): DurakGameState {
+        if (state.isGameOver || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN ||
+            state.currentTurnPlayerIndex != playerIndex || playerIndex == state.defenderIndex ||
+            playerIndex !in eligibleThrowInPlayers(state) || playerIndex in state.throwInPasses
+        ) return state
+
+        val passed = state.copy(
+            throwInPasses = state.throwInPasses + playerIndex,
+            gameLog = state.gameLog + "${state.players[playerIndex].name} passes the throw-in.",
+            lastActionMessage = "${state.players[playerIndex].name} passes."
+        )
+        return if (isBitoReady(passed)) {
+            passed.copy(
+                currentTurnPlayerIndex = passed.attackerIndex,
+                lastActionMessage = "All attackers passed. ${passed.players[passed.attackerIndex].name} can clear Bito."
+            )
+        } else {
+            advanceToNextThrowIn(passed, playerIndex)
+        }
+    }
+
+    private fun advanceToNextThrowIn(state: DurakGameState, afterPlayerIndex: Int): DurakGameState {
+        repeat(state.players.size) { offset ->
+            val candidate = (afterPlayerIndex + 1 + offset) % state.players.size
+            if (candidate in eligibleThrowInPlayers(state) && candidate !in state.throwInPasses) {
+                return state.copy(
+                    currentTurnPlayerIndex = candidate,
+                    gamePhase = GamePhase.WAITING_FOR_THROW_IN,
+                    lastActionMessage = "${state.players[candidate].name}: throw in a matching rank or pass."
+                )
+            }
+        }
+        return state.copy(currentTurnPlayerIndex = state.attackerIndex)
+    }
+
+    private fun eligibleThrowInPlayers(state: DurakGameState): List<Int> = state.players.indices.filter { index ->
+        index != state.defenderIndex && !state.players[index].isOut
     }
 
     private fun replenishHands(

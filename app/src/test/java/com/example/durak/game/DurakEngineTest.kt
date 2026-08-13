@@ -65,6 +65,63 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `three player round gives human a throw-in turn before bito`() {
+        val initialAttack = card("initial_attack", Suit.HEARTS, Rank.SIX)
+        val defense = card("defense", Suit.HEARTS, Rank.SEVEN)
+        val humanThrowIn = card("human_throw_in", Suit.CLUBS, Rank.SIX)
+        val human = Player("human", "You", true, hand = mutableListOf(humanThrowIn))
+        val attacker = Player("attacker", "Bot 1", false, hand = mutableListOf())
+        val defender = Player("defender", "Bot 2", false, hand = mutableListOf(defense))
+        val defendedStart = DurakGameState(
+            players = listOf(human, attacker, defender),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 1,
+            defenderIndex = 2,
+            currentTurnPlayerIndex = 2,
+            tablePairs = listOf(com.example.durak.model.TablePair(initialAttack)),
+            defenderHandSizeAtRoundStart = 6,
+            gamePhase = GamePhase.DEFENDING
+        )
+
+        val afterDefense = engine.playDefendCard(defendedStart, defense, pairIndexToDefend = 0)
+        val afterThrowIn = engine.playAttackCard(afterDefense, playerIndex = 0, card = humanThrowIn)
+
+        assertEquals(GamePhase.WAITING_FOR_THROW_IN, afterDefense.gamePhase)
+        assertEquals(0, afterDefense.currentTurnPlayerIndex)
+        assertEquals(2, afterThrowIn.tablePairs.size)
+        assertEquals(2, afterThrowIn.currentTurnPlayerIndex)
+    }
+
+    @Test
+    fun `round cannot clear until each active attacker has passed or thrown in`() {
+        val attack = card("attack", Suit.HEARTS, Rank.SIX)
+        val defense = card("defense", Suit.HEARTS, Rank.SEVEN)
+        val human = Player("human", "You", true, hand = mutableListOf())
+        val attacker = Player("attacker", "Bot 1", false, hand = mutableListOf())
+        val defender = Player("defender", "Bot 2", false, hand = mutableListOf())
+        val state = DurakGameState(
+            players = listOf(human, attacker, defender),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 1,
+            defenderIndex = 2,
+            currentTurnPlayerIndex = 0,
+            tablePairs = listOf(com.example.durak.model.TablePair(attack, defense)),
+            defenderHandSizeAtRoundStart = 6,
+            gamePhase = GamePhase.WAITING_FOR_THROW_IN
+        )
+
+        val humanPassed = engine.passThrowIn(state, 0)
+        val allPassed = engine.passThrowIn(humanPassed, 1)
+
+        assertEquals(1, humanPassed.currentTurnPlayerIndex)
+        assertTrue(!engine.isBitoReady(humanPassed))
+        assertTrue(engine.isBitoReady(allPassed))
+        assertEquals(1, allPassed.currentTurnPlayerIndex)
+    }
+
+    @Test
     fun `legal attack and defense move the round through expected phases`() {
         val attack = card("attack", Suit.HEARTS, Rank.SIX)
         val defense = card("defense", Suit.HEARTS, Rank.SEVEN)

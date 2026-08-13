@@ -9,28 +9,40 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.screens.DurakGameScreen
 import com.example.ui.screens.HomeHubScreen
@@ -46,7 +58,6 @@ enum class RootDestination(val label: String) {
 }
 
 class MainActivity : ComponentActivity() {
-
     private val viewModel: GameViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,9 +66,7 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
 
         setContent {
             val stats by viewModel.statsFlow.collectAsState()
@@ -76,6 +85,7 @@ class MainActivity : ComponentActivity() {
                         onPlayAttack = viewModel::playHumanAttack,
                         onPlayDefend = viewModel::playHumanDefend,
                         onFinishRound = viewModel::humanFinishRound,
+                        onPassThrowIn = viewModel::humanPassThrowIn,
                         onTakeTable = viewModel::humanTakeTable,
                         onExitGame = {
                             viewModel.abandonMatch()
@@ -84,33 +94,15 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    AppRootScaffold(
-                        destination = destination,
-                        onDestinationChange = { destination = it }
-                    ) { contentPadding ->
-                        Crossfade(
-                            targetState = destination,
-                            label = "rootDestination"
-                        ) { currentDestination ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(contentPadding)
-                            ) {
+                    AppRootScaffold(destination, onDestinationChange = { destination = it }) { contentPadding ->
+                        Crossfade(targetState = destination, label = "rootDestination") { currentDestination ->
+                            Box(Modifier.fillMaxSize().padding(contentPadding)) {
                                 when (currentDestination) {
-                                    RootDestination.PLAY -> HomeHubScreen(
-                                        stats = stats,
-                                        onStartDurak = {
-                                            viewModel.startNewGame(it)
-                                            isInMatch = true
-                                        }
-                                    )
-
-                                    RootDestination.STATS -> StatisticsScreen(
-                                        stats = stats,
-                                        matchHistory = history
-                                    )
-
+                                    RootDestination.PLAY -> HomeHubScreen(stats, onStartDurak = {
+                                        viewModel.startNewGame(it)
+                                        isInMatch = true
+                                    })
+                                    RootDestination.STATS -> StatisticsScreen(stats, history)
                                     RootDestination.SETTINGS -> SettingsCustomizerScreen()
                                 }
                             }
@@ -133,30 +125,50 @@ private fun AppRootScaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
+                    .navigationBarsPadding()
+                    .padding(horizontal = 22.dp, vertical = 8.dp)
             ) {
-                RootDestination.entries.forEach { item ->
-                    val icon = when (item) {
-                        RootDestination.PLAY -> Icons.Default.PlayArrow
-                        RootDestination.STATS -> Icons.Default.BarChart
-                        RootDestination.SETTINGS -> Icons.Default.Settings
-                    }
-                    NavigationBarItem(
-                        selected = destination == item,
-                        onClick = { onDestinationChange(item) },
-                        icon = { Icon(icon, contentDescription = item.label) },
-                        label = { androidx.compose.material3.Text(item.label) },
-                        alwaysShowLabel = false,
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CompactDestination(RootDestination.PLAY, Icons.Default.PlayArrow, destination, onDestinationChange)
+                    CompactDestination(RootDestination.STATS, Icons.Default.BarChart, destination, onDestinationChange)
+                    CompactDestination(RootDestination.SETTINGS, Icons.Default.Settings, destination, onDestinationChange)
                 }
             }
         },
         content = content
     )
+}
+
+@Composable
+private fun CompactDestination(
+    item: RootDestination,
+    icon: ImageVector,
+    destination: RootDestination,
+    onDestinationChange: (RootDestination) -> Unit
+) {
+    val selected = destination == item
+    val shape = RoundedCornerShape(if (selected) 18.dp else 14.dp)
+    Box(
+        modifier = Modifier
+            .size(width = 76.dp, height = 48.dp)
+            .clip(shape)
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background)
+            .clickable { onDestinationChange(item) },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = item.label,
+            modifier = Modifier.size(28.dp),
+            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

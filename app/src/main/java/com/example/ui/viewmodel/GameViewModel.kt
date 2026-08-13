@@ -120,10 +120,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val state = _gameState.value
         if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
             state.attackerIndex != HUMAN_INDEX || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN ||
-            state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended }
+            state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } || !engine.isBitoReady(state)
         ) return
 
         _gameState.value = engine.executeBitoClear(state)
+        _selectedCard.value = null
+        checkTriggerBotMove(activeSessionId)
+    }
+
+    fun humanPassThrowIn() {
+        val state = _gameState.value
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
+            state.defenderIndex == HUMAN_INDEX || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN
+        ) return
+
+        _gameState.value = engine.passThrowIn(state, HUMAN_INDEX)
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -171,7 +182,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
             BotMoveDecision.PassOrDone -> {
                 if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
-                    engine.executeBitoClear(state)
+                    if (botIndex == state.attackerIndex && engine.isBitoReady(state)) {
+                        engine.executeBitoClear(state)
+                    } else {
+                        engine.passThrowIn(state, botIndex)
+                    }
                 } else {
                     state
                 }
