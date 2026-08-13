@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PlayArrow
@@ -141,13 +143,15 @@ fun HomeHubScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        Row(
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ModePill("2 players")
-                            ModePill("36 cards")
-                            ModePill("Standard bot")
+                            items(listOf("2 players", "36 cards", "Standard bot")) { label ->
+                                ModePill(label)
+                            }
                         }
                         Box(
                             modifier = Modifier
@@ -162,7 +166,7 @@ fun HomeHubScreen(
                                     .height(76.dp),
                                 leadingButton = {
                                     SplitButtonDefaults.LeadingButton(
-                                        onClick = { onStartDurak(LocalMatchSetup()) },
+                                        onClick = { onStartDurak(LocalMatchSetup().normalized()) },
                                         shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
                                         contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp)
                                     ) {
@@ -171,22 +175,45 @@ fun HomeHubScreen(
                                     }
                                 },
                                 trailingButton = {
-                                    SplitButtonDefaults.TrailingButton(
-                                        checked = modeMenuExpanded,
-                                        onCheckedChange = { modeMenuExpanded = it },
-                                        shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
-                                    ) {
-                                        val arrowRotation by animateFloatAsState(
-                                            targetValue = if (modeMenuExpanded) 180f else 0f,
-                                            animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                            label = "modeMenuArrow"
-                                        )
-                                        Icon(
-                                            Icons.Default.ArrowDropDown,
-                                            contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
-                                            modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
-                                        )
+                                    Box {
+                                        SplitButtonDefaults.TrailingButton(
+                                            checked = modeMenuExpanded,
+                                            onCheckedChange = { modeMenuExpanded = it },
+                                            shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
+                                        ) {
+                                            val arrowRotation by animateFloatAsState(
+                                                targetValue = if (modeMenuExpanded) 180f else 0f,
+                                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                                label = "modeMenuArrow"
+                                            )
+                                            Icon(
+                                                Icons.Default.ArrowDropDown,
+                                                contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+                                            )
+                                        }
+                                        DropdownMenu(
+                                            expanded = modeMenuExpanded,
+                                            onDismissRequest = { modeMenuExpanded = false }
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text("Quick 2-player") },
+                                                leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                                                onClick = {
+                                                    modeMenuExpanded = false
+                                                    onStartDurak(LocalMatchSetup().normalized())
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("Configure game") },
+                                                leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                                                onClick = {
+                                                    modeMenuExpanded = false
+                                                    showMatchSetup = true
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             )
@@ -198,27 +225,6 @@ fun HomeHubScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                }
-                DropdownMenu(
-                    expanded = modeMenuExpanded,
-                    onDismissRequest = { modeMenuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Quick 2-player") },
-                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                        onClick = {
-                            modeMenuExpanded = false
-                            onStartDurak(LocalMatchSetup())
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Configure game") },
-                        leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                        onClick = {
-                            modeMenuExpanded = false
-                            showMatchSetup = true
-                        }
-                    )
                 }
             }
         }

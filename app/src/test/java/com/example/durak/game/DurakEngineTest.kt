@@ -149,6 +149,26 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `defender cannot take a fully defended table`() {
+        val attack = card("attack", Suit.HEARTS, Rank.SIX)
+        val defense = card("defense", Suit.HEARTS, Rank.SEVEN)
+        val human = Player("human", "You", true, hand = mutableListOf())
+        val bot = Player("bot", "Bot 1", false, hand = mutableListOf())
+        val defended = state(players = listOf(human, bot), currentTurn = 1, phase = GamePhase.DEFENDING)
+            .copy(defenderIndex = 1, tablePairs = listOf(com.example.durak.model.TablePair(attack, defense)))
+
+        val result = engine.executeDefenderTake(defended)
+
+        assertSame(defended, result)
+        assertTrue(defended.tablePairs.single().isDefended)
+    }
+
+    @Test
+    fun `empty player state is never considered ready for bito`() {
+        assertTrue(!engine.isBitoReady(DurakGameState()))
+    }
+
+    @Test
     fun `legal attack and defense move the round through expected phases`() {
         val attack = card("attack", Suit.HEARTS, Rank.SIX)
         val defense = card("defense", Suit.HEARTS, Rank.SEVEN)

@@ -288,7 +288,9 @@ class DurakEngine {
     }
 
     fun executeBitoClear(state: DurakGameState): DurakGameState {
-        if (state.isGameOver || state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } ||
+        if (state.isGameOver || state.players.size < 2 ||
+            state.attackerIndex !in state.players.indices || state.defenderIndex !in state.players.indices ||
+            state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } ||
             state.currentTurnPlayerIndex != state.attackerIndex ||
             state.gamePhase != GamePhase.WAITING_FOR_THROW_IN || !isBitoReady(state)
         ) return state
@@ -342,6 +344,12 @@ class DurakEngine {
     }
 
     fun executeDefenderTake(state: DurakGameState): DurakGameState {
+        if (state.isGameOver || state.defenderIndex !in state.players.indices ||
+            state.currentTurnPlayerIndex != state.defenderIndex ||
+            state.gamePhase != GamePhase.DEFENDING || state.tablePairs.isEmpty() ||
+            state.tablePairs.all { it.isDefended }
+        ) return state
+
         val defender = state.players[state.defenderIndex]
         val cardsTaken = mutableListOf<Card>()
         for (pair in state.tablePairs) {
@@ -392,11 +400,13 @@ class DurakEngine {
     }
 
     /** True only after every active non-defender has had a chance to throw in. */
-    fun isBitoReady(state: DurakGameState): Boolean = eligibleThrowInPlayers(state).all { it in state.throwInPasses }
+    fun isBitoReady(state: DurakGameState): Boolean =
+        state.players.isNotEmpty() && eligibleThrowInPlayers(state).all { it in state.throwInPasses }
 
     /** Records a deliberate pass and gives the next eligible attacker one clear turn. */
     fun passThrowIn(state: DurakGameState, playerIndex: Int): DurakGameState {
-        if (state.isGameOver || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN ||
+        if (state.isGameOver || playerIndex !in state.players.indices ||
+            state.defenderIndex !in state.players.indices || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN ||
             state.currentTurnPlayerIndex != playerIndex || playerIndex == state.defenderIndex ||
             playerIndex !in eligibleThrowInPlayers(state) || playerIndex in state.throwInPasses
         ) return state

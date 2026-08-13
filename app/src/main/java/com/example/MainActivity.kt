@@ -41,6 +41,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -119,10 +121,15 @@ class MainActivity : ComponentActivity() {
             var isInMatch by remember { mutableStateOf(false) }
             var settingsPage by remember { mutableStateOf(SettingsPage.DIRECTORY) }
             var navigationAppearance by remember { mutableStateOf(savedAppearance) }
+            var showExitMatchDialog by remember { mutableStateOf(false) }
 
             fun updateAppearance(appearance: NavigationAppearance) {
                 navigationAppearance = appearance
                 appearancePreferences.edit().putString(NAVIGATION_STYLE_KEY, appearance.name).apply()
+            }
+
+            BackHandler(enabled = isInMatch) {
+                showExitMatchDialog = true
             }
 
             BackHandler(enabled = !isInMatch && (destination != RootDestination.PLAY || settingsPage != SettingsPage.DIRECTORY)) {
@@ -145,11 +152,8 @@ class MainActivity : ComponentActivity() {
                         onFinishRound = viewModel::humanFinishRound,
                         onPassThrowIn = viewModel::humanPassThrowIn,
                         onTakeTable = viewModel::humanTakeTable,
-                        onExitGame = {
-                            viewModel.abandonMatch()
-                            isInMatch = false
-                            destination = RootDestination.PLAY
-                        }
+                                                                onExitGame = { showExitMatchDialog = true }
+
                     )
                 } else {
                     AppRootScaffold(
@@ -189,6 +193,27 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+
+            if (showExitMatchDialog) {
+                AlertDialog(
+                    onDismissRequest = { showExitMatchDialog = false },
+                    title = { Text("Leave this match?") },
+                    text = { Text("Your current table will be abandoned and will not be added to statistics.") },
+                    dismissButton = {
+                        Button(onClick = { showExitMatchDialog = false }) { Text("Keep playing") }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showExitMatchDialog = false
+                                viewModel.abandonMatch()
+                                isInMatch = false
+                                destination = RootDestination.PLAY
+                            }
+                        ) { Text("Leave match") }
+                    }
+                )
             }
         }
     }
