@@ -22,6 +22,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -77,7 +80,15 @@ fun PlayingCardView(
             )
             .then(
                 if (onClick != null && isSelectable) Modifier.clickable { onClick() } else Modifier
-            ),
+            )
+            .semantics {
+                contentDescription = if (card.isFaceUp) {
+                    "${card.rank.label} of ${card.suit.name.lowercase()}${if (card.isTrump) ", trump" else ""}"
+                } else {
+                    "Face-down card"
+                }
+                selected = isSelected
+            },
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = if (card.isFaceUp) Color(0xFFFFFFFF) else Color(0xFF14202B)

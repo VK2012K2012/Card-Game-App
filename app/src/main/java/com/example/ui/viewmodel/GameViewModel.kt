@@ -97,7 +97,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val isOpeningAttack = state.gamePhase == GamePhase.ATTACKING && state.attackerIndex == HUMAN_INDEX
         val isHumanThrowIn = state.gamePhase == GamePhase.WAITING_FOR_THROW_IN &&
             state.defenderIndex != HUMAN_INDEX && HUMAN_INDEX !in state.throwInPasses
-        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX || (!isOpeningAttack && !isHumanThrowIn)) return
+        if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX || (!isOpeningAttack && !isHumanThrowIn) || !isHumanCard(state, card)) return
 
         _gameState.value = engine.playAttackCard(state, HUMAN_INDEX, card)
         _selectedCard.value = null
@@ -108,7 +108,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val state = _gameState.value
         if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX ||
             state.defenderIndex != HUMAN_INDEX || state.gamePhase != GamePhase.DEFENDING ||
-            pairIndexToDefend !in state.tablePairs.indices
+            pairIndexToDefend !in state.tablePairs.indices || !isHumanCard(state, defendingCard)
         ) return
 
         _gameState.value = engine.playDefendCard(state, defendingCard, pairIndexToDefend)
@@ -138,6 +138,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
+
+    private fun isHumanCard(state: DurakGameState, card: Card): Boolean =
+        state.players.getOrNull(HUMAN_INDEX)?.hand?.any { it.id == card.id } == true
 
     fun humanTakeTable() {
         val state = _gameState.value

@@ -130,11 +130,15 @@ private fun RecordSummary(
                     )
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryNumber("Win rate", "$winRate%")
-                SummaryNumber("Wins", wins.toString())
-                SummaryNumber("Games", games.toString())
-                SummaryNumber("Durak", losses.toString())
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SummaryNumber("Win rate", "$winRate%")
+                    SummaryNumber("Wins", wins.toString())
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SummaryNumber("Games", games.toString())
+                    SummaryNumber("Durak", losses.toString())
+                }
             }
         }
     }
@@ -185,7 +189,7 @@ private fun EmptyHistory() {
 @Composable
 private fun MatchHistoryRow(match: MatchHistoryEntity) {
     val resultColor = if (match.isWin) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-    val resultText = if (match.isWin) "WIN" else "FINISHED"
+    val resultText = if (match.isWin) "WIN" else if (match.playerPosition == "Draw") "DRAW" else "LOSS"
     Card(
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = resultColor),

@@ -331,16 +331,16 @@ private fun DurakMatchSetupSheet(
             }
             item {
                 SetupGroup("Players") {
-                    SetupOption("2", playerCount == 2) { playerCount = 2 }
-                    SetupOption("3", playerCount == 3) { playerCount = 3 }
-                    SetupOption("4", playerCount == 4) { playerCount = 4 }
+                    SetupOption("2 players", playerCount == 2) { playerCount = 2 }
+                    SetupOption("3 players", playerCount == 3) { playerCount = 3 }
+                    SetupOption("4 players", playerCount == 4) { playerCount = 4 }
                 }
             }
             item {
                 SetupGroup("Deck") {
-                    SetupOption("24", deckSize == 24) { deckSize = 24 }
-                    SetupOption("36", deckSize == 36) { deckSize = 36 }
-                    SetupOption("52", deckSize == 52) { deckSize = 52 }
+                    SetupOption("24 cards", deckSize == 24) { deckSize = 24 }
+                    SetupOption("36 cards", deckSize == 36) { deckSize = 36 }
+                    SetupOption("52 cards", deckSize == 52) { deckSize = 52 }
                 }
             }
             item {
