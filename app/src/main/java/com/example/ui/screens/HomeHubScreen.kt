@@ -10,6 +10,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,10 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -61,6 +64,7 @@ import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeHubScreen(
     stats: GameStatsEntity,
@@ -78,10 +82,11 @@ fun HomeHubScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "CARD GAME HUB",
                 style = MaterialTheme.typography.labelLarge,
@@ -90,7 +95,7 @@ fun HomeHubScreen(
                 letterSpacing = 1.2.sp
             )
             Text(
-                text = "Durak,\nready to deal.",
+                text = "Durak,\nready when you are.",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -106,50 +111,50 @@ fun HomeHubScreen(
             )
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(top = 22.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 560.dp),
-                    shape = RoundedCornerShape(36.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    tonalElevation = 3.dp
+                        .widthIn(max = 600.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 2.dp
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
+                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 22.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            text = "QUICK START",
+                            text = "READY TO PLAY",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 1.2.sp
                         )
                         Text(
-                            text = "Your next table",
+                            text = "Your next table is waiting",
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Offline Durak with local bots. Choose a mode from the arrow when you want to tune the match.",
+                            text = "A private offline table with local bots. Start now or tune the rules before you deal.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        LazyRow(
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.Center,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            maxItemsInEachRow = 3
                         ) {
-                            items(listOf("2 players", "36 cards", "Standard bot")) { label ->
+                            listOf("2 players", "36 cards", "Standard bot").forEach { label ->
                                 ModePill(label)
                             }
                         }
@@ -171,7 +176,7 @@ fun HomeHubScreen(
                                         contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp)
                                     ) {
                                         Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                        Text("Play Durak", fontWeight = FontWeight.ExtraBold)
+                                        Text("Start a match", fontWeight = FontWeight.ExtraBold)
                                     }
                                 },
                                 trailingButton = {
@@ -219,7 +224,7 @@ fun HomeHubScreen(
                             )
                         }
                         Text(
-                            text = "Tap the arrow to configure players, deck, rules, or bot difficulty.",
+                            text = "Use the arrow to change players, deck, rules, or bot difficulty.",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center

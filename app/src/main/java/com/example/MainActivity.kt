@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
                         onFinishRound = viewModel::humanFinishRound,
                         onPassThrowIn = viewModel::humanPassThrowIn,
                         onTakeTable = viewModel::humanTakeTable,
-                                                                onExitGame = { showExitMatchDialog = true }
+                        onExitGame = { showExitMatchDialog = true }
 
                     )
                 } else {
@@ -220,7 +220,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val NAVIGATION_PREFERENCES = "navigation_preferences"
-        const val NAVIGATION_STYLE_KEY = "navigation_style"
+        const val NAVIGATION_STYLE_KEY = "navigation_style_v2"
     }
 }
 

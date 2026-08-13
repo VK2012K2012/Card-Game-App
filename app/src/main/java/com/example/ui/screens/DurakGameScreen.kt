@@ -62,8 +62,6 @@ import com.example.ui.components.TableFeltBackground
 import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.TrumpGold
 
-private const val HUMAN_INDEX = 0
-
 @Composable
 fun DurakGameScreen(
     gameState: DurakGameState,
@@ -76,10 +74,11 @@ fun DurakGameScreen(
     onTakeTable: () -> Unit,
     onExitGame: () -> Unit
 ) {
-    val human = gameState.players.firstOrNull { it.isHuman }
-    val isHumanTurn = gameState.currentTurnPlayerIndex == HUMAN_INDEX
-    val isHumanDefender = gameState.defenderIndex == HUMAN_INDEX
-    val isHumanAttacker = gameState.attackerIndex == HUMAN_INDEX
+    val humanIndex = gameState.players.indexOfFirst { it.isHuman }.let { if (it >= 0) it else 0 }
+    val human = gameState.players.getOrNull(humanIndex)
+    val isHumanTurn = gameState.currentTurnPlayerIndex == humanIndex
+    val isHumanDefender = gameState.defenderIndex == humanIndex
+    val isHumanAttacker = gameState.attackerIndex == humanIndex
 
     TableFeltBackground(Modifier.fillMaxSize()) {
         Column(
@@ -278,7 +277,9 @@ private fun ExplicitMatchActions(
     val firstUnmatched = gameState.tablePairs.indexOfFirst { !it.isDefended }
     val cardCanDefend = selectedCard != null && firstUnmatched >= 0 && selectedCard.beats(gameState.tablePairs[firstUnmatched].attackCard, gameState.trumpSuit)
     val cardCanAttack = selectedCard != null && canAddToTable(selectedCard, gameState)
-    val allAttackersPassed = gameState.players.indices.filter { it != gameState.defenderIndex && !gameState.players[it].isOut }.all { it in gameState.throwInPasses }
+    val allAttackersPassed = gameState.players.indices
+        .filter { it != gameState.defenderIndex && !gameState.players[it].isOut }
+        .all { it in gameState.throwInPasses }
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
