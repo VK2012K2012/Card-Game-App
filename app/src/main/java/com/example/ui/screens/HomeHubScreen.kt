@@ -22,12 +22,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SplitButton
+import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,6 +63,7 @@ fun HomeHubScreen(
     onStartDurak: (LocalMatchSetup) -> Unit
 ) {
     var showMatchSetup by remember { mutableStateOf(false) }
+    var modeMenuExpanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -95,22 +101,61 @@ fun HomeHubScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.weight(1f))
-            MorphAction(
-                title = "Play Durak",
-                subtitle = "Start a quick 2-player game",
-                icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                onClick = { onStartDurak(LocalMatchSetup()) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-            MorphAction(
-                title = "Match setup",
-                subtitle = "Players, rules, deck and bot difficulty",
-                icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                onClick = { showMatchSetup = true },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                SplitButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingButton = {
+                        SplitButtonDefaults.LeadingButton(
+                            onClick = { onStartDurak(LocalMatchSetup()) },
+                            shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                            contentPadding = SplitButtonDefaults.leadingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Text("Play Durak")
+                        }
+                    },
+                    trailingButton = {
+                        SplitButtonDefaults.TrailingButton(
+                            checked = modeMenuExpanded,
+                            onCheckedChange = { modeMenuExpanded = it },
+                            shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
+                            contentPadding = SplitButtonDefaults.trailingButtonContentPaddingFor(SplitButtonDefaults.LargeContainerHeight)
+                        ) {
+                            val arrowRotation by animateFloatAsState(
+                                targetValue = if (modeMenuExpanded) 180f else 0f,
+                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                label = "modeMenuArrow"
+                            )
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+                            )
+                        }
+                    }
+                )
+                DropdownMenu(
+                    expanded = modeMenuExpanded,
+                    onDismissRequest = { modeMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Quick 2-player") },
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                        onClick = {
+                            modeMenuExpanded = false
+                            onStartDurak(LocalMatchSetup())
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Configure game") },
+                        leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                        onClick = {
+                            modeMenuExpanded = false
+                            showMatchSetup = true
+                        }
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
         }
     }

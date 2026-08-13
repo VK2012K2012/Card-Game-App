@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -317,14 +318,12 @@ private fun NavigationAppearanceChoice(
                     }
                 }
             }
-            Text(
-                text = "LIVE PREVIEW — THIS IS WHAT YOU WILL SEE",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.7.sp,
-                color = content.copy(alpha = 0.72f)
-            )
-            NavigationPreview(appearance = appearance)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                NavigationPreview(appearance = appearance)
+            }
         }
     }
 }
@@ -332,7 +331,9 @@ private fun NavigationAppearanceChoice(
 @Composable
 private fun NavigationPreview(appearance: NavigationAppearance) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 420.dp),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.background
     ) {

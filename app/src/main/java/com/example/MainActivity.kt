@@ -5,12 +5,23 @@ import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -113,6 +125,15 @@ class MainActivity : ComponentActivity() {
                 appearancePreferences.edit().putString(NAVIGATION_STYLE_KEY, appearance.name).apply()
             }
 
+            BackHandler(enabled = !isInMatch && (destination != RootDestination.PLAY || settingsPage != SettingsPage.DIRECTORY)) {
+                if (destination == RootDestination.SETTINGS && settingsPage != SettingsPage.DIRECTORY) {
+                    settingsPage = SettingsPage.DIRECTORY
+                } else {
+                    destination = RootDestination.PLAY
+                    settingsPage = SettingsPage.DIRECTORY
+                }
+            }
+
             CardGameTheme {
                 if (isInMatch) {
                     DurakGameScreen(
@@ -139,7 +160,11 @@ class MainActivity : ComponentActivity() {
                             if (it != RootDestination.SETTINGS) settingsPage = SettingsPage.DIRECTORY
                         }
                     ) { contentPadding ->
-                        Crossfade(targetState = destination to settingsPage, label = "rootDestination") { (currentDestination, currentSettingsPage) ->
+                        AnimatedContent(
+                            targetState = destination to settingsPage,
+                            transitionSpec = { fadeIn(tween(220, easing = FastOutSlowInEasing)).togetherWith(fadeOut(tween(160))) },
+                            label = "rootDestination"
+                        ) { (currentDestination, currentSettingsPage) ->
                             Box(Modifier.fillMaxSize().padding(contentPadding)) {
                                 when (currentDestination) {
                                     RootDestination.PLAY -> HomeHubScreen(stats, onStartDurak = {
@@ -274,19 +299,41 @@ private fun CompactDestination(
     onDestinationChange: (RootDestination) -> Unit
 ) {
     val selected = destination == item
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val animatedWidth by animateDpAsState(
+        targetValue = if (selected) 84.dp else 72.dp,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "compactSelectionWidth"
+    )
+    val animatedContainer by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "compactSelectionColor"
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.9f else 1f,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "compactPressScale"
+    )
     Box(
         modifier = Modifier
-            .size(width = 76.dp, height = 48.dp)
+            .size(width = animatedWidth, height = 48.dp)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .clip(ExpressiveCorners.Full)
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background)
-            .clickable { onDestinationChange(item) },
+            .background(animatedContainer)
+            .clickable(interactionSource = interactionSource, indication = null) { onDestinationChange(item) },
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = item.label,
             modifier = Modifier.size(28.dp),
-            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = animateColorAsState(
+                targetValue = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                label = "compactIconColor"
+            ).value
         )
     }
 }
