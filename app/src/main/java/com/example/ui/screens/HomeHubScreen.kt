@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
@@ -72,6 +73,7 @@ fun HomeHubScreen(
 ) {
     var showMatchSetup by remember { mutableStateOf(false) }
     var modeMenuExpanded by remember { mutableStateOf(false) }
+    var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
 
     Box(
         modifier = Modifier
@@ -154,7 +156,7 @@ fun HomeHubScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             maxItemsInEachRow = 3
                         ) {
-                            listOf("2 players", "36 cards", "Standard bot").forEach { label ->
+                            listOf("2 players", "36 cards", gameMode.title).forEach { label ->
                                 ModePill(label)
                             }
                         }
@@ -164,16 +166,27 @@ fun HomeHubScreen(
                                 .height(76.dp),
                             contentAlignment = Alignment.Center
                         ) {
+                            val leadingInteractionSource = remember { MutableInteractionSource() }
+                            val trailingInteractionSource = remember { MutableInteractionSource() }
+                            val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
+                            val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
+                            val splitScale by animateFloatAsState(
+                                targetValue = if (leadingPressed || trailingPressed) 0.975f else 1f,
+                                animationSpec = tween(150, easing = FastOutSlowInEasing),
+                                label = "splitButtonPress"
+                            )
                             SplitButton(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .widthIn(max = 520.dp)
-                                    .height(76.dp),
+                                    .height(76.dp)
+                                    .graphicsLayer { scaleX = splitScale; scaleY = splitScale },
                                 leadingButton = {
                                     SplitButtonDefaults.LeadingButton(
-                                        onClick = { onStartDurak(LocalMatchSetup().normalized()) },
+                                        onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
                                         shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                        contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp)
+                                        contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp),
+                                        interactionSource = leadingInteractionSource
                                     ) {
                                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                                         Text("Start a match", fontWeight = FontWeight.ExtraBold)
@@ -185,7 +198,8 @@ fun HomeHubScreen(
                                             checked = modeMenuExpanded,
                                             onCheckedChange = { modeMenuExpanded = it },
                                             shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
+                                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
+                                            interactionSource = trailingInteractionSource
                                         ) {
                                             val arrowRotation by animateFloatAsState(
                                                 targetValue = if (modeMenuExpanded) 180f else 0f,
@@ -202,16 +216,23 @@ fun HomeHubScreen(
                                             expanded = modeMenuExpanded,
                                             onDismissRequest = { modeMenuExpanded = false }
                                         ) {
-                                            DropdownMenuItem(
-                                                text = { Text("Quick 2-player") },
-                                                leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                                                onClick = {
-                                                    modeMenuExpanded = false
-                                                    onStartDurak(LocalMatchSetup().normalized())
+                                            GameMode.entries
+                                                .filter { it != GameMode.PEREVODNOY }
+                                                .forEach { option ->
+                                                    DropdownMenuItem(
+                                                        text = { Text(option.title) },
+                                                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                                                        trailingIcon = if (gameMode == option) {
+                                                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                                                        } else null,
+                                                        onClick = {
+                                                            gameMode = option
+                                                            modeMenuExpanded = false
+                                                        }
+                                                    )
                                                 }
-                                            )
                                             DropdownMenuItem(
-                                                text = { Text("Configure game") },
+                                                text = { Text("Configure players and bots") },
                                                 leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
                                                 onClick = {
                                                     modeMenuExpanded = false
@@ -224,7 +245,7 @@ fun HomeHubScreen(
                             )
                         }
                         Text(
-                            text = "Use the arrow to change players, deck, rules, or bot difficulty.",
+                            text = "Use the arrow to choose a mode or configure players, deck, and bot difficulty.",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -237,6 +258,7 @@ fun HomeHubScreen(
 
     if (showMatchSetup) {
         DurakMatchSetupSheet(
+            gameMode = gameMode,
             onDismiss = { showMatchSetup = false },
             onStart = { setup ->
                 showMatchSetup = false
@@ -317,13 +339,13 @@ private fun MorphAction(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DurakMatchSetupSheet(
+    gameMode: GameMode,
     onDismiss: () -> Unit,
     onStart: (LocalMatchSetup) -> Unit
 ) {
     var playerCount by remember { mutableIntStateOf(2) }
     var deckSize by remember { mutableIntStateOf(36) }
     var difficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
-    var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -357,12 +379,6 @@ private fun DurakMatchSetupSheet(
             item {
                 SetupGroup("Bot difficulty") {
                     BotDifficulty.entries.forEach { level -> SetupOption(level.displayName, difficulty == level) { difficulty = level } }
-                }
-            }
-            item {
-                SetupGroup("Rules") {
-                    SetupOption("Throw-in", gameMode == GameMode.PODKIDNOY) { gameMode = GameMode.PODKIDNOY }
-                    SetupOption("Classic", gameMode == GameMode.CLASSIC) { gameMode = GameMode.CLASSIC }
                 }
             }
             item {
@@ -403,11 +419,17 @@ private fun androidx.compose.foundation.layout.RowScope.SetupOption(label: Strin
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(if (pressed) 10.dp else 18.dp, label = "choiceMorph")
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "choicePress"
+    )
     val shape = RoundedCornerShape(corner)
     Box(
         modifier = Modifier
             .weight(1f)
             .height(46.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(shape)
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),

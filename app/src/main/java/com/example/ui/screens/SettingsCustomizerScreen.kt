@@ -2,6 +2,9 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,9 +44,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -242,11 +249,19 @@ private fun SettingsEntry(
     onClick: () -> Unit,
     trailing: ImageVector = Icons.AutoMirrored.Filled.ArrowForward
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "settingsEntryPress"
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(ExpressiveCorners.ExtraExtraLarge)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
@@ -288,11 +303,19 @@ private fun NavigationAppearanceChoice(
 ) {
     val container = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
     val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "appearanceChoicePress"
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(ExpressiveCorners.ExtraExtraLarge)
-            .clickable(onClick = onSelected),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onSelected),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = container
     ) {

@@ -117,13 +117,24 @@ fun DurakGameScreen(
 
 @Composable
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.92f else 1f,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "leaveMatchPress"
+    )
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Surface(shape = ExpressiveCorners.Full, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)) {
-            IconButton(onClick = onExitGame) {
+            IconButton(
+                onClick = onExitGame,
+                interactionSource = interactionSource,
+                modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }
+            ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave match")
             }
         }
@@ -309,7 +320,7 @@ private fun ExplicitMatchActions(
                     icon = { Icon(Icons.Default.Check, contentDescription = null) },
                     onClick = { if (cardCanDefend) onPlayDefend(selectedCard!!, firstUnmatched) }
                 )
-                OutlinedButton(onClick = onTakeTable, modifier = Modifier.fillMaxWidth(), shape = ExpressiveCorners.Full) {
+                AnimatedOutlinedAction(onClick = onTakeTable) {
                     Icon(Icons.Default.KeyboardDoubleArrowDown, contentDescription = null)
                     Spacer(Modifier.width(7.dp))
                     Text("Take the table", fontWeight = FontWeight.Bold)
@@ -327,7 +338,7 @@ private fun ExplicitMatchActions(
                     onClick = { if (cardCanAttack) onPlayAttack(selectedCard!!) }
                 )
                 if (isThrowIn && !allAttackersPassed) {
-                    OutlinedButton(onClick = onPassThrowIn, modifier = Modifier.fillMaxWidth(), shape = ExpressiveCorners.Full) {
+                    AnimatedOutlinedAction(onClick = onPassThrowIn) {
                         Icon(Icons.Default.SkipNext, contentDescription = null)
                         Spacer(Modifier.width(7.dp))
                         Text("Pass throw-in", fontWeight = FontWeight.Bold)
@@ -345,6 +356,26 @@ private fun ExplicitMatchActions(
             }
         }
     }
+}
+
+@Composable
+private fun AnimatedOutlinedAction(onClick: () -> Unit, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "outlinedActionPress"
+    )
+    OutlinedButton(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale },
+        shape = ExpressiveCorners.Full,
+        content = content
+    )
 }
 
 @Composable
