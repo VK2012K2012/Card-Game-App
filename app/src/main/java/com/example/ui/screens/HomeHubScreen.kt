@@ -150,15 +150,14 @@ fun HomeHubScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        FlowRow(
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            maxItemsInEachRow = 3
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            listOf("2 players", "36 cards", gameMode.title).forEach { label ->
-                                ModePill(label)
-                            }
+                            ModePill("2 players", Modifier.weight(1f))
+                            ModePill("36 cards", Modifier.weight(1f))
+                            ModePill(gameMode.title, Modifier.weight(1f))
                         }
                         Box(
                             modifier = Modifier
@@ -273,8 +272,9 @@ fun HomeHubScreen(
  * rounded form while subtly compressing the surface, then restores the relaxed shape.
  */
 @Composable
-private fun ModePill(label: String) {
+private fun ModePill(label: String, modifier: Modifier = Modifier) {
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.secondaryContainer
     ) {
