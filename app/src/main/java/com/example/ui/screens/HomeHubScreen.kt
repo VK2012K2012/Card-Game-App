@@ -166,38 +166,54 @@ fun HomeHubScreen(
                             val trailingInteractionSource = remember { MutableInteractionSource() }
                             val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
                             val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
-                            val splitPressed = leadingPressed || trailingPressed
-                            val splitScale by animateFloatAsState(
-                                targetValue = if (splitPressed) 0.965f else 1f,
+                            val leadingScale by animateFloatAsState(
+                                targetValue = if (leadingPressed) 0.96f else 1f,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                label = "splitButtonPress"
+                                label = "leadingButtonPress"
                             )
-                            val outerCorner by animateDpAsState(
-                                targetValue = if (splitPressed) 24.dp else 38.dp,
+                            val trailingScale by animateFloatAsState(
+                                targetValue = if (trailingPressed) 0.96f else 1f,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                label = "splitButtonOuterCorner"
+                                label = "trailingButtonPress"
                             )
-                            val innerCorner by animateDpAsState(
-                                targetValue = if (splitPressed) 8.dp else 14.dp,
+                            val leadingOuterCorner by animateDpAsState(
+                                targetValue = if (leadingPressed) 24.dp else 38.dp,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                label = "splitButtonInnerCorner"
+                                label = "leadingButtonOuterCorner"
+                            )
+                            val leadingInnerCorner by animateDpAsState(
+                                targetValue = if (leadingPressed) 8.dp else 14.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "leadingButtonInnerCorner"
+                            )
+                            val trailingOuterCorner by animateDpAsState(
+                                targetValue = if (trailingPressed) 24.dp else 38.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "trailingButtonOuterCorner"
+                            )
+                            val trailingInnerCorner by animateDpAsState(
+                                targetValue = if (trailingPressed) 8.dp else 14.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "trailingButtonInnerCorner"
                             )
                             Row(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer { scaleX = splitScale; scaleY = splitScale },
+                                modifier = Modifier.fillMaxSize(),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Button(
                                     modifier = Modifier
                                         .weight(2f)
-                                        .fillMaxHeight(),
+                                        .fillMaxHeight()
+                                        .graphicsLayer {
+                                            scaleX = leadingScale
+                                            scaleY = leadingScale
+                                        },
                                     onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
                                     shape = RoundedCornerShape(
-                                        topStart = outerCorner,
-                                        bottomStart = outerCorner,
-                                        topEnd = innerCorner,
-                                        bottomEnd = innerCorner
+                                        topStart = leadingOuterCorner,
+                                        bottomStart = leadingOuterCorner,
+                                        topEnd = leadingInnerCorner,
+                                        bottomEnd = leadingInnerCorner
                                     ),
                                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
                                     interactionSource = leadingInteractionSource
@@ -209,17 +225,21 @@ fun HomeHubScreen(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .fillMaxHeight(),
+                                        .fillMaxHeight()
+                                        .graphicsLayer {
+                                            scaleX = trailingScale
+                                            scaleY = trailingScale
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Button(
                                         modifier = Modifier.fillMaxSize(),
                                         onClick = { modeMenuExpanded = !modeMenuExpanded },
                                         shape = RoundedCornerShape(
-                                            topStart = innerCorner,
-                                            bottomStart = innerCorner,
-                                            topEnd = outerCorner,
-                                            bottomEnd = outerCorner
+                                            topStart = trailingInnerCorner,
+                                            bottomStart = trailingInnerCorner,
+                                            topEnd = trailingOuterCorner,
+                                            bottomEnd = trailingOuterCorner
                                         ),
                                         contentPadding = PaddingValues(0.dp),
                                         interactionSource = trailingInteractionSource
