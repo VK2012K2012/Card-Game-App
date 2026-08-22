@@ -2,53 +2,45 @@ package com.example.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * M3 Expressive type system for Card Game Hub.
+ * Material 3 Expressive type system for Card Game Hub.
  *
- * Expressive type leans on wider weight contrast than classic M3: display
- * and headline roles run heavier (Bold/Black) for a confident, tactile
- * "casino marquee" voice, while body/label roles stay restrained for
- * long-session legibility during play. This mirrors the M3E guidance of
- * using a smaller number of weights but pushing them further apart rather
- * than adding new families.
- *
- * We use the platform variable sans (system default, resolves to Roboto
- * Flex on Android 16+ M3E devices) rather than bundling a custom font, so
- * the on-device Dynamic Type / variable-weight rendering used by M3E
- * "spring" components keeps working out of the box.
+ * Expressiveness is concentrated in the display and headline roles. Gameplay
+ * labels and body copy stay lighter so the cards and legal actions remain the
+ * visual focus during a long match. SansSerif keeps the rendering predictable
+ * across Android versions while still using the platform's best available font.
  */
-private val ExpressiveFontFamily = FontFamily.Default
+private val ExpressiveFontFamily = FontFamily.SansSerif
 
 val CardGameTypography = Typography(
-    // Display — reserved for hero moments (e.g. "Master the Fool" banner)
+    // Display — reserved for hero moments on the game-library home screen.
     displayLarge = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.Black,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 57.sp,
         lineHeight = 62.sp,
         letterSpacing = (-0.25).sp,
     ),
     displayMedium = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp,
     ),
     displaySmall = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
         letterSpacing = 0.sp,
     ),
 
-    // Headline — screen titles, section heroes
+    // Headline — screen titles and section heroes.
     headlineLarge = TextStyle(
         fontFamily = ExpressiveFontFamily,
         fontWeight = FontWeight.ExtraBold,
@@ -71,7 +63,7 @@ val CardGameTypography = Typography(
         letterSpacing = 0.sp,
     ),
 
-    // Title — card headers, dialog titles, app bar titles
+    // Title — app-bar titles, card headers, and dialog titles.
     titleLarge = TextStyle(
         fontFamily = ExpressiveFontFamily,
         fontWeight = FontWeight.Bold,
@@ -81,20 +73,20 @@ val CardGameTypography = Typography(
     ),
     titleMedium = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
     ),
 
-    // Body — reading content
+    // Body — readable supporting copy and state explanations.
     bodyLarge = TextStyle(
         fontFamily = ExpressiveFontFamily,
         fontWeight = FontWeight.Normal,
@@ -104,20 +96,20 @@ val CardGameTypography = Typography(
     ),
     bodyMedium = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.25.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.4.sp,
     ),
 
-    // Label — buttons, chips, badges, overline eyebrows
+    // Label — controls, chips, badges, and compact metadata.
     labelLarge = TextStyle(
         fontFamily = ExpressiveFontFamily,
         fontWeight = FontWeight.Bold,
@@ -127,16 +119,16 @@ val CardGameTypography = Typography(
     ),
     labelMedium = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.6.sp,
+        letterSpacing = 0.4.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = ExpressiveFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.4.sp,
     ),
 )
