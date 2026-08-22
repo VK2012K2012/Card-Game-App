@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -604,21 +605,48 @@ private fun HandTray(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 14.dp)
-            ) {
-                itemsIndexed(hand, key = { _, card -> card.id }) { _, card ->
-                    PlayingCardView(
-                        card = card,
-                        width = 61.dp,
-                        height = 90.dp,
-                        isSelectable = isHumanTurn,
-                        isSelected = selectedCard?.id == card.id,
-                        onClick = { onSelectCard(card) }
-                    )
-                }
+            AdaptiveHandRow(
+                hand = hand,
+                selectedCard = selectedCard,
+                isHumanTurn = isHumanTurn,
+                onSelectCard = onSelectCard
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdaptiveHandRow(
+    hand: List<GameCard>,
+    selectedCard: GameCard?,
+    isHumanTurn: Boolean,
+    onSelectCard: (GameCard) -> Unit
+) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 6.dp)
+    ) {
+        val cardCount = hand.size.coerceAtLeast(1)
+        val gap = 6.dp
+        val availableWidth = maxWidth - (gap * (cardCount - 1))
+        val adaptiveWidth = (availableWidth / cardCount).coerceIn(44.dp, 61.dp)
+        val adaptiveHeight = adaptiveWidth * (90f / 61f)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            hand.forEach { card ->
+                PlayingCardView(
+                    card = card,
+                    width = adaptiveWidth,
+                    height = adaptiveHeight,
+                    isSelectable = isHumanTurn,
+                    isSelected = selectedCard?.id == card.id,
+                    onClick = { onSelectCard(card) }
+                )
             }
         }
     }

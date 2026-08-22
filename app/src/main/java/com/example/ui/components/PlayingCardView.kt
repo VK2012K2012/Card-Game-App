@@ -53,7 +53,7 @@ fun PlayingCardView(
     onClick: (() -> Unit)? = null
 ) {
     val lift by animateDpAsState(
-        targetValue = if (isSelected) 10.dp else 0.dp,
+        targetValue = if (isSelected) 8.dp else 0.dp,
         animationSpec = spring(
             dampingRatio = 0.72f,
             stiffness = Spring.StiffnessMediumLow
@@ -61,7 +61,7 @@ fun PlayingCardView(
         label = "cardLift"
     )
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.06f else 1f,
+        targetValue = if (isSelected) 1.035f else 1f,
         animationSpec = spring(
             dampingRatio = 0.78f,
             stiffness = Spring.StiffnessMediumLow
@@ -69,7 +69,7 @@ fun PlayingCardView(
         label = "cardScale"
     )
     val rotation by animateFloatAsState(
-        targetValue = if (isSelected) -1.5f else 0f,
+        targetValue = if (isSelected) -0.8f else 0f,
         animationSpec = spring(
             dampingRatio = 0.8f,
             stiffness = Spring.StiffnessLow
@@ -98,8 +98,9 @@ fun PlayingCardView(
                 rotationZ = rotation
             }
             // Keep shadow stable so unselecting a card never causes a visual jump.
-            .shadow(6.dp, shape = shape)
+            .shadow(5.dp, shape = shape)
             .clip(shape)
+            .border(borderWidth, borderColor, shape)
             .then(
                 if (onClick != null && isSelectable) {
                     Modifier.clickable { onClick() }
@@ -123,7 +124,6 @@ fun PlayingCardView(
                 MaterialTheme.colorScheme.secondary
             }
         ),
-        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         if (!card.isFaceUp) {
