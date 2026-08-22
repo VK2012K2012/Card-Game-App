@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -57,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -127,6 +129,8 @@ fun DurakGameScreen(
 
 @Composable
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
+    val primaryText = tablePrimaryTextColor()
+    val accentText = tableAccentTextColor()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -156,7 +160,11 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
                     scaleY = scale
                 }
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave match")
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Leave match",
+                    tint = primaryText
+                )
             }
         }
 
@@ -164,12 +172,13 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
             Text(
                 text = "DURAK TABLE",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = accentText,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
                 text = "Round $round",
                 style = MaterialTheme.typography.titleLarge,
+                color = primaryText,
                 fontWeight = FontWeight.ExtraBold
             )
         }
@@ -251,6 +260,8 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
 
 @Composable
 private fun EmptyTableState() {
+    val primaryText = tablePrimaryTextColor()
+    val secondaryText = tableSecondaryTextColor()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -273,13 +284,14 @@ private fun EmptyTableState() {
         Text(
             text = "The table is ready",
             style = MaterialTheme.typography.titleMedium,
+            color = primaryText,
             fontWeight = FontWeight.ExtraBold
         )
         Text(
             text = "Choose a card from your hand to start the next move.",
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = secondaryText
         )
     }
 }
@@ -308,6 +320,8 @@ private fun AnimatedTablePair(pair: TablePair) {
 
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
+    val primaryText = tablePrimaryTextColor()
+    val secondaryText = tableSecondaryTextColor()
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -351,12 +365,13 @@ private fun DeckStatus(gameState: DurakGameState) {
                 Text(
                     text = "${gameState.deck.size} cards left",
                     style = MaterialTheme.typography.titleSmall,
+                    color = primaryText,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
                     text = "Deck  ·  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = secondaryText,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -403,6 +418,7 @@ private fun ExplicitMatchActions(
         .filter { it != gameState.defenderIndex && !gameState.players[it].isOut }
         .all { it in gameState.throwInPasses }
 
+    val actionAccent = tableAccentTextColor()
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -426,7 +442,7 @@ private fun ExplicitMatchActions(
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
+                color = actionAccent
             )
 
             when {
@@ -481,6 +497,7 @@ private fun AnimatedOutlinedAction(
     onClick: () -> Unit,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
+    val actionText = tablePrimaryTextColor()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
@@ -503,6 +520,7 @@ private fun AnimatedOutlinedAction(
                 scaleY = scale
             },
         shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = actionText),
         content = content
     )
 }
@@ -540,13 +558,47 @@ private fun PrimaryAction(
         shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = if (isSystemInDarkTheme()) Color(0xFF3B332F) else MaterialTheme.colorScheme.surfaceContainerHighest,
+            disabledContentColor = tableDisabledTextColor()
         )
     ) {
         icon()
         Spacer(Modifier.width(8.dp))
-        Text(title, fontWeight = FontWeight.ExtraBold)
+        Text(
+            title,
+            color = if (enabled) MaterialTheme.colorScheme.onPrimary else tableDisabledTextColor(),
+            fontWeight = FontWeight.ExtraBold
+        )
     }
+}
+
+@Composable
+private fun tablePrimaryTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFFFF1EA)
+} else {
+    MaterialTheme.colorScheme.onSurface
+}
+
+@Composable
+private fun tableSecondaryTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFDCC9C0)
+} else {
+    MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun tableAccentTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFFFB69F)
+} else {
+    MaterialTheme.colorScheme.primary
+}
+
+@Composable
+private fun tableDisabledTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFB9AAA4)
+} else {
+    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 }
 
 private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
@@ -563,6 +615,9 @@ private fun HandTray(
     isHumanTurn: Boolean,
     onSelectCard: (GameCard) -> Unit
 ) {
+    val primaryText = tablePrimaryTextColor()
+    val secondaryText = tableSecondaryTextColor()
+    val accentText = tableAccentTextColor()
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = ExpressiveCorners.ExtraExtraLarge,
@@ -584,13 +639,13 @@ private fun HandTray(
                 Text(
                     text = if (isHumanTurn) "YOUR HAND" else "YOUR HAND · WAITING",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = primaryText,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "${hand.size} cards",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = accentText,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -605,7 +660,7 @@ private fun HandTray(
                         "${selectedCard?.rank?.label} ${selectedCard?.suit?.symbol} selected"
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryText
                 )
             }
             AdaptiveHandRow(
