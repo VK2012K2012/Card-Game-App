@@ -11,13 +11,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -41,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +67,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.ui.screens.AboutAppScreen
 import com.example.ui.screens.DesignCustomizationScreen
 import com.example.ui.screens.DurakGameScreen
@@ -196,24 +199,76 @@ class MainActivity : ComponentActivity() {
             }
 
             if (showExitMatchDialog) {
-                AlertDialog(
-                    onDismissRequest = { showExitMatchDialog = false },
-                    title = { Text("Leave this match?") },
-                    text = { Text("Your current table will be abandoned and will not be added to statistics.") },
-                    dismissButton = {
-                        Button(onClick = { showExitMatchDialog = false }) { Text("Keep playing") }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showExitMatchDialog = false
-                                viewModel.abandonMatch()
-                                isInMatch = false
-                                destination = RootDestination.PLAY
+                Dialog(onDismissRequest = { showExitMatchDialog = false }) {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(tween(180)) +
+                            androidx.compose.animation.scaleIn(
+                                initialScale = 0.92f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.82f,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            ) +
+                            androidx.compose.animation.slideInVertically(
+                                initialOffsetY = { it / 5 },
+                                animationSpec = spring(
+                                    dampingRatio = 0.86f,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .width(360.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            tonalElevation = 6.dp
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(18.dp)
+                            ) {
+                                Text(
+                                    text = "Leave this match?",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Your current table will be abandoned and will not be added to statistics.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Button(
+                                        modifier = Modifier.weight(1f),
+                                        onClick = { showExitMatchDialog = false },
+                                        shape = RoundedCornerShape(24.dp)
+                                    ) {
+                                        Text("Keep playing")
+                                    }
+                                    Button(
+                                        modifier = Modifier.weight(1f),
+                                        onClick = {
+                                            showExitMatchDialog = false
+                                            viewModel.abandonMatch()
+                                            isInMatch = false
+                                            destination = RootDestination.PLAY
+                                        },
+                                        shape = RoundedCornerShape(24.dp)
+                                    ) {
+                                        Text("Leave match")
+                                    }
+                                }
                             }
-                        ) { Text("Leave match") }
+                        }
                     }
-                )
+                }
             }
         }
     }
