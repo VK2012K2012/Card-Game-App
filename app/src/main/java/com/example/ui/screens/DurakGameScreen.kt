@@ -144,8 +144,9 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     ) {
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-            tonalElevation = 2.dp
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+            tonalElevation = 4.dp
         ) {
             IconButton(
                 onClick = onExitGame,
@@ -421,6 +422,8 @@ private fun ExplicitMatchActions(
                     isThrowIn -> "THROW-IN WINDOW"
                     else -> "YOUR ATTACK"
                 },
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
