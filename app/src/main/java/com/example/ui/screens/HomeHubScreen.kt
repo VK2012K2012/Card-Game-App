@@ -166,10 +166,21 @@ fun HomeHubScreen(
                             val trailingInteractionSource = remember { MutableInteractionSource() }
                             val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
                             val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
+                            val splitPressed = leadingPressed || trailingPressed
                             val splitScale by animateFloatAsState(
-                                targetValue = if (leadingPressed || trailingPressed) 0.975f else 1f,
-                                animationSpec = tween(150, easing = FastOutSlowInEasing),
+                                targetValue = if (splitPressed) 0.965f else 1f,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "splitButtonPress"
+                            )
+                            val outerCorner by animateDpAsState(
+                                targetValue = if (splitPressed) 24.dp else 38.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "splitButtonOuterCorner"
+                            )
+                            val innerCorner by animateDpAsState(
+                                targetValue = if (splitPressed) 8.dp else 14.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "splitButtonInnerCorner"
                             )
                             Row(
                                 modifier = Modifier
@@ -183,10 +194,10 @@ fun HomeHubScreen(
                                         .fillMaxHeight(),
                                     onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
                                     shape = RoundedCornerShape(
-                                        topStart = 38.dp,
-                                        bottomStart = 38.dp,
-                                        topEnd = 14.dp,
-                                        bottomEnd = 14.dp
+                                        topStart = outerCorner,
+                                        bottomStart = outerCorner,
+                                        topEnd = innerCorner,
+                                        bottomEnd = innerCorner
                                     ),
                                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
                                     interactionSource = leadingInteractionSource
@@ -205,10 +216,10 @@ fun HomeHubScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         onClick = { modeMenuExpanded = !modeMenuExpanded },
                                         shape = RoundedCornerShape(
-                                            topStart = 14.dp,
-                                            bottomStart = 14.dp,
-                                            topEnd = 38.dp,
-                                            bottomEnd = 38.dp
+                                            topStart = innerCorner,
+                                            bottomStart = innerCorner,
+                                            topEnd = outerCorner,
+                                            bottomEnd = outerCorner
                                         ),
                                         contentPadding = PaddingValues(0.dp),
                                         interactionSource = trailingInteractionSource
