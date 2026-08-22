@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
@@ -21,6 +23,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -34,11 +37,10 @@ import com.example.durak.model.Card
 import com.example.ui.theme.TrumpGold
 
 /**
- * A single playing card, front or back.
+ * A compact, tactile playing card used by both the table and the player's hand.
  *
- * Uses a stable identity ([card.id] is expected to be a stable key wherever
- * this is placed inside a `LazyRow`/`LazyColumn`) and animates selection with
- * a spring so re-selecting doesn't cause a visual "pop"/flicker.
+ * The card owns only visual motion. Game legality and selection remain in the
+ * ViewModel, which keeps this component cheap to reuse in lazy layouts.
  */
 @Composable
 fun PlayingCardView(
@@ -50,17 +52,41 @@ fun PlayingCardView(
     isSelectable: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
+    val lift by animateDpAsState(
+        targetValue = if (isSelected) 10.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = 0.72f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cardLift"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.06f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.78f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cardScale"
+    )
+    val rotation by animateFloatAsState(
+        targetValue = if (isSelected) -1.5f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "cardRotation"
+    )
     val elevation by animateFloatAsState(
-        targetValue = if (isSelected) 14f else 3f,
-        animationSpec = spring(dampingRatio = 0.7f),
+        targetValue = if (isSelected) 16f else 3f,
+        animationSpec = spring(dampingRatio = 0.8f),
         label = "cardElevation"
     )
 
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(12.dp)
     val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
         card.isTrump && card.isFaceUp -> TrumpGold
-        else -> Color(0x33000000)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
     }
     val borderWidth = when {
         isSelected -> 3.dp
@@ -71,15 +97,21 @@ fun PlayingCardView(
     Card(
         modifier = modifier
             .size(width = width, height = height)
+            .graphicsLayer {
+                translationY = -lift.toPx()
+                scaleX = scale
+                scaleY = scale
+                rotationZ = rotation
+            }
             .shadow(elevation.dp, shape = shape)
             .clip(shape)
-            .border(
-                width = borderWidth,
-                color = borderColor,
-                shape = shape
-            )
+            .border(borderWidth, borderColor, shape)
             .then(
-                if (onClick != null && isSelectable) Modifier.clickable { onClick() } else Modifier
+                if (onClick != null && isSelectable) {
+                    Modifier.clickable { onClick() }
+                } else {
+                    Modifier
+                }
             )
             .semantics {
                 contentDescription = if (card.isFaceUp) {
@@ -91,8 +123,13 @@ fun PlayingCardView(
             },
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = if (card.isFaceUp) Color(0xFFFFFFFF) else Color(0xFF14202B)
-        )
+            containerColor = if (card.isFaceUp) {
+                Color.White
+            } else {
+                Color(0xFF14202B)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         if (!card.isFaceUp) {
             CardBackGraphic(modifier = Modifier.fillMaxSize())
@@ -104,14 +141,17 @@ fun PlayingCardView(
 
 @Composable
 fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
-    val suitColor = if (card.suit.isRed) Color(0xFFD3273E) else Color(0xFF0F172A)
+    val suitColor = if (card.suit.isRed) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(4.dp)
     ) {
-        // Top Left Rank & Suit
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.TopStart)
@@ -132,12 +172,11 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
             )
         }
 
-        // Trump Badge
         if (card.isTrump) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .background(TrumpGold, shape = RoundedCornerShape(4.dp))
+                    .background(TrumpGold, shape = RoundedCornerShape(5.dp))
                     .padding(horizontal = 3.dp, vertical = 1.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -150,7 +189,6 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
             }
         }
 
-        // Center emblem
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -173,7 +211,6 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
             )
         }
 
-        // Bottom Right Rotated Rank & Suit
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.BottomEnd)
@@ -205,9 +242,7 @@ fun CardBackGraphic(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-
         drawRect(color = primaryColor)
-
         drawRoundRect(
             color = accentColor.copy(alpha = 0.65f),
             topLeft = Offset(w * 0.08f, h * 0.08f),

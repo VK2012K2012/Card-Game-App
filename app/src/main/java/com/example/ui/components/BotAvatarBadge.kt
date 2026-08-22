@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,16 +32,22 @@ fun BotAvatarBadge(
 ) {
     val borderColor = when {
         isCurrentTurn -> MaterialTheme.colorScheme.tertiary
-        isDefender -> Color(0xFFEF4444)
-        isAttacker -> Color(0xFF3B82F6)
+        isDefender -> MaterialTheme.colorScheme.error
+        isAttacker -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outlineVariant
     }
+    val animatedBorderColor by animateColorAsState(
+        targetValue = borderColor,
+        animationSpec = tween(220),
+        label = "botRoleBorder"
+    )
 
     Surface(
         modifier = modifier
+            .animateContentSize()
             .border(
                 width = if (isCurrentTurn) 2.dp else 1.dp,
-                color = borderColor,
+                color = animatedBorderColor,
                 shape = RoundedCornerShape(16.dp)
             ),
         shape = RoundedCornerShape(16.dp),
@@ -101,15 +111,24 @@ fun BotAvatarBadge(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    if (isDefender) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Badge(containerColor = Color(0xFFEF4444), contentColor = Color.White) {
-                            Text("Defend", style = MaterialTheme.typography.labelSmall)
+                    when {
+                        isDefender -> {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            ) {
+                                Text("Defend", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
-                    } else if (isAttacker) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Badge(containerColor = Color(0xFF3B82F6), contentColor = Color.White) {
-                            Text("Attack", style = MaterialTheme.typography.labelSmall)
+                        isAttacker -> {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) {
+                                Text("Attack", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
                 }
