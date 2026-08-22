@@ -76,12 +76,6 @@ fun PlayingCardView(
         ),
         label = "cardRotation"
     )
-    val elevation by animateFloatAsState(
-        targetValue = if (isSelected) 16f else 3f,
-        animationSpec = spring(dampingRatio = 0.8f),
-        label = "cardElevation"
-    )
-
     val shape = RoundedCornerShape(12.dp)
     val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
@@ -103,9 +97,9 @@ fun PlayingCardView(
                 scaleY = scale
                 rotationZ = rotation
             }
-            .shadow(elevation.dp, shape = shape)
+            // Keep shadow stable so unselecting a card never causes a visual jump.
+            .shadow(6.dp, shape = shape)
             .clip(shape)
-            .border(borderWidth, borderColor, shape)
             .then(
                 if (onClick != null && isSelectable) {
                     Modifier.clickable { onClick() }
@@ -124,11 +118,12 @@ fun PlayingCardView(
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = if (card.isFaceUp) {
-                Color.White
+                MaterialTheme.colorScheme.surfaceContainerLowest
             } else {
-                Color(0xFF14202B)
+                MaterialTheme.colorScheme.secondary
             }
         ),
+        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         if (!card.isFaceUp) {
@@ -236,8 +231,8 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
 /** Single, polished card-back motif — deep navy with a fine gold lattice and center emblem. */
 @Composable
 fun CardBackGraphic(modifier: Modifier = Modifier) {
-    val primaryColor = Color(0xFF14202B)
-    val accentColor = TrumpGold
+    val primaryColor = MaterialTheme.colorScheme.secondary
+    val accentColor = MaterialTheme.colorScheme.tertiary
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width

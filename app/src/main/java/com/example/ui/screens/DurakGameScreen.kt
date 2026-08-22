@@ -6,6 +6,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -14,7 +15,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,13 +41,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SportsScore
 import androidx.compose.material.icons.filled.TableRestaurant
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,8 +88,6 @@ fun DurakGameScreen(
     val isHumanTurn = gameState.currentTurnPlayerIndex == humanIndex
     val isHumanDefender = gameState.defenderIndex == humanIndex
     val isHumanAttacker = gameState.attackerIndex == humanIndex
-    val turnMessage = buildTurnMessage(gameState, isHumanTurn, isHumanDefender)
-
     TableFeltBackground(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -100,13 +95,8 @@ fun DurakGameScreen(
                 .statusBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            MatchHeader(gameState.roundCount, gameState.bitoCount, onExitGame)
+            MatchHeader(gameState.roundCount, onExitGame)
             OpponentRail(gameState)
-            TurnBanner(
-                message = turnMessage,
-                isHumanTurn = isHumanTurn,
-                isGameOver = gameState.isGameOver
-            )
             GameTable(
                 gameState = gameState,
                 modifier = Modifier.weight(1f)
@@ -135,7 +125,7 @@ fun DurakGameScreen(
 }
 
 @Composable
-private fun MatchHeader(round: Int, bitoCount: Int, onExitGame: () -> Unit) {
+private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -182,29 +172,6 @@ private fun MatchHeader(round: Int, bitoCount: Int, onExitGame: () -> Unit) {
             )
         }
 
-        Surface(
-            shape = ExpressiveCorners.Full,
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.86f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.TableRestaurant,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = if (bitoCount == 0) "LOCAL" else "BITO $bitoCount",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
     }
 }
 
@@ -225,52 +192,6 @@ private fun OpponentRail(gameState: DurakGameState) {
                 isDefender = gameState.defenderIndex == index,
                 isAttacker = gameState.attackerIndex == index
             )
-        }
-    }
-}
-
-@Composable
-private fun TurnBanner(message: String, isHumanTurn: Boolean, isGameOver: Boolean) {
-    val containerColor = when {
-        isGameOver -> MaterialTheme.colorScheme.tertiaryContainer
-        isHumanTurn -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
-    }
-    val contentColor = when {
-        isGameOver -> MaterialTheme.colorScheme.onTertiaryContainer
-        isHumanTurn -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .animateContentSize(),
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        color = containerColor,
-        tonalElevation = if (isHumanTurn || isGameOver) 3.dp else 1.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = if (isGameOver) Icons.Default.SportsScore else Icons.Default.TableRestaurant,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = contentColor
-            )
-            AnimatedContent(targetState = message, label = "turnMessage") { animatedMessage ->
-                Text(
-                    text = animatedMessage,
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-            }
         }
     }
 }
@@ -386,42 +307,67 @@ private fun AnimatedTablePair(pair: TablePair) {
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
     Surface(
-        shape = ExpressiveCorners.Full,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.88f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 560.dp),
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
         tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
-                modifier = Modifier.size(width = 44.dp, height = 62.dp),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.size(width = 92.dp, height = 62.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                gameState.trumpCard?.let {
-                    PlayingCardView(it, width = 35.dp, height = 52.dp, isSelectable = false)
-                }
                 if (gameState.deck.isNotEmpty()) {
                     PlayingCardView(
-                        GameCard("deck_back", gameState.trumpSuit, Rank.ACE, isFaceUp = false),
-                        width = 35.dp,
-                        height = 52.dp,
-                        isSelectable = false
+                        card = GameCard("deck_back", gameState.trumpSuit, Rank.ACE, isFaceUp = false),
+                        width = 38.dp,
+                        height = 56.dp,
+                        isSelectable = false,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+                gameState.trumpCard?.let {
+                    PlayingCardView(
+                        card = it,
+                        width = 38.dp,
+                        height = 56.dp,
+                        isSelectable = false,
+                        modifier = Modifier.padding(start = 48.dp)
                     )
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
-                    text = "${gameState.deck.size} cards in deck",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+                    text = "${gameState.deck.size} cards left",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Trump ${gameState.trumpSuit.symbol} · ${gameState.trumpSuit.suitName}",
+                    text = "Deck  ·  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TrumpGold,
-                    fontWeight = FontWeight.ExtraBold
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Surface(
+                shape = ExpressiveCorners.Full,
+                color = MaterialTheme.colorScheme.tertiaryContainer
+            ) {
+                Text(
+                    text = gameState.trumpSuit.symbol,
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.Black
                 )
             }
         }
@@ -468,39 +414,16 @@ private fun ExplicitMatchActions(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = when {
-                        isDefending -> "DEFEND THE TABLE"
-                        isThrowIn -> "THROW-IN WINDOW"
-                        else -> "YOUR ATTACK"
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Badge(
-                    containerColor = if (selectedCard == null) {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.tertiaryContainer
-                    },
-                    contentColor = if (selectedCard == null) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onTertiaryContainer
-                    }
-                ) {
-                    Text(
-                        text = if (selectedCard == null) "Choose a card" else "Card ready",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
+            Text(
+                text = when {
+                    isDefending -> "DEFEND THE TABLE"
+                    isThrowIn -> "THROW-IN WINDOW"
+                    else -> "YOUR ATTACK"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
 
             when {
                 isDefending -> {
@@ -556,9 +479,14 @@ private fun AnimatedOutlinedAction(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 22.dp else 34.dp,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "outlinedActionCorner"
+    )
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "outlinedActionPress"
     )
     OutlinedButton(
@@ -570,7 +498,7 @@ private fun AnimatedOutlinedAction(
                 scaleX = scale
                 scaleY = scale
             },
-        shape = ExpressiveCorners.Full,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
         content = content
     )
 }
@@ -584,9 +512,14 @@ private fun PrimaryAction(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 22.dp else 34.dp,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "matchActionCorner"
+    )
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "matchActionPress"
     )
     Button(
@@ -600,7 +533,7 @@ private fun PrimaryAction(
                 scaleX = scale
                 scaleY = scale
             },
-        shape = ExpressiveCorners.Full,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -708,16 +641,4 @@ private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit)
             }
         }
     )
-}
-
-private fun buildTurnMessage(
-    state: DurakGameState,
-    humanTurn: Boolean,
-    humanDefender: Boolean
-): String = when {
-    state.isGameOver -> "Match complete"
-    humanTurn && humanDefender -> "Your turn: defend a card or take the table."
-    humanTurn && state.gamePhase == GamePhase.WAITING_FOR_THROW_IN -> "Your turn: throw in a matching rank or pass."
-    humanTurn -> "Your turn: choose a card, then play it."
-    else -> "${state.players.getOrNull(state.currentTurnPlayerIndex)?.name ?: "Opponent"} is thinking…"
 }
