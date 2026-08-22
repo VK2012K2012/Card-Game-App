@@ -10,12 +10,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,8 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SplitButton
-import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,7 +62,6 @@ import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeHubScreen(
     stats: GameStatsEntity,
@@ -162,6 +158,7 @@ fun HomeHubScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .widthIn(max = 520.dp)
                                 .height(76.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -174,74 +171,89 @@ fun HomeHubScreen(
                                 animationSpec = tween(150, easing = FastOutSlowInEasing),
                                 label = "splitButtonPress"
                             )
-                            SplitButton(
+                            Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .widthIn(max = 520.dp)
-                                    .height(76.dp)
+                                    .fillMaxSize()
                                     .graphicsLayer { scaleX = splitScale; scaleY = splitScale },
-                                leadingButton = {
-                                    SplitButtonDefaults.LeadingButton(
-                                        onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
-                                        shapes = SplitButtonDefaults.leadingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                        contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp),
-                                        interactionSource = leadingInteractionSource
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Button(
+                                    modifier = Modifier
+                                        .weight(2f)
+                                        .fillMaxHeight(),
+                                    onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
+                                    shape = RoundedCornerShape(
+                                        topStart = 38.dp,
+                                        bottomStart = 38.dp,
+                                        topEnd = 14.dp,
+                                        bottomEnd = 14.dp
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
+                                    interactionSource = leadingInteractionSource
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                    Spacer(Modifier.size(8.dp))
+                                    Text("Start a match", fontWeight = FontWeight.ExtraBold)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Button(
+                                        modifier = Modifier.fillMaxSize(),
+                                        onClick = { modeMenuExpanded = !modeMenuExpanded },
+                                        shape = RoundedCornerShape(
+                                            topStart = 14.dp,
+                                            bottomStart = 14.dp,
+                                            topEnd = 38.dp,
+                                            bottomEnd = 38.dp
+                                        ),
+                                        contentPadding = PaddingValues(0.dp),
+                                        interactionSource = trailingInteractionSource
                                     ) {
-                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                        Text("Start a match", fontWeight = FontWeight.ExtraBold)
+                                        val arrowRotation by animateFloatAsState(
+                                            targetValue = if (modeMenuExpanded) 180f else 0f,
+                                            animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                            label = "modeMenuArrow"
+                                        )
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                            modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+                                        )
                                     }
-                                },
-                                trailingButton = {
-                                    Box {
-                                        SplitButtonDefaults.TrailingButton(
-                                            checked = modeMenuExpanded,
-                                            onCheckedChange = { modeMenuExpanded = it },
-                                            shapes = SplitButtonDefaults.trailingButtonShapesFor(SplitButtonDefaults.LargeContainerHeight),
-                                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
-                                            interactionSource = trailingInteractionSource
-                                        ) {
-                                            val arrowRotation by animateFloatAsState(
-                                                targetValue = if (modeMenuExpanded) 180f else 0f,
-                                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                                label = "modeMenuArrow"
-                                            )
-                                            Icon(
-                                                Icons.Default.ArrowDropDown,
-                                                contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
-                                                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
-                                            )
-                                        }
-                                        DropdownMenu(
-                                            expanded = modeMenuExpanded,
-                                            onDismissRequest = { modeMenuExpanded = false }
-                                        ) {
-                                            GameMode.entries
-                                                .filter { it != GameMode.PEREVODNOY }
-                                                .forEach { option ->
-                                                    DropdownMenuItem(
-                                                        text = { Text(option.title) },
-                                                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                                                        trailingIcon = if (gameMode == option) {
-                                                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                                                        } else null,
-                                                        onClick = {
-                                                            gameMode = option
-                                                            modeMenuExpanded = false
-                                                        }
-                                                    )
-                                                }
-                                            DropdownMenuItem(
-                                                text = { Text("Configure players and bots") },
-                                                leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                                                onClick = {
-                                                    modeMenuExpanded = false
-                                                    showMatchSetup = true
-                                                }
-                                            )
-                                        }
+                                    DropdownMenu(
+                                        expanded = modeMenuExpanded,
+                                        onDismissRequest = { modeMenuExpanded = false }
+                                    ) {
+                                        GameMode.entries
+                                            .filter { it != GameMode.PEREVODNOY }
+                                            .forEach { option ->
+                                                DropdownMenuItem(
+                                                    text = { Text(option.title) },
+                                                    leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                                                    trailingIcon = if (gameMode == option) {
+                                                        { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                                                    } else null,
+                                                    onClick = {
+                                                        gameMode = option
+                                                        modeMenuExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        DropdownMenuItem(
+                                            text = { Text("Configure players and bots") },
+                                            leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                                            onClick = {
+                                                modeMenuExpanded = false
+                                                showMatchSetup = true
+                                            }
+                                        )
                                     }
                                 }
-                            )
+                            }
                         }
                         Text(
                             text = "Use the arrow to choose a mode or configure players, deck, and bot difficulty.",
