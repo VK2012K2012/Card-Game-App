@@ -198,7 +198,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            if (showExitMatchDialog) {
+            CardGameTheme {
+                if (showExitMatchDialog) {
                 Dialog(onDismissRequest = { showExitMatchDialog = false }) {
                     AnimatedVisibility(
                         visible = true,
@@ -271,6 +272,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
     }
 
     private companion object {
