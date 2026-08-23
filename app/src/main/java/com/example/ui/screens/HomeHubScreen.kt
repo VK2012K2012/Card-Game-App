@@ -1,6 +1,15 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -27,16 +36,24 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,14 +83,27 @@ import com.example.durak.model.OpponentEngine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private data class SettingsOption(val key: String, val label: String, val selected: Boolean)
+private data class SettingsCategory(val section: SettingsSection, val title: String, val value: String)
+
+private enum class SettingsSection(val title: String, val supportingText: String) {
+    PLAYERS("Players", "Choose how many players join the table"),
+    DECK("Deck", "Choose the deck size for this table"),
+    GAME_MODE("Game mode", "Choose how the attack continues"),
+    DIFFICULTY("Bot difficulty", "Choose how sharply local bots play")
+}
+
 @Composable
 fun HomeHubScreen(
     stats: GameStatsEntity,
     onStartDurak: (LocalMatchSetup) -> Unit
 ) {
-    var showMatchSetup by remember { mutableStateOf(false) }
     var modeMenuExpanded by remember { mutableStateOf(false) }
     var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
+    var playerCount by remember { mutableIntStateOf(2) }
+    var deckSize by remember { mutableIntStateOf(36) }
+    var botDifficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
+    var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
     val buttonScope = rememberCoroutineScope()
 
     Box(
@@ -156,17 +186,22 @@ fun HomeHubScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ModePill("2 players", Modifier.weight(1f))
-                            ModePill("36 cards", Modifier.weight(1f))
+                            ModePill("$playerCount players", Modifier.weight(1f))
+                            ModePill("$deckSize cards", Modifier.weight(1f))
                             ModePill(gameMode.title, Modifier.weight(1f))
                         }
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .widthIn(max = 520.dp)
-                                .height(76.dp),
-                            contentAlignment = Alignment.Center
+                                .widthIn(max = 520.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(76.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                             val leadingInteractionSource = remember { MutableInteractionSource() }
                             val trailingInteractionSource = remember { MutableInteractionSource() }
                             val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
@@ -219,10 +254,10 @@ fun HomeHubScreen(
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "trailingButtonInnerCorner"
                             )
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
                                 Button(
                                     modifier = Modifier
                                         .weight(2f)
@@ -235,7 +270,15 @@ fun HomeHubScreen(
                                         leadingClickToken += 1
                                         buttonScope.launch {
                                             delay(90)
-                                            onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized())
+                                            onStartDurak(
+                                                LocalMatchSetup(
+                                                    playerCount = playerCount,
+                                                    deckSize = deckSize,
+                                                    gameMode = gameMode,
+                                                    botDifficulty = botDifficulty,
+                                                    opponentEngine = OpponentEngine.CLASSIC
+                                                ).normalized()
+                                            )
                                         }
                                     },
                                     shape = RoundedCornerShape(
@@ -265,6 +308,7 @@ fun HomeHubScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         onClick = {
                                             trailingClickToken += 1
+                                            if (modeMenuExpanded) settingsSection = null
                                             modeMenuExpanded = !modeMenuExpanded
                                         },
                                         shape = RoundedCornerShape(
@@ -287,39 +331,72 @@ fun HomeHubScreen(
                                             modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
                                         )
                                     }
-                                    DropdownMenu(
-                                        expanded = modeMenuExpanded,
-                                        onDismissRequest = { modeMenuExpanded = false }
-                                    ) {
-                                        GameMode.entries
-                                            .filter { it != GameMode.PEREVODNOY }
-                                            .forEach { option ->
-                                                DropdownMenuItem(
-                                                    text = { Text(option.title) },
-                                                    leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                                                    trailingIcon = if (gameMode == option) {
-                                                        { Icon(Icons.Default.Check, contentDescription = "Selected") }
-                                                    } else null,
-                                                    onClick = {
-                                                        gameMode = option
-                                                        modeMenuExpanded = false
-                                                    }
-                                                )
-                                            }
-                                        DropdownMenuItem(
-                                            text = { Text("Configure players and bots") },
-                                            leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                                            onClick = {
-                                                modeMenuExpanded = false
-                                                showMatchSetup = true
-                                            }
+                                }
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = modeMenuExpanded,
+                                enter = fadeIn(tween(180)) + expandVertically(
+                                    animationSpec = tween(260, easing = FastOutSlowInEasing),
+                                    expandFrom = Alignment.Top
+                                ),
+                                exit = fadeOut(tween(120)) + shrinkVertically(
+                                    animationSpec = tween(180, easing = FastOutSlowInEasing),
+                                    shrinkTowards = Alignment.Top
+                                )
+                            ) {
+                                AnimatedContent(
+                                    targetState = settingsSection,
+                                    transitionSpec = {
+                                        if (targetState == null) {
+                                            (slideInHorizontally(
+                                                initialOffsetX = { -it },
+                                                animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                            ) + fadeIn(tween(180))) togetherWith
+                                                (slideOutHorizontally(
+                                                    targetOffsetX = { it },
+                                                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                                                ) + fadeOut(tween(120)))
+                                        } else {
+                                            (slideInHorizontally(
+                                                initialOffsetX = { it },
+                                                animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                            ) + fadeIn(tween(180))) togetherWith
+                                                (slideOutHorizontally(
+                                                    targetOffsetX = { -it },
+                                                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                                                ) + fadeOut(tween(120)))
+                                        }
+                                    },
+                                    label = "settingsListDetailTransition"
+                                ) { section ->
+                                    if (section == null) {
+                                        InlineSettingsMenu(
+                                            playerCount = playerCount,
+                                            deckSize = deckSize,
+                                            gameMode = gameMode,
+                                            botDifficulty = botDifficulty,
+                                            onOpen = { settingsSection = it }
+                                        )
+                                    } else {
+                                        SettingsDetailView(
+                                            section = section,
+                                            playerCount = playerCount,
+                                            deckSize = deckSize,
+                                            gameMode = gameMode,
+                                            botDifficulty = botDifficulty,
+                                            onBack = { settingsSection = null },
+                                            onPlayerCountChange = { playerCount = it },
+                                            onDeckSizeChange = { deckSize = it },
+                                            onGameModeChange = { gameMode = it },
+                                            onDifficultyChange = { botDifficulty = it }
                                         )
                                     }
                                 }
                             }
                         }
                         Text(
-                            text = "Use the arrow to choose a mode or configure players, deck, and bot difficulty.",
+                            text = "Use the arrow to tune the table before you deal.",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -330,22 +407,147 @@ fun HomeHubScreen(
         }
     }
 
-    if (showMatchSetup) {
-        DurakMatchSetupSheet(
-            gameMode = gameMode,
-            onDismiss = { showMatchSetup = false },
-            onStart = { setup ->
-                showMatchSetup = false
-                onStartDurak(setup)
-            }
-        )
-    }
 }
 
 /**
  * A large Material 3 Expressive action: pressing tightens the corners into a softer
  * rounded form while subtly compressing the surface, then restores the relaxed shape.
  */
+@Composable
+private fun InlineSettingsMenu(
+    playerCount: Int,
+    deckSize: Int,
+    gameMode: GameMode,
+    botDifficulty: BotDifficulty,
+    onOpen: (SettingsSection) -> Unit
+) {
+    val categories = listOf(
+        SettingsCategory(SettingsSection.PLAYERS, "Players", "$playerCount players"),
+        SettingsCategory(SettingsSection.DECK, "Deck", "$deckSize cards"),
+        SettingsCategory(SettingsSection.GAME_MODE, "Game mode", gameMode.title),
+        SettingsCategory(SettingsSection.DIFFICULTY, "Bot difficulty", botDifficulty.displayName)
+    )
+    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+    ) {
+        categories.forEachIndexed { index, category ->
+            SegmentedListItem(
+                onClick = { onOpen(category.section) },
+                shapes = ListItemDefaults.segmentedShapes(index = index, count = categories.size),
+                colors = colors,
+                leadingContent = {
+                    when (category.section) {
+                        SettingsSection.PLAYERS -> Icon(Icons.Default.Group, contentDescription = null)
+                        SettingsSection.DECK -> Icon(Icons.Default.Layers, contentDescription = null)
+                        SettingsSection.GAME_MODE -> Icon(Icons.Default.Style, contentDescription = null)
+                        SettingsSection.DIFFICULTY -> Icon(Icons.Default.SmartToy, contentDescription = null)
+                    }
+                },
+                supportingContent = { Text(category.value) },
+                trailingContent = {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Change ${category.title}"
+                    )
+                },
+                content = { Text(category.title) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsDetailView(
+    section: SettingsSection,
+    playerCount: Int,
+    deckSize: Int,
+    gameMode: GameMode,
+    botDifficulty: BotDifficulty,
+    onBack: () -> Unit,
+    onPlayerCountChange: (Int) -> Unit,
+    onDeckSizeChange: (Int) -> Unit,
+    onGameModeChange: (GameMode) -> Unit,
+    onDifficultyChange: (BotDifficulty) -> Unit
+) {
+    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    val options = when (section) {
+        SettingsSection.PLAYERS -> listOf(2, 3, 4).map { count ->
+            SettingsOption(count.toString(), "$count players", playerCount == count)
+        }
+        SettingsSection.DECK -> listOf(24, 36, 52).map { size ->
+            SettingsOption(size.toString(), "$size cards", deckSize == size)
+        }
+        SettingsSection.GAME_MODE -> listOf(GameMode.PODKIDNOY, GameMode.CLASSIC).map { mode ->
+            SettingsOption(mode.name, mode.title, gameMode == mode)
+        }
+        SettingsSection.DIFFICULTY -> BotDifficulty.entries.map { difficulty ->
+            SettingsOption(difficulty.name, difficulty.displayName, botDifficulty == difficulty)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to settings")
+            }
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = section.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = section.supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+        ) {
+            options.forEachIndexed { index, option ->
+                SegmentedListItem(
+                    selected = option.selected,
+                    onClick = {
+                        when (section) {
+                            SettingsSection.PLAYERS -> onPlayerCountChange(option.key.toInt())
+                            SettingsSection.DECK -> onDeckSizeChange(option.key.toInt())
+                            SettingsSection.GAME_MODE -> onGameModeChange(GameMode.valueOf(option.key))
+                            SettingsSection.DIFFICULTY -> onDifficultyChange(BotDifficulty.valueOf(option.key))
+                        }
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(index = index, count = options.size),
+                    colors = colors,
+                    trailingContent = {
+                        RadioButton(selected = option.selected, onClick = null)
+                    },
+                    content = { Text(option.label) }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun ModePill(label: String, modifier: Modifier = Modifier) {
     Surface(

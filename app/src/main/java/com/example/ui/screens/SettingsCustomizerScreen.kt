@@ -2,54 +2,36 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -91,20 +73,26 @@ fun SettingsCustomizerScreen(
             }
         }
         item {
-            SettingsEntry(
-                icon = Icons.Default.Tune,
-                title = "Design customization",
-                subtitle = "Choose how the bar at the bottom of the app looks.",
-                onClick = onOpenDesign
-            )
-        }
-        item {
-            SettingsEntry(
-                icon = Icons.Default.Info,
-                title = "About app",
-                subtitle = "Version, source code, and credits.",
-                onClick = onOpenAbout
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+            ) {
+                SettingsEntry(
+                    icon = Icons.Default.Tune,
+                    title = "Design customization",
+                    subtitle = "Choose how the bar at the bottom of the app looks.",
+                    index = 0,
+                    count = 2,
+                    onClick = onOpenDesign
+                )
+                SettingsEntry(
+                    icon = Icons.Default.Info,
+                    title = "About app",
+                    subtitle = "Version, source code, and credits.",
+                    index = 1,
+                    count = 2,
+                    onClick = onOpenAbout
+                )
+            }
         }
     }
 }
@@ -135,22 +123,26 @@ fun DesignCustomizationScreen(
             )
         }
         item {
-            NavigationAppearanceChoice(
-                title = "Material 3 Expressive",
-                subtitle = "The normal navigation bar. Every page shows an icon and its name. The selected page has a colored rounded pill.",
-                appearance = NavigationAppearance.STANDARD,
-                selected = currentAppearance == NavigationAppearance.STANDARD,
-                onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) }
-            )
-        }
-        item {
-            NavigationAppearanceChoice(
-                title = "Compact icon dock",
-                subtitle = "A smaller bar with icons only. It gives more room to the game, but page names are hidden.",
-                appearance = NavigationAppearance.COMPACT,
-                selected = currentAppearance == NavigationAppearance.COMPACT,
-                onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) }
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+            ) {
+                NavigationAppearanceListRow(
+                    title = "Material 3 Expressive",
+                    subtitle = "Icons with labels and a selected pill",
+                    selected = currentAppearance == NavigationAppearance.STANDARD,
+                    index = 0,
+                    count = 2,
+                    onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) }
+                )
+                NavigationAppearanceListRow(
+                    title = "Compact",
+                    subtitle = "Icons only for more room in the game",
+                    selected = currentAppearance == NavigationAppearance.COMPACT,
+                    index = 1,
+                    count = 2,
+                    onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) }
+                )
+            }
         }
     }
 }
@@ -176,7 +168,9 @@ fun AboutAppScreen(onBack: () -> Unit) {
                 title = "GitHub project",
                 subtitle = "Source code and the latest published changes.",
                 onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) },
-                trailing = Icons.AutoMirrored.Filled.OpenInNew
+                trailing = Icons.AutoMirrored.Filled.OpenInNew,
+                index = 0,
+                count = 1
             )
         }
         item {
@@ -247,227 +241,49 @@ private fun SettingsEntry(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    index: Int = 0,
+    count: Int = 1,
     onClick: () -> Unit,
     trailing: ImageVector = Icons.AutoMirrored.Filled.ArrowForward
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(150, easing = FastOutSlowInEasing),
-        label = "settingsEntryPress"
-    )
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(ExpressiveCorners.ExtraExtraLarge)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = ExpressiveCorners.Full,
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                }
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(
-                imageVector = trailing,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavigationAppearanceChoice(
-    title: String,
-    subtitle: String,
-    appearance: NavigationAppearance,
-    selected: Boolean,
-    onSelected: () -> Unit
-) {
-    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
-    val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(150, easing = FastOutSlowInEasing),
-        label = "appearanceChoicePress"
-    )
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(ExpressiveCorners.ExtraExtraLarge)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onSelected),
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        color = container
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = content)
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = content.copy(alpha = 0.78f))
-                }
-                if (selected) {
-                    Surface(shape = ExpressiveCorners.Full, color = content.copy(alpha = 0.14f)) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = content)
-                            Text("Active", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = content)
-                        }
-                    }
-                }
-            }
-            Text(
-                text = "Preview",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = content.copy(alpha = 0.7f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = {
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                NavigationPreview(appearance = appearance)
-            }
-        }
-    }
-}
-
-@Composable
-private fun NavigationPreview(appearance: NavigationAppearance) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth(0.92f)
-            .widthIn(max = 420.dp),
-        shape = ExpressiveCorners.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(28.dp)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Card Game Hub",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f)
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
                 )
             }
-            when (appearance) {
-                NavigationAppearance.STANDARD -> LabeledNavigationPreview()
-                NavigationAppearance.COMPACT -> CompactNavigationPreview()
-            }
-        }
-    }
-}
-
-/** This uses the same official Material 3 components as the persistent app navigation. */
-@Composable
-private fun LabeledNavigationPreview() {
-    NavigationBar(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 0.dp,
-        // The preview is embedded in a card, so it must not reserve the device system-bar area.
-        windowInsets = WindowInsets(0, 0, 0, 0)
-    ) {
-        NavigationBarItem(
-            selected = true,
-            onClick = {},
-            icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-            label = { Text("Play") },
-            alwaysShowLabel = true,
-            colors = previewNavigationItemColors()
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Default.BarChart, contentDescription = null) },
-            label = { Text("Stats") },
-            alwaysShowLabel = true,
-            colors = previewNavigationItemColors()
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            label = { Text("Settings") },
-            alwaysShowLabel = true,
-            colors = previewNavigationItemColors()
-        )
-    }
+        },
+        supportingContent = { Text(subtitle) },
+        trailingContent = { Icon(trailing, contentDescription = null) },
+        content = { Text(title) }
+    )
 }
 
 @Composable
-private fun previewNavigationItemColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    selectedTextColor = MaterialTheme.colorScheme.secondary,
-    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-)
-
-
-@Composable
-private fun CompactNavigationPreview() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 28.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PreviewDockItem(Icons.Default.PlayArrow, selected = true)
-        PreviewDockItem(Icons.Default.BarChart, selected = false)
-        PreviewDockItem(Icons.Default.Settings, selected = false)
-    }
-}
-
-@Composable
-private fun PreviewDockItem(icon: ImageVector, selected: Boolean) {
-    Surface(
-        modifier = Modifier.size(width = 56.dp, height = 36.dp),
-        shape = ExpressiveCorners.Full,
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(21.dp),
-                tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+private fun NavigationAppearanceListRow(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    index: Int,
+    count: Int,
+    onSelected: () -> Unit
+) {
+    SegmentedListItem(
+        selected = selected,
+        onClick = onSelected,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        supportingContent = { Text(subtitle) },
+        trailingContent = { RadioButton(selected = selected, onClick = null) },
+        content = { Text(title) }
+    )
 }
