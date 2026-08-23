@@ -41,10 +41,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +63,8 @@ import com.example.durak.model.BotDifficulty
 import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeHubScreen(
@@ -70,6 +74,7 @@ fun HomeHubScreen(
     var showMatchSetup by remember { mutableStateOf(false) }
     var modeMenuExpanded by remember { mutableStateOf(false) }
     var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
+    val buttonScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -166,33 +171,51 @@ fun HomeHubScreen(
                             val trailingInteractionSource = remember { MutableInteractionSource() }
                             val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
                             val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
+                            var leadingClickToken by remember { mutableIntStateOf(0) }
+                            var trailingClickToken by remember { mutableIntStateOf(0) }
+                            var leadingClickPulse by remember { mutableStateOf(false) }
+                            var trailingClickPulse by remember { mutableStateOf(false) }
+                            LaunchedEffect(leadingClickToken) {
+                                if (leadingClickToken == 0) return@LaunchedEffect
+                                leadingClickPulse = true
+                                delay(190)
+                                leadingClickPulse = false
+                            }
+                            LaunchedEffect(trailingClickToken) {
+                                if (trailingClickToken == 0) return@LaunchedEffect
+                                trailingClickPulse = true
+                                delay(190)
+                                trailingClickPulse = false
+                            }
+                            val leadingActive = leadingPressed || leadingClickPulse
+                            val trailingActive = trailingPressed || trailingClickPulse
                             val leadingScale by animateFloatAsState(
-                                targetValue = if (leadingPressed) 0.96f else 1f,
+                                targetValue = if (leadingActive) 0.96f else 1f,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "leadingButtonPress"
                             )
                             val trailingScale by animateFloatAsState(
-                                targetValue = if (trailingPressed) 0.96f else 1f,
+                                targetValue = if (trailingActive) 0.96f else 1f,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "trailingButtonPress"
                             )
                             val leadingOuterCorner by animateDpAsState(
-                                targetValue = if (leadingPressed) 24.dp else 38.dp,
+                                targetValue = if (leadingActive) 24.dp else 38.dp,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "leadingButtonOuterCorner"
                             )
                             val leadingInnerCorner by animateDpAsState(
-                                targetValue = if (leadingPressed) 8.dp else 14.dp,
+                                targetValue = if (leadingActive) 8.dp else 14.dp,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "leadingButtonInnerCorner"
                             )
                             val trailingOuterCorner by animateDpAsState(
-                                targetValue = if (trailingPressed) 24.dp else 38.dp,
+                                targetValue = if (trailingActive) 24.dp else 38.dp,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "trailingButtonOuterCorner"
                             )
                             val trailingInnerCorner by animateDpAsState(
-                                targetValue = if (trailingPressed) 8.dp else 14.dp,
+                                targetValue = if (trailingActive) 8.dp else 14.dp,
                                 animationSpec = tween(170, easing = FastOutSlowInEasing),
                                 label = "trailingButtonInnerCorner"
                             )
@@ -208,7 +231,13 @@ fun HomeHubScreen(
                                             scaleX = leadingScale
                                             scaleY = leadingScale
                                         },
-                                    onClick = { onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized()) },
+                                    onClick = {
+                                        leadingClickToken += 1
+                                        buttonScope.launch {
+                                            delay(90)
+                                            onStartDurak(LocalMatchSetup(gameMode = gameMode).normalized())
+                                        }
+                                    },
                                     shape = RoundedCornerShape(
                                         topStart = leadingOuterCorner,
                                         bottomStart = leadingOuterCorner,
@@ -234,7 +263,10 @@ fun HomeHubScreen(
                                 ) {
                                     Button(
                                         modifier = Modifier.fillMaxSize(),
-                                        onClick = { modeMenuExpanded = !modeMenuExpanded },
+                                        onClick = {
+                                            trailingClickToken += 1
+                                            modeMenuExpanded = !modeMenuExpanded
+                                        },
                                         shape = RoundedCornerShape(
                                             topStart = trailingInnerCorner,
                                             bottomStart = trailingInnerCorner,

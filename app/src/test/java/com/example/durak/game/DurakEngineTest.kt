@@ -169,6 +169,52 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `stalled bot turn completes bito when every attacker already passed`() {
+        val attack = card("attack", Suit.HEARTS, Rank.SIX)
+        val defense = card("defense", Suit.HEARTS, Rank.SEVEN)
+        val spare = card("spare", Suit.CLUBS, Rank.EIGHT)
+        val human = Player("human", "You", true, hand = mutableListOf(spare))
+        val attacker = Player("attacker", "Bot 1", false, hand = mutableListOf(spare.copy(id = "spare2")))
+        val defender = Player("defender", "Bot 2", false, hand = mutableListOf(spare.copy(id = "spare3")))
+        val stalled = DurakGameState(
+            players = listOf(human, attacker, defender),
+            deck = listOf(spare.copy(id = "deck")),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 1,
+            defenderIndex = 2,
+            currentTurnPlayerIndex = 1,
+            tablePairs = listOf(com.example.durak.model.TablePair(attack, defense)),
+            defenderHandSizeAtRoundStart = 6,
+            throwInPasses = setOf(0, 1),
+            gamePhase = GamePhase.WAITING_FOR_THROW_IN
+        )
+
+        val recovered = engine.recoverStalledBotTurn(stalled, botIndex = 1)
+
+        assertTrue(recovered.tablePairs.isEmpty())
+        assertEquals(GamePhase.ATTACKING, recovered.gamePhase)
+        assertEquals(2, recovered.currentTurnPlayerIndex)
+    }
+
+    @Test
+    fun `card beating follows same suit and trump hierarchy`() {
+        val sixHearts = card("six_hearts", Suit.HEARTS, Rank.SIX)
+        val sevenHearts = card("seven_hearts", Suit.HEARTS, Rank.SEVEN)
+        val twoSpades = card("two_spades", Suit.SPADES, Rank.TWO)
+        val aceSpades = card("ace_spades", Suit.SPADES, Rank.ACE)
+
+        assertTrue(sevenHearts.beats(sixHearts, Suit.SPADES))
+        assertTrue(twoSpades.beats(sixHearts, Suit.SPADES))
+        assertTrue(!sixHearts.beats(twoSpades, Suit.SPADES))
+        assertTrue(aceSpades.beats(twoSpades, Suit.SPADES))
+    }
+
+    @Test
+    fun `transfer mode is not silently exposed as a different playable rule`() {
+        assertEquals(GameMode.PODKIDNOY, com.example.durak.model.LocalMatchSetup(gameMode = GameMode.PEREVODNOY).normalized().gameMode)
+    }
+
+    @Test
     fun `legal attack and defense move the round through expected phases`() {
         val attack = card("attack", Suit.HEARTS, Rank.SIX)
         val defense = card("defense", Suit.HEARTS, Rank.SEVEN)

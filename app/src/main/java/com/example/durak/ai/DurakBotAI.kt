@@ -19,6 +19,9 @@ object DurakBotAI {
         val defender = state.players[state.defenderIndex]
 
         if (isAttacker) {
+            if (state.gamePhase == com.example.durak.game.GamePhase.WAITING_FOR_THROW_IN && botIndex in state.throwInPasses) {
+                return BotMoveDecision.PassOrDone
+            }
             val candidateCards = bot.hand.filter { card ->
                 engine.canAttackWith(card, state.tablePairs, state.defenderHandSizeAtRoundStart)
             }

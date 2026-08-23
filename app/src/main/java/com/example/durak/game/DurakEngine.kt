@@ -403,6 +403,60 @@ class DurakEngine {
     fun isBitoReady(state: DurakGameState): Boolean =
         state.players.isNotEmpty() && eligibleThrowInPlayers(state).all { it in state.throwInPasses }
 
+    /**
+     * Repairs a stale bot turn without inventing a move. This is only used when a bot
+     * decision was rejected because the state already recorded that actor as complete.
+     */
+    fun recoverStalledBotTurn(state: DurakGameState, botIndex: Int): DurakGameState {
+        if (state.isGameOver || botIndex !in state.players.indices) return state
+
+        return when (state.gamePhase) {
+            GamePhase.WAITING_FOR_THROW_IN -> {
+                val eligible = eligibleThrowInPlayers(state)
+                val canPass = botIndex in eligible && botIndex !in state.throwInPasses
+                if (canPass) {
+                    val passed = passThrowIn(state, botIndex)
+                    if (passed !== state) return passed
+                }
+
+                val next = (1..state.players.size)
+                    .map { offset -> (botIndex + offset) % state.players.size }
+                    .firstOrNull { candidate ->
+                        candidate in eligible && candidate !in state.throwInPasses
+                    }
+
+                if (next != null) {
+                    state.copy(
+                        currentTurnPlayerIndex = next,
+                        lastActionMessage = "${state.players[next].name}: throw in or pass."
+                    )
+                } else if (isBitoReady(state) && state.attackerIndex == botIndex) {
+                    executeBitoClear(state)
+                } else {
+                    state.copy(
+                        currentTurnPlayerIndex = state.attackerIndex,
+                        lastActionMessage = "All attackers have completed the throw-in window."
+                    )
+                }
+            }
+            GamePhase.DEFENDING -> {
+                if (state.tablePairs.isNotEmpty() && state.tablePairs.all { it.isDefended }) {
+                    state.copy(
+                        currentTurnPlayerIndex = state.attackerIndex,
+                        gamePhase = GamePhase.WAITING_FOR_THROW_IN,
+                        lastActionMessage = "All attacks beaten. Attackers may throw in or pass."
+                    )
+                } else {
+                    state.copy(
+                        currentTurnPlayerIndex = state.defenderIndex,
+                        lastActionMessage = "${state.players[state.defenderIndex].name} must defend or take the table."
+                    )
+                }
+            }
+            else -> state
+        }
+    }
+
     /** Records a deliberate pass and gives the next eligible attacker one clear turn. */
     fun passThrowIn(state: DurakGameState, playerIndex: Int): DurakGameState {
         if (state.isGameOver || playerIndex !in state.players.indices ||

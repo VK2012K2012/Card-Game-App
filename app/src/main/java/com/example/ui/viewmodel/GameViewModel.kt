@@ -192,26 +192,37 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
             // Both available and preview engines are local. Smart-on-device deliberately falls
             // back to this deterministic strategy until a bundled model strategy is packaged.
-            val decision = DurakBotAI.decideBotMove(state, botIndex, engine)
-            val nextState = when (decision) {
-                is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)
-                is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
-                BotMoveDecision.PassOrDone -> {
-                    if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
-                        if (botIndex == state.attackerIndex && engine.isBitoReady(state)) {
-                            engine.executeBitoClear(state)
+            // Keep the bot loop alive even if a malformed state reaches the AI/engine boundary.
+            val nextState = runCatching {
+                when (val decision = DurakBotAI.decideBotMove(state, botIndex, engine)) {
+                    is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)
+                    is BotMoveDecision.Defend -> engine.playDefendCard(state, decision.card, decision.pairIndex)
+                    BotMoveDecision.PassOrDone -> {
+                        if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN && state.tablePairs.all { it.isDefended }) {
+                            if (botIndex == state.attackerIndex && engine.isBitoReady(state)) {
+                                engine.executeBitoClear(state)
+                            } else {
+                                engine.passThrowIn(state, botIndex)
+                            }
                         } else {
-                            engine.passThrowIn(state, botIndex)
+                            state
                         }
-                    } else {
-                        state
                     }
+                    BotMoveDecision.TakeTable -> engine.executeDefenderTake(state)
                 }
-                BotMoveDecision.TakeTable -> engine.executeDefenderTake(state)
+            }.getOrElse {
+                engine.recoverStalledBotTurn(state, botIndex)
             }
 
-            // Do not loop forever if an unexpected bot decision is not legal for the state.
-            if (nextState === state) return
+            // A stale no-op must never leave the match parked on a bot forever.
+            if (nextState === state) {
+                val recoveredState = engine.recoverStalledBotTurn(state, botIndex)
+                if (recoveredState === state) return
+                _gameState.value = recoveredState
+                actions += 1
+                delay(BOT_SEQUENCE_DELAY_MS)
+                continue
+            }
             _gameState.value = nextState
             actions += 1
 
@@ -221,6 +232,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 return
             }
             delay(BOT_SEQUENCE_DELAY_MS)
+        }
+
+        // A long multi-attack can legitimately exceed one short sequence cap. Continue
+        // asynchronously instead of returning with the current turn still owned by a bot.
+        if (sessionId == activeSessionId && actions >= MAX_BOT_SEQUENCE_ACTIONS) {
+            val currentState = _gameState.value
+            val currentPlayer = currentState.players.getOrNull(currentState.currentTurnPlayerIndex)
+            if (!currentState.isGameOver && currentPlayer != null && !currentPlayer.isHuman && !currentPlayer.isOut) {
+                delay(BOT_SEQUENCE_DELAY_MS)
+                playConsecutiveBotTurns(sessionId)
+            }
         }
     }
 

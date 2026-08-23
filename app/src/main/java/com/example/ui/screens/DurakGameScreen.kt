@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -36,6 +37,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -64,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.durak.game.DurakGameState
 import com.example.durak.game.GamePhase
@@ -248,16 +251,7 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
                     if (pairs.isEmpty()) {
                         EmptyTableState()
                     } else {
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-                        ) {
-                            itemsIndexed(pairs, key = { _, pair -> pair.attackCard.id }) { _, pair ->
-                                AnimatedTablePair(pair)
-                            }
-                        }
+                        AdaptiveTablePairs(pairs)
                     }
                 }
             }
@@ -304,22 +298,67 @@ private fun EmptyTableState() {
 }
 
 @Composable
-private fun AnimatedTablePair(pair: TablePair) {
+private fun AdaptiveTablePairs(pairs: List<TablePair>) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val pairGap = 8.dp
+        val cardGap = 4.dp
+        val maxCardWidth = 54.dp
+        val minCardWidth = 32.dp
+        val availableForCards = maxWidth - pairGap * (pairs.size - 1) - cardGap * pairs.size
+        val fitCardWidth = (availableForCards / (pairs.size * 2)).coerceIn(minCardWidth, maxCardWidth)
+        val canFitAll = availableForCards / (pairs.size * 2) >= minCardWidth
+
+        if (canFitAll) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(pairGap, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                pairs.forEach { pair ->
+                    AnimatedTablePair(
+                        pair = pair,
+                        cardWidth = fitCardWidth,
+                        cardHeight = fitCardWidth * (90f / 61f)
+                    )
+                }
+            }
+        } else {
+            val listState = rememberLazyListState()
+            LaunchedEffect(pairs.size, pairs.lastOrNull()?.attackCard?.id, pairs.lastOrNull()?.defenseCard?.id) {
+                if (pairs.isNotEmpty()) listState.animateScrollToItem(pairs.lastIndex)
+            }
+            LazyRow(
+                state = listState,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(pairGap)
+            ) {
+                itemsIndexed(pairs, key = { _, pair -> pair.attackCard.id }) { _, pair ->
+                    AnimatedTablePair(pair, cardWidth = minCardWidth, cardHeight = minCardWidth * (90f / 61f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .animateContentSize()
             .padding(vertical = 8.dp)
     ) {
-        PlayingCardView(pair.attackCard, width = 54.dp, height = 78.dp, isSelectable = false)
+        PlayingCardView(pair.attackCard, width = cardWidth, height = cardHeight, isSelectable = false)
         AnimatedVisibility(
             visible = pair.defenseCard != null,
             enter = fadeIn(tween(220)) + scaleIn(initialScale = 0.82f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
             exit = fadeOut(tween(140)) + scaleOut(targetScale = 0.82f, animationSpec = tween(140))
         ) {
             pair.defenseCard?.let {
-                PlayingCardView(it, width = 54.dp, height = 78.dp, isSelectable = false)
+                PlayingCardView(it, width = cardWidth, height = cardHeight, isSelectable = false)
             }
         }
     }
