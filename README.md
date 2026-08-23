@@ -14,9 +14,9 @@ The screenshots below are captured from Card Game Hub and show the current home,
 |---|---|
 | ![Card Game Hub home screen](docs/screenshots/home.webp) | ![Card Game Hub game table](docs/screenshots/game-table.webp) |
 
-| In-game table detail | Settings |
-|---|---|
-| ![Card Game Hub in-game detail](docs/screenshots/game-table-detail.webp) | ![Card Game Hub settings](docs/screenshots/settings.webp) |
+| Stats |
+|---|
+| ![Card Game Hub statistics screen](docs/screenshots/stats.webp) |
 
 ## Features
 
