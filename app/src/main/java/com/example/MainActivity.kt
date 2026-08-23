@@ -127,13 +127,21 @@ class MainActivity : ComponentActivity() {
             var navigationAppearance by remember { mutableStateOf(savedAppearance) }
             var showExitMatchDialog by remember { mutableStateOf(false) }
 
+            fun returnToLobby() {
+                showExitMatchDialog = false
+                viewModel.abandonMatch()
+                isInMatch = false
+                destination = RootDestination.PLAY
+                settingsPage = SettingsPage.DIRECTORY
+            }
+
             fun updateAppearance(appearance: NavigationAppearance) {
                 navigationAppearance = appearance
                 appearancePreferences.edit().putString(NAVIGATION_STYLE_KEY, appearance.name).apply()
             }
 
             BackHandler(enabled = isInMatch) {
-                showExitMatchDialog = true
+                if (gameState.isGameOver) returnToLobby() else showExitMatchDialog = true
             }
 
             BackHandler(enabled = !isInMatch && (destination != RootDestination.PLAY || settingsPage != SettingsPage.DIRECTORY)) {
@@ -156,7 +164,9 @@ class MainActivity : ComponentActivity() {
                         onFinishRound = viewModel::humanFinishRound,
                         onPassThrowIn = viewModel::humanPassThrowIn,
                         onTakeTable = viewModel::humanTakeTable,
-                        onExitGame = { showExitMatchDialog = true }
+                        onExitGame = {
+                            if (gameState.isGameOver) returnToLobby() else showExitMatchDialog = true
+                        }
 
                     )
                 } else {
@@ -257,12 +267,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Button(
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
-                                            showExitMatchDialog = false
-                                            viewModel.abandonMatch()
-                                            isInMatch = false
-                                            destination = RootDestination.PLAY
-                                        },
+                                        onClick = ::returnToLobby,
                                         shape = RoundedCornerShape(24.dp)
                                     ) {
                                         Text("Leave match")
