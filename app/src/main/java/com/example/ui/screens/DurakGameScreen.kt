@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -186,16 +188,21 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OpponentRail(gameState: DurakGameState) {
     val bots = gameState.players.filterNot { it.isHuman }
     if (bots.isEmpty()) return
 
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        maxItemsInEachRow = bots.size.coerceAtLeast(1)
     ) {
-        itemsIndexed(bots, key = { _, player -> player.id }) { _, bot ->
+        bots.forEach { bot ->
             val index = gameState.players.indexOfFirst { it.id == bot.id }
             BotAvatarBadge(
                 player = bot,
