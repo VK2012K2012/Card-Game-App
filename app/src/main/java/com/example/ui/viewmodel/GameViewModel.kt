@@ -14,7 +14,6 @@ import com.example.durak.game.DurakGameState
 import com.example.durak.game.GamePhase
 import com.example.durak.model.Card
 import com.example.durak.model.LocalMatchSetup
-import com.example.durak.model.OpponentEngine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,14 +66,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             deckSize = activeSetup.deckSize,
             gameMode = activeSetup.gameMode
         )
-        _gameState.value = if (activeSetup.opponentEngine == OpponentEngine.SMART_ON_DEVICE) {
-            initial.copy(
-                gameLog = initial.gameLog + "Smart on-device bot is not installed yet; Classic bot is playing locally.",
-                lastActionMessage = "Classic bot is active locally while Smart bot is in preview."
-            )
-        } else {
-            initial
-        }
+        _gameState.value = initial
         checkTriggerBotMove(activeSessionId)
     }
 
@@ -190,9 +182,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val player = state.players.getOrNull(botIndex)
             if (player == null || player.isHuman || player.isOut) return
 
-            // Both available and preview engines are local. Smart-on-device deliberately falls
-            // back to this deterministic strategy until a bundled model strategy is packaged.
-            // Keep the bot loop alive even if a malformed state reaches the AI/engine boundary.
             val nextState = runCatching {
                 when (val decision = DurakBotAI.decideBotMove(state, botIndex, engine)) {
                     is BotMoveDecision.Attack -> engine.playAttackCard(state, botIndex, decision.card)

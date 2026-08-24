@@ -1,5 +1,6 @@
 package com.example
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Color as AndroidColor
 import android.os.Build
@@ -61,21 +62,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.view.WindowCompat
 import com.example.ui.screens.AboutAppScreen
+import com.example.ui.screens.CardGameOnboardingDialog
 import com.example.ui.screens.DesignCustomizationScreen
 import com.example.ui.screens.DurakGameScreen
 import com.example.ui.screens.HomeHubScreen
 import com.example.ui.screens.SettingsCustomizerScreen
 import com.example.ui.screens.StatisticsScreen
 import com.example.ui.theme.CardGameTheme
+import com.example.ui.theme.CustomPalette
+import com.example.ui.theme.PaletteCatalog
+import com.example.ui.theme.PaletteOption
+import com.example.ui.theme.ThemeColorPreset
+import com.example.ui.theme.ThemeMode
+import com.example.ui.theme.ThemePreferences
 import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.viewmodel.GameViewModel
 
@@ -117,6 +129,17 @@ class MainActivity : ComponentActivity() {
                     ?.let { runCatching { NavigationAppearance.valueOf(it) }.getOrNull() }
                     ?: NavigationAppearance.STANDARD
             }
+            val savedThemeMode = remember {
+                ThemePreferences.readMode(appearancePreferences).let { mode ->
+                    if (mode == ThemeMode.SYSTEM) ThemeMode.LIGHT else mode
+                }
+            }
+            val savedSystemTheme = remember { ThemePreferences.readSystemTheme(appearancePreferences) }
+            val savedAmoledBlack = remember { ThemePreferences.readAmoledBlack(appearancePreferences) }
+            val savedColorPreset = remember { ThemePreferences.readPreset(appearancePreferences) }
+            val savedPalette = remember { ThemePreferences.readPalette(appearancePreferences) }
+            val savedCustomPalette = remember { ThemePreferences.readCustom(appearancePreferences) }
+            val savedGoogleSansFlex = remember { appearancePreferences.getBoolean(GOOGLE_SANS_FLEX_KEY, true) }
             val stats by viewModel.statsFlow.collectAsState()
             val history by viewModel.historyFlow.collectAsState()
             val gameState by viewModel.gameState.collectAsState()
@@ -125,7 +148,17 @@ class MainActivity : ComponentActivity() {
             var isInMatch by remember { mutableStateOf(false) }
             var settingsPage by remember { mutableStateOf(SettingsPage.DIRECTORY) }
             var navigationAppearance by remember { mutableStateOf(savedAppearance) }
+            var themeMode by remember { mutableStateOf(savedThemeMode) }
+            var systemTheme by remember { mutableStateOf(savedSystemTheme) }
+            var amoledBlack by remember { mutableStateOf(savedAmoledBlack) }
+            var themeColorPreset by remember { mutableStateOf(savedColorPreset) }
+            var paletteOption by remember { mutableStateOf(savedPalette) }
+            var customPalette by remember { mutableStateOf(savedCustomPalette) }
+            var useGoogleSansFlex by remember { mutableStateOf(savedGoogleSansFlex) }
             var showExitMatchDialog by remember { mutableStateOf(false) }
+            var showOnboarding by remember {
+                mutableStateOf(!appearancePreferences.getBoolean(ONBOARDING_SEEN_KEY, false))
+            }
 
             fun returnToLobby() {
                 showExitMatchDialog = false
@@ -138,6 +171,58 @@ class MainActivity : ComponentActivity() {
             fun updateAppearance(appearance: NavigationAppearance) {
                 navigationAppearance = appearance
                 appearancePreferences.edit().putString(NAVIGATION_STYLE_KEY, appearance.name).apply()
+            }
+
+            fun updateThemeMode(mode: ThemeMode) {
+                val manualMode = if (mode == ThemeMode.DARK) ThemeMode.DARK else ThemeMode.LIGHT
+                themeMode = manualMode
+                systemTheme = false
+                if (manualMode == ThemeMode.LIGHT) amoledBlack = false
+                ThemePreferences.writeMode(appearancePreferences, manualMode)
+                ThemePreferences.writeSystemTheme(appearancePreferences, false)
+                ThemePreferences.writeAmoledBlack(appearancePreferences, amoledBlack)
+            }
+
+            fun updateSystemTheme(enabled: Boolean) {
+                systemTheme = enabled
+                if (enabled) amoledBlack = false
+                ThemePreferences.writeSystemTheme(appearancePreferences, enabled)
+                ThemePreferences.writeAmoledBlack(appearancePreferences, amoledBlack)
+            }
+
+            fun updateAmoledBlack(enabled: Boolean) {
+                amoledBlack = enabled
+                if (enabled) {
+                    themeMode = ThemeMode.DARK
+                    systemTheme = false
+                    ThemePreferences.writeMode(appearancePreferences, ThemeMode.DARK)
+                    ThemePreferences.writeSystemTheme(appearancePreferences, false)
+                }
+                ThemePreferences.writeAmoledBlack(appearancePreferences, enabled)
+            }
+
+            fun updateColorPreset(preset: ThemeColorPreset) {
+                themeColorPreset = preset
+                paletteOption = null
+                customPalette = null
+                ThemePreferences.writePreset(appearancePreferences, preset)
+            }
+
+            fun updatePalette(option: PaletteOption) {
+                paletteOption = option
+                customPalette = null
+                ThemePreferences.writePalette(appearancePreferences, option)
+            }
+
+            fun updateCustomPalette(palette: CustomPalette) {
+                customPalette = palette
+                paletteOption = null
+                ThemePreferences.writeCustom(appearancePreferences, palette)
+            }
+
+            fun updateGoogleSansFlex(enabled: Boolean) {
+                useGoogleSansFlex = enabled
+                appearancePreferences.edit().putBoolean(GOOGLE_SANS_FLEX_KEY, enabled).apply()
             }
 
             BackHandler(enabled = isInMatch) {
@@ -153,7 +238,23 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            CardGameTheme {
+            CardGameTheme(
+                themeMode = if (systemTheme) ThemeMode.SYSTEM else themeMode,
+                colorPreset = themeColorPreset,
+                paletteOption = paletteOption,
+                customPalette = customPalette,
+                amoledBlack = amoledBlack,
+                useRobotoFlex = useGoogleSansFlex,
+            ) {
+                val view = LocalView.current
+                val backgroundColor = MaterialTheme.colorScheme.background
+                SideEffect {
+                    val window = (view.context as? Activity)?.window ?: return@SideEffect
+                    val lightBars = backgroundColor.luminance() > 0.5f
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    controller.isAppearanceLightStatusBars = lightBars
+                    controller.isAppearanceLightNavigationBars = lightBars
+                }
                 if (isInMatch) {
                     DurakGameScreen(
                         gameState = gameState,
@@ -196,9 +297,21 @@ class MainActivity : ComponentActivity() {
                                             onOpenAbout = { settingsPage = SettingsPage.ABOUT }
                                         )
                                         SettingsPage.DESIGN -> DesignCustomizationScreen(
+                                            currentMode = themeMode,
+                                            systemTheme = systemTheme,
+                                            amoledBlack = amoledBlack,
+                                            currentPalette = paletteOption ?: PaletteCatalog.featured.first(),
+                                            currentCustom = customPalette,
                                             currentAppearance = navigationAppearance,
+                                            useGoogleSansFlex = useGoogleSansFlex,
+                                            onModeChange = ::updateThemeMode,
+                                            onSystemThemeChange = ::updateSystemTheme,
+                                            onAmoledBlackChange = ::updateAmoledBlack,
+                                            onPaletteChange = ::updatePalette,
+                                            onCustomApply = ::updateCustomPalette,
                                             onAppearanceChange = ::updateAppearance,
-                                            onBack = { settingsPage = SettingsPage.DIRECTORY }
+                                            onGoogleSansFlexChange = ::updateGoogleSansFlex,
+                                            onBack = { settingsPage = SettingsPage.DIRECTORY },
                                         )
                                         SettingsPage.ABOUT -> AboutAppScreen(onBack = { settingsPage = SettingsPage.DIRECTORY })
                                     }
@@ -207,9 +320,23 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-            }
 
-            CardGameTheme {
+            if (showOnboarding && !isInMatch) {
+                    CardGameOnboardingDialog(
+                        initialMode = themeMode,
+                        initialSystemTheme = systemTheme,
+                        initialAmoledBlack = amoledBlack,
+                        initialPalette = paletteOption ?: PaletteCatalog.featured.first(),
+                        onModeChange = ::updateThemeMode,
+                        onSystemThemeChange = ::updateSystemTheme,
+                        onAmoledBlackChange = ::updateAmoledBlack,
+                        onPaletteChange = ::updatePalette,
+                        onFinish = {
+                            appearancePreferences.edit().putBoolean(ONBOARDING_SEEN_KEY, true).apply()
+                            showOnboarding = false
+                        },
+                    )
+                }
                 if (showExitMatchDialog) {
                 Dialog(onDismissRequest = { showExitMatchDialog = false }) {
                     AnimatedVisibility(
@@ -285,6 +412,8 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val NAVIGATION_PREFERENCES = "navigation_preferences"
         const val NAVIGATION_STYLE_KEY = "navigation_style_v2"
+        const val ONBOARDING_SEEN_KEY = "onboarding_seen_v2"
+        const val GOOGLE_SANS_FLEX_KEY = "google_sans_flex"
     }
 }
 

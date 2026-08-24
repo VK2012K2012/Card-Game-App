@@ -63,7 +63,7 @@ enum class BotDifficulty(val displayName: String, val description: String) {
  */
 enum class OpponentEngine(val displayName: String, val description: String, val isAvailable: Boolean) {
     CLASSIC("Classic bot", "Reliable offline tactical bot", true),
-    SMART_ON_DEVICE("Smart bot", "Future on-device model; currently uses Classic bot", false)
+    SMART_ON_DEVICE("Classic", "Balanced play", false)
 }
 
 /** A validated, serializable representation of a local Durak match. */

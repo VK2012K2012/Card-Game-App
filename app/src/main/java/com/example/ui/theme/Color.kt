@@ -4,19 +4,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-/**
- * Deep Forest M3 Expressive — fallback palette.
- *
- * Used ONLY on API < 31 (no Dynamic Color support) or if the system palette
- * can't be read for some reason. On API 31+ the app always prefers the
- * live system Dynamic Color scheme derived from the user's wallpaper.
- * See [CardGameTheme].
- *
- * Tonal roles below are hand-derived from seed 0xFFAFD43E (vivid chartreuse)
- * to sit alongside real Dynamic Color output without looking out of place.
- */
-
-// ---- Dark ----
 val DeepForestDarkColors = darkColorScheme(
     primary = Color(0xFFFFB4A8),
     onPrimary = Color(0xFF5B160E),
@@ -62,7 +49,6 @@ val DeepForestDarkColors = darkColorScheme(
     scrim = Color(0xFF000000),
 )
 
-// ---- Light ----
 val DeepForestLightColors = lightColorScheme(
     primary = Color(0xFF9A3D33),
     onPrimary = Color(0xFFFFFFFF),
@@ -108,10 +94,106 @@ val DeepForestLightColors = lightColorScheme(
     scrim = Color(0xFF000000),
 )
 
-// Semantic, palette-independent accents used sparingly for card-game specific
-// meaning (trump highlight, suit reds). Intentionally NOT part of the M3
-// ColorScheme because they must stay legible against both light and dark
-// dynamic surfaces regardless of the user's wallpaper hue.
+enum class ThemeColorPreset(val title: String, val description: String) {
+    SYSTEM("System dynamic", "Use your Android wallpaper colors"),
+    WARM("Warm", "Soft peach and terracotta"),
+    OCEAN("Ocean", "Cool blue and teal"),
+    FOREST("Forest", "Deep green and mint"),
+    VIOLET("Violet", "Expressive purple and rose")
+}
+
+fun lightColorsFor(preset: ThemeColorPreset) = when (preset) {
+    ThemeColorPreset.SYSTEM, ThemeColorPreset.WARM -> DeepForestLightColors
+    ThemeColorPreset.OCEAN -> lightColorScheme(
+        primary = Color(0xFF00639A),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFC9E6FF),
+        onPrimaryContainer = Color(0xFF001D32),
+        secondary = Color(0xFF4F6070),
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFD3E5F5),
+        onSecondaryContainer = Color(0xFF0B1D2A),
+        tertiary = Color(0xFF006874),
+        onTertiary = Color.White,
+        tertiaryContainer = Color(0xFF95F0FC),
+        onTertiaryContainer = Color(0xFF001F24)
+    )
+    ThemeColorPreset.FOREST -> lightColorScheme(
+        primary = Color(0xFF416932),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFC2E9A9),
+        onPrimaryContainer = Color(0xFF0B2004),
+        secondary = Color(0xFF56624D),
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFD9E7CD),
+        onSecondaryContainer = Color(0xFF141E10),
+        tertiary = Color(0xFF386568),
+        onTertiary = Color.White,
+        tertiaryContainer = Color(0xFFBCEBF0),
+        onTertiaryContainer = Color(0xFF002022)
+    )
+    ThemeColorPreset.VIOLET -> lightColorScheme(
+        primary = Color(0xFF74536F),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFFFD7F6),
+        onPrimaryContainer = Color(0xFF2B1229),
+        secondary = Color(0xFF695D66),
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFF1DBEB),
+        onSecondaryContainer = Color(0xFF241722),
+        tertiary = Color(0xFF80533E),
+        onTertiary = Color.White,
+        tertiaryContainer = Color(0xFFFFDBCA),
+        onTertiaryContainer = Color(0xFF321306)
+    )
+}
+
+fun darkColorsFor(preset: ThemeColorPreset) = when (preset) {
+    ThemeColorPreset.SYSTEM, ThemeColorPreset.WARM -> DeepForestDarkColors
+    ThemeColorPreset.OCEAN -> darkColorScheme(
+        primary = Color(0xFF91CDFF),
+        onPrimary = Color(0xFF003350),
+        primaryContainer = Color(0xFF004B73),
+        onPrimaryContainer = Color(0xFFC9E6FF),
+        secondary = Color(0xFFB7C9D9),
+        onSecondary = Color(0xFF21333F),
+        secondaryContainer = Color(0xFF384A56),
+        onSecondaryContainer = Color(0xFFD3E5F5),
+        tertiary = Color(0xFF4DD9E8),
+        onTertiary = Color(0xFF00363C),
+        tertiaryContainer = Color(0xFF004F58),
+        onTertiaryContainer = Color(0xFF95F0FC)
+    )
+    ThemeColorPreset.FOREST -> darkColorScheme(
+        primary = Color(0xFFA7D58F),
+        onPrimary = Color(0xFF17370D),
+        primaryContainer = Color(0xFF2A501E),
+        onPrimaryContainer = Color(0xFFC2E9A9),
+        secondary = Color(0xFFBDCCB2),
+        onSecondary = Color(0xFF283426),
+        secondaryContainer = Color(0xFF3E4A3A),
+        onSecondaryContainer = Color(0xFFD9E7CD),
+        tertiary = Color(0xFFA0CFD3),
+        onTertiary = Color(0xFF00363A),
+        tertiaryContainer = Color(0xFF1F4D51),
+        onTertiaryContainer = Color(0xFFBCEBF0)
+    )
+    ThemeColorPreset.VIOLET -> darkColorScheme(
+        primary = Color(0xFFE9B9E1),
+        onPrimary = Color(0xFF42203E),
+        primaryContainer = Color(0xFF5B3856),
+        onPrimaryContainer = Color(0xFFFFD7F6),
+        secondary = Color(0xFFD5C0D0),
+        onSecondary = Color(0xFF392D37),
+        secondaryContainer = Color(0xFF51444E),
+        onSecondaryContainer = Color(0xFFF1DBEB),
+        tertiary = Color(0xFFF4B99C),
+        onTertiary = Color(0xFF4A2618),
+        tertiaryContainer = Color(0xFF633D2D),
+        onTertiaryContainer = Color(0xFFFFDBCA)
+    )
+}
+
 val TrumpGold = Color(0xFFE7B93B)
 val TrumpGoldOnGold = Color(0xFF3A2E00)
 val SuitRedLight = Color(0xFFB3261E)
