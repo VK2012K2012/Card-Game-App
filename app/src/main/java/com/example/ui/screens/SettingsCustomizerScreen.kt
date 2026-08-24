@@ -5,10 +5,15 @@ import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,12 +74,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -598,7 +605,7 @@ fun AboutAppScreen(onBack: () -> Unit) {
             )
         }
         item {
-            SettingsEntry(
+            AnimatedSettingsEntry(
                 icon = Icons.Default.Refresh,
                 title = "Check for updates",
                 subtitle = when (val status = updateStatus) {
@@ -611,8 +618,7 @@ fun AboutAppScreen(onBack: () -> Unit) {
                 },
                 onClick = ::checkForUpdates,
                 trailing = if (busy) Icons.Default.Refresh else Icons.AutoMirrored.Filled.ArrowForward,
-                index = 0,
-                count = 1
+                busy = busy,
             )
         }
         if (updateStatus is UpdateStatus.Checking || updateStatus is UpdateStatus.Downloading) {
@@ -711,6 +717,74 @@ private fun SettingsHeader(eyebrow: String, title: String, onBack: () -> Unit) {
             letterSpacing = 1.1.sp
         )
         Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+@Composable
+private fun AnimatedSettingsEntry(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    trailing: ImageVector,
+    busy: Boolean,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 18.dp else 28.dp,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "updateEntryCorner",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "updateEntryScale",
+    )
+    val trailingRotation by animateFloatAsState(
+        targetValue = if (busy) 180f else 0f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "updateEntryIconRotation",
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(corner))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp))
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            trailing,
+            contentDescription = null,
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer { rotationZ = trailingRotation },
+        )
     }
 }
 
