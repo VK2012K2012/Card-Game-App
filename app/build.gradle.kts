@@ -12,8 +12,8 @@ android {
     applicationId = "com.aistudio.durakcardgame.vzkqmp"
     minSdk = 24
     targetSdk = 37
-    versionCode = 3
-    versionName = "1.1.1"
+    versionCode = 4
+    versionName = "1.1.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -21,11 +21,9 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      // R8 removes unreachable code and optimizes the runtime bytecode for release builds.
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      // Keeps a clean checkout buildable. Replace with a private upload key for store delivery.
       signingConfig = signingConfigs.getByName("debug")
     }
     debug { signingConfig = signingConfigs.getByName("debug") }

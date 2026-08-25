@@ -4,7 +4,11 @@ import android.content.Intent
 import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,13 +31,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -60,15 +66,14 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -92,6 +97,7 @@ import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
 import com.example.ui.theme.ThemeMode
+import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.theme.hsvColorForThemeEditor
 import com.example.ui.theme.palettePreviewTones
 import com.example.ui.theme.previewOnColor
@@ -106,7 +112,10 @@ fun SettingsCustomizerScreen(
     onOpenDesign: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -171,24 +180,22 @@ fun DesignCustomizationScreen(
     onGoogleSansFlexChange: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
-    // Keyed on currentCustom/currentPalette so switching presets (or reopening this
-    // screen after a different palette was applied elsewhere) re-seeds the editor's
-    // starting hues instead of reusing whatever was first composed.
-    var showCustom by remember { mutableStateOf(currentCustom != null) }
-    var primaryHue by remember(currentCustom, currentPalette.id) {
-        mutableFloatStateOf(currentCustom?.primary?.hueForSettings() ?: currentPalette.seed.hueForSettings())
+    var showCustom by remember(currentCustom, currentPalette.id) { mutableStateOf(currentCustom != null) }
+    val primarySeed = remember(currentCustom, currentPalette.id) {
+        currentCustom?.primary?.hsvForSettings() ?: currentPalette.seed.hsvForSettings()
     }
-    var secondaryHue by remember(currentCustom, currentPalette.id) {
-        mutableFloatStateOf(currentCustom?.secondary?.hueForSettings() ?: ((primaryHue + 32f) % 360f))
+    val secondarySeed = remember(currentCustom, currentPalette.id) {
+        currentCustom?.secondary?.hsvForSettings()
+            ?: hsvColorForThemeEditor((primarySeed.hue + 32f) % 360f, 0.62f, 0.82f).hsvForSettings()
     }
-    var tertiaryHue by remember(currentCustom, currentPalette.id) {
-        mutableFloatStateOf(currentCustom?.tertiary?.hueForSettings() ?: ((primaryHue + 68f) % 360f))
+    val tertiarySeed = remember(currentCustom, currentPalette.id) {
+        currentCustom?.tertiary?.hsvForSettings()
+            ?: hsvColorForThemeEditor((primarySeed.hue + 68f) % 360f, 0.56f, 0.86f).hsvForSettings()
     }
-    val customPalette = CustomPalette(
-        primary = hsvColorForThemeEditor(primaryHue, 0.72f, 0.88f),
-        secondary = hsvColorForThemeEditor(secondaryHue, 0.62f, 0.82f),
-        tertiary = hsvColorForThemeEditor(tertiaryHue, 0.56f, 0.86f),
-    )
+    var primaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(primarySeed) }
+    var secondaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(secondarySeed) }
+    var tertiaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(tertiarySeed) }
+    val customPalette = CustomPalette(primaryColor.toColor(), secondaryColor.toColor(), tertiaryColor.toColor())
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -196,134 +203,121 @@ fun DesignCustomizationScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            SettingsHeader(
-                eyebrow = "DESIGN CUSTOMIZATION",
-                title = "Make it yours.",
-                onBack = onBack,
-            )
+            SettingsHeader(eyebrow = "DESIGN CUSTOMIZATION", title = "Make it yours.", onBack = onBack)
         }
         item {
-            SettingsSectionLabel(icon = Icons.Default.DarkMode, title = "Appearance")
-        }
-        item {
-            SegmentedListItem(
-                onClick = { onSystemThemeChange(!systemTheme) },
-                shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                supportingContent = { Text("Use the phone's light or dark mode and Dynamic Color") },
-                trailingContent = {
-                    Switch(
-                        checked = systemTheme,
-                        onCheckedChange = onSystemThemeChange,
-                        colors = SwitchDefaults.colors(),
-                    )
-                },
-                content = { Text("Use system theme") },
-            )
-        }
-        item {
-            Text(
-                text = "App theme",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        item {
-            Text(
-                text = if (systemTheme) "Turn off system theme to choose light or dark manually." else "Choose the app appearance.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        item {
-            // Disabled (not just visually inert) while system theme drives light/dark,
-            // so the control never looks selectable without doing anything.
-            SingleChoiceSegmentedButtonRow(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                val manualModes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
-                manualModes.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = !systemTheme && currentMode == mode,
-                        enabled = !systemTheme,
-                        onClick = { onModeChange(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, manualModes.size),
-                    ) { Text(mode.title, style = MaterialTheme.typography.labelLarge) }
-                }
-            }
-        }
-        item {
-            SegmentedListItem(
-                onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) }),
-                shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                colors = ListItemDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    headlineColor = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    supportingColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                supportingContent = {
-                    Text(if (systemTheme) "Available when system theme is off" else "Use a true black background")
-                },
-                trailingContent = {
-                    Switch(
-                        checked = amoledBlack,
-                        onCheckedChange = if (systemTheme) null else onAmoledBlackChange,
-                        enabled = !systemTheme,
+                    SettingsSectionLabel(icon = Icons.Default.DarkMode, title = "Appearance")
+                    Text(
+                        "Choose the theme mode and one accent color.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                },
-                content = { Text("AMOLED black") },
-            )
-        }
-        if (!systemTheme) {
-            item {
-                SettingsSectionLabel(icon = Icons.Default.Palette, title = "Colors")
-            }
-            item {
-                Text("Choose a preset or create your own palette.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            item {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier.height(180.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(PaletteCatalog.all, key = { it.id }) { option ->
-                        SettingsPaletteTile(
-                            option = option,
-                            selected = !showCustom && currentCustom == null && currentPalette.id == option.id,
-                            onClick = {
-                                showCustom = false
-                                onPaletteChange(option)
-                            },
-                        )
+                    SegmentedListItem(
+                        onClick = { onSystemThemeChange(!systemTheme) },
+                        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        supportingContent = { Text("Follow your phone's light or dark mode") },
+                        trailingContent = {
+                            AppearanceSwitch(
+                                checked = systemTheme,
+                                onCheckedChange = onSystemThemeChange,
+                            )
+                        },
+                        content = { Text("Use system theme") },
+                    )
+                    if (!systemTheme) {
+                        Text("Accent color", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    AnimatedContent(
+                        targetState = showCustom,
+                        transitionSpec = {
+                            fadeIn(tween(180)) togetherWith fadeOut(tween(120)) using
+                                androidx.compose.animation.SizeTransform(clip = false)
+                        },
+                        label = "accentColorModeTransition",
+                    ) { customOpen ->
+                        if (customOpen) {
+                            CustomSettingsPaletteEditor(
+                                primary = primaryColor,
+                                secondary = secondaryColor,
+                                tertiary = tertiaryColor,
+                                onPrimaryChange = { primaryColor = it },
+                                onSecondaryChange = { secondaryColor = it },
+                                onTertiaryChange = { tertiaryColor = it },
+                                palette = customPalette,
+                                onChoosePreset = { showCustom = false },
+                                onApply = { onCustomApply(customPalette) },
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "Choose one color. You can create your own below.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(4),
+                                    modifier = Modifier.height(180.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    itemsIndexed(PaletteCatalog.all, key = { _, option -> option.id }) { index, option ->
+                                        SettingsPaletteTile(
+                                            option = option,
+                                            selected = currentCustom == null && currentPalette.id == option.id,
+                                            hasSelection = currentCustom == null,
+                                            entranceIndex = index,
+                                            onClick = { onPaletteChange(option) },
+                                        )
+                                    }
+                                }
+                                Button(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { showCustom = true },
+                                    colors = ButtonDefaults.filledTonalButtonColors(),
+                                ) { Text("Create custom palette") }
+                            }
+                        }
                     }
-                }
-            }
-            item {
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { showCustom = !showCustom },
-                    colors = ButtonDefaults.filledTonalButtonColors(),
-                ) {
-                    Text(if (showCustom) "Use preset palette" else "Create custom")
-                }
-            }
-            if (showCustom) {
-                item {
-                    CustomSettingsPaletteEditor(
-                        primaryHue = primaryHue,
-                        secondaryHue = secondaryHue,
-                        tertiaryHue = tertiaryHue,
-                        onPrimaryHue = { primaryHue = it },
-                        onSecondaryHue = { secondaryHue = it },
-                        onTertiaryHue = { tertiaryHue = it },
-                        palette = customPalette,
-                        onApply = { onCustomApply(customPalette) },
+                    }
+                    Text(
+                        "App theme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        val manualModes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
+                        manualModes.forEachIndexed { index, mode ->
+                            SegmentedButton(
+                                selected = !systemTheme && currentMode == mode,
+                                enabled = !systemTheme,
+                                onClick = { onModeChange(mode) },
+                                shape = SegmentedButtonDefaults.itemShape(index, manualModes.size),
+                            ) { Text(mode.title, style = MaterialTheme.typography.labelLarge) }
+                        }
+                    }
+                    SegmentedListItem(
+                        onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) }),
+                        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            headlineColor = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        ),
+                        supportingContent = { Text(if (systemTheme) "Turn off system theme first" else "Black background with dark-gray surfaces") },
+                        trailingContent = {
+                            AppearanceSwitch(
+                                checked = amoledBlack,
+                                onCheckedChange = if (systemTheme) null else onAmoledBlackChange,
+                                enabled = !systemTheme,
+                            )
+                        },
+                        content = { Text("AMOLED black") },
                     )
                 }
-            }
         }
         item {
             SettingsSectionLabel(icon = Icons.Default.Navigation, title = "Navigation")
@@ -371,13 +365,6 @@ fun DesignCustomizationScreen(
     }
 }
 
-/**
- * Consistent section header used throughout Design customization: a small
- * tonal icon chip plus a titleLarge label. Replaces the previous bare
- * [Text] headers so every group (Appearance, Colors, Navigation, Typography)
- * reads as a distinct section instead of Colors being the only one with
- * visual weight.
- */
 @Composable
 private fun SettingsSectionLabel(icon: ImageVector, title: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -400,28 +387,82 @@ private fun SettingsSectionLabel(icon: ImageVector, title: String) {
 private fun SettingsPaletteTile(
     option: PaletteOption,
     selected: Boolean,
+    hasSelection: Boolean,
+    entranceIndex: Int,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    var entered by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(entranceIndex * 35L)
+        entered = true
+    }
+
+    val emphasis by animateFloatAsState(
+        targetValue = if (!hasSelection || selected) 1f else 0.86f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "paletteTileEmphasis",
+    )
+    val entryScale by animateFloatAsState(
+        targetValue = if (entered) 1f else 0.82f,
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        label = "paletteTileEntryScale",
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "paletteTilePressScale",
+    )
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 22.dp else if (selected) 26.dp else 20.dp,
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        label = "paletteTileCorner",
+    )
     val containerColor by animateColorAsState(
-        targetValue = if (selected) option.seed.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainerHigh,
-        animationSpec = tween(180),
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
         label = "paletteTileContainer",
     )
     val borderColor by animateColorAsState(
-        targetValue = if (selected) option.seed else Color.Transparent,
-        animationSpec = tween(180),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
         label = "paletteTileBorder",
     )
+    val previewScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "palettePreviewScale",
+    )
+
     Surface(
         modifier = Modifier
             .aspectRatio(1f)
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
+            .graphicsLayer {
+                scaleX = entryScale * pressScale
+                scaleY = entryScale * pressScale
+                alpha = if (entered) emphasis else 0f
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
         color = containerColor,
         border = androidx.compose.foundation.BorderStroke(2.dp, borderColor),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(58.dp)) {
+            Canvas(
+                modifier = Modifier
+                    .size(58.dp)
+                    .graphicsLayer {
+                        scaleX = previewScale
+                        scaleY = previewScale
+                    }
+                    .clip(CircleShape),
+            ) {
                 val tones = palettePreviewTones(option)
                 val sweep = 360f / tones.size
                 tones.forEachIndexed { index, color ->
@@ -433,13 +474,17 @@ private fun SettingsPaletteTile(
                     )
                 }
             }
-            if (selected) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn(tween(160)) + androidx.compose.animation.scaleIn(initialScale = 0.6f, animationSpec = tween(180)),
+                exit = fadeOut(tween(100)) + androidx.compose.animation.scaleOut(targetScale = 0.6f, animationSpec = tween(120)),
+            ) {
                 Surface(
                     shape = CircleShape,
-                    color = previewOnColor(option.seed),
-                    contentColor = option.seed,
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.padding(9.dp))
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.padding(5.dp).size(16.dp))
                 }
             }
         }
@@ -448,34 +493,129 @@ private fun SettingsPaletteTile(
 
 @Composable
 private fun CustomSettingsPaletteEditor(
-    primaryHue: Float,
-    secondaryHue: Float,
-    tertiaryHue: Float,
-    onPrimaryHue: (Float) -> Unit,
-    onSecondaryHue: (Float) -> Unit,
-    onTertiaryHue: (Float) -> Unit,
+    primary: HsvControlState,
+    secondary: HsvControlState,
+    tertiary: HsvControlState,
+    onPrimaryChange: (HsvControlState) -> Unit,
+    onSecondaryChange: (HsvControlState) -> Unit,
+    onTertiaryChange: (HsvControlState) -> Unit,
     palette: CustomPalette,
+    onChoosePreset: () -> Unit,
     onApply: () -> Unit,
 ) {
+    var activeChannel by remember { mutableStateOf(CustomColorChannel.PRIMARY) }
+    val activeState = when (activeChannel) {
+        CustomColorChannel.PRIMARY -> primary
+        CustomColorChannel.SECONDARY -> secondary
+        CustomColorChannel.TERTIARY -> tertiary
+    }
+    val activeColor = activeState.toColor()
+
+    fun updateActive(update: (HsvControlState) -> HsvControlState) {
+        val next = update(activeState)
+        when (activeChannel) {
+            CustomColorChannel.PRIMARY -> onPrimaryChange(next)
+            CustomColorChannel.SECONDARY -> onSecondaryChange(next)
+            CustomColorChannel.TERTIARY -> onTertiaryChange(next)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Custom palette", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            SettingsColorSlider("Primary", primaryHue, palette.primary, onPrimaryHue)
-            SettingsColorSlider("Secondary", secondaryHue, palette.secondary, onSecondaryHue)
-            SettingsColorSlider("Tertiary", tertiaryHue, palette.tertiary, onTertiaryHue)
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TextButton(onClick = onChoosePreset) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Choose preset colors")
+            }
+            Text("Custom colors", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Tap a color below, then adjust it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            CustomColorRoleRow(
+                label = "Primary",
+                color = primary.toColor(),
+                selected = activeChannel == CustomColorChannel.PRIMARY,
+                onClick = { activeChannel = CustomColorChannel.PRIMARY },
+            )
+            CustomColorRoleRow(
+                label = "Secondary",
+                color = secondary.toColor(),
+                selected = activeChannel == CustomColorChannel.SECONDARY,
+                onClick = { activeChannel = CustomColorChannel.SECONDARY },
+            )
+            CustomColorRoleRow(
+                label = "Tertiary",
+                color = tertiary.toColor(),
+                selected = activeChannel == CustomColorChannel.TERTIARY,
+                onClick = { activeChannel = CustomColorChannel.TERTIARY },
+            )
+            AnimatedContent(
+                targetState = activeChannel,
+                transitionSpec = {
+                    (fadeIn(tween(180)) + androidx.compose.animation.slideInVertically(
+                        initialOffsetY = { it / 4 },
+                        animationSpec = tween(220),
+                    )) togetherWith
+                        (fadeOut(tween(120)) + androidx.compose.animation.slideOutVertically(
+                            targetOffsetY = { -it / 4 },
+                            animationSpec = tween(160),
+                        ))
+                },
+                label = "customColorRoleTransition",
+            ) { channel ->
+                val selectedState = when (channel) {
+                    CustomColorChannel.PRIMARY -> primary
+                    CustomColorChannel.SECONDARY -> secondary
+                    CustomColorChannel.TERTIARY -> tertiary
+                }
+                val selectedColor = selectedState.toColor()
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "${channel.title} controls",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    SettingsColorSlider(
+                        label = "Hue",
+                        value = selectedState.hue,
+                        color = selectedColor,
+                        valueRange = 0f..360f,
+                        onValueChange = { hue -> updateActive { state -> state.copy(hue = hue) } },
+                    )
+                    SettingsColorSlider(
+                        label = "Saturation",
+                        value = selectedState.saturation,
+                        color = selectedColor,
+                        valueRange = 0f..1f,
+                        onValueChange = { saturation -> updateActive { state -> state.copy(saturation = saturation) } },
+                    )
+                    SettingsColorSlider(
+                        label = "Brightness",
+                        value = selectedState.value,
+                        color = selectedColor,
+                        valueRange = 0f..1f,
+                        onValueChange = { brightness -> updateActive { state -> state.copy(value = brightness) } },
+                    )
+                }
+            }
+            val lightPreview = com.example.ui.theme.lightSchemeForCustom(palette)
+            val darkPreview = com.example.ui.theme.darkSchemeForCustom(palette)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Surface(
                     Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    color = palette.primary,
-                    contentColor = previewOnColor(palette.primary),
+                    color = lightPreview.primaryContainer,
+                    contentColor = lightPreview.onPrimaryContainer,
                 ) {
                     Text(
-                        "Light",
+                        "Light preview",
                         Modifier.padding(vertical = 12.dp),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelLarge,
@@ -485,11 +625,11 @@ private fun CustomSettingsPaletteEditor(
                 Surface(
                     Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    color = palette.tertiary,
-                    contentColor = previewOnColor(palette.tertiary),
+                    color = darkPreview.primaryContainer,
+                    contentColor = darkPreview.onPrimaryContainer,
                 ) {
                     Text(
-                        "Dark",
+                        "Dark preview",
                         Modifier.padding(vertical = 12.dp),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelLarge,
@@ -501,7 +641,51 @@ private fun CustomSettingsPaletteEditor(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onApply,
                 colors = ButtonDefaults.filledTonalButtonColors(),
-            ) { Text("Use custom palette") }
+            ) { Text("Save custom palette") }
+        }
+    }
+}
+
+@Composable
+private fun CustomColorRoleRow(
+    label: String,
+    color: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainer,
+        animationSpec = tween(180),
+        label = "customRoleContainer",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) color else Color.Transparent,
+        animationSpec = tween(180),
+        label = "customRoleBorder",
+    )
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(2.dp, borderColor),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(Modifier.size(30.dp).clip(CircleShape).background(color))
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    color.toHexString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            RadioButton(selected = selected, onClick = null)
         }
     }
 }
@@ -509,32 +693,54 @@ private fun CustomSettingsPaletteEditor(
 @Composable
 private fun SettingsColorSlider(
     label: String,
-    hue: Float,
+    value: Float,
     color: Color,
-    onHue: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(24.dp).clip(CircleShape).background(color))
-        Spacer(Modifier.width(8.dp))
-        Text(label, Modifier.width(76.dp), style = MaterialTheme.typography.labelLarge)
+        Text(label, Modifier.width(86.dp), style = MaterialTheme.typography.labelLarge)
         Slider(
-            value = hue,
-            onValueChange = onHue,
-            valueRange = 0f..360f,
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
             modifier = Modifier.weight(1f),
             colors = SliderDefaults.colors(
                 thumbColor = color,
                 activeTrackColor = color,
             ),
         )
+        Text(
+            text = if (valueRange.endInclusive > 1f) "${value.toInt()}°" else "${(value * 100f).toInt()}%",
+            modifier = Modifier.width(44.dp),
+            textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
-private fun Color.hueForSettings(): Float {
+private enum class CustomColorChannel(val title: String) {
+    PRIMARY("Primary"),
+    SECONDARY("Secondary"),
+    TERTIARY("Tertiary"),
+}
+
+private data class HsvControlState(
+    val hue: Float,
+    val saturation: Float,
+    val value: Float,
+) {
+    fun toColor(): Color = hsvColorForThemeEditor(hue, saturation, value)
+}
+
+private fun Color.hsvForSettings(): HsvControlState {
     val hsv = FloatArray(3)
     AndroidColor.colorToHSV(toArgb(), hsv)
-    return hsv[0]
+    return HsvControlState(hsv[0], hsv[1], hsv[2])
 }
+
+private fun Color.toHexString(): String = "#%08X".format(toArgb())
 
 private sealed interface UpdateStatus {
     data object Idle : UpdateStatus
@@ -702,22 +908,49 @@ fun AboutAppScreen(onBack: () -> Unit) {
 
 @Composable
 private fun SettingsHeader(eyebrow: String, title: String, onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.statusBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(44.dp)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-        }
-        Text(
-            text = eyebrow,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.1.sp
+        ExpressiveBackButton(
+            onClick = onBack,
+            contentDescription = "Back",
+            size = 48.dp,
         )
-        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = eyebrow,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.1.sp,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+            )
+        }
     }
+}
+
+@Composable
+private fun AppearanceSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    enabled: Boolean = true,
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        enabled = enabled,
+    )
 }
 
 @Composable

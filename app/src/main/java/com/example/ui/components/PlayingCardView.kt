@@ -36,12 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.example.durak.model.Card
 import com.example.ui.theme.TrumpGold
 
-/**
- * A compact, tactile playing card used by both the table and the player's hand.
- *
- * The card owns only visual motion. Game legality and selection remain in the
- * ViewModel, which keeps this component cheap to reuse in lazy layouts.
- */
 @Composable
 fun PlayingCardView(
     card: Card,
@@ -53,28 +47,36 @@ fun PlayingCardView(
     onClick: (() -> Unit)? = null
 ) {
     val lift by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 0.dp,
+        targetValue = if (isSelected) 6.dp else 0.dp,
         animationSpec = spring(
-            dampingRatio = 0.72f,
+            dampingRatio = 0.82f,
             stiffness = Spring.StiffnessMediumLow
         ),
         label = "cardLift"
     )
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.035f else 1f,
+        targetValue = if (isSelected) 1.02f else 1f,
         animationSpec = spring(
-            dampingRatio = 0.78f,
+            dampingRatio = 0.84f,
             stiffness = Spring.StiffnessMediumLow
         ),
         label = "cardScale"
     )
     val rotation by animateFloatAsState(
-        targetValue = if (isSelected) -0.8f else 0f,
+        targetValue = if (isSelected) -0.6f else 0f,
         animationSpec = spring(
-            dampingRatio = 0.8f,
+            dampingRatio = 0.86f,
             stiffness = Spring.StiffnessLow
         ),
         label = "cardRotation"
+    )
+    val shadowElevation by animateDpAsState(
+        targetValue = if (isSelected) 3.dp else 1.dp,
+        animationSpec = spring(
+            dampingRatio = 0.86f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cardShadow"
     )
     val shape = RoundedCornerShape(12.dp)
     val borderColor = when {
@@ -83,7 +85,7 @@ fun PlayingCardView(
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
     }
     val borderWidth = when {
-        isSelected -> 3.dp
+        isSelected -> 2.dp
         card.isTrump && card.isFaceUp -> 2.dp
         else -> 1.dp
     }
@@ -97,8 +99,12 @@ fun PlayingCardView(
                 scaleY = scale
                 rotationZ = rotation
             }
-            // Keep shadow stable so unselecting a card never causes a visual jump.
-            .shadow(5.dp, shape = shape)
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.12f),
+                spotColor = Color.Black.copy(alpha = 0.16f),
+            )
             .clip(shape)
             .border(borderWidth, borderColor, shape)
             .then(

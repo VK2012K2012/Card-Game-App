@@ -54,9 +54,14 @@ import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,6 +95,7 @@ import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemePreferences
 import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.viewmodel.GameViewModel
+import com.example.update.GitHubUpdateChecker
 
 enum class RootDestination(val label: String) {
     PLAY("Play"),
@@ -158,6 +164,28 @@ class MainActivity : ComponentActivity() {
             var showExitMatchDialog by remember { mutableStateOf(false) }
             var showOnboarding by remember {
                 mutableStateOf(!appearancePreferences.getBoolean(ONBOARDING_SEEN_KEY, false))
+            }
+            var startupCheckStarted by remember { mutableStateOf(false) }
+            val startupSnackbarHostState = remember { SnackbarHostState() }
+
+            LaunchedEffect(showOnboarding) {
+                if (showOnboarding || startupCheckStarted) return@LaunchedEffect
+                startupCheckStarted = true
+                runCatching { GitHubUpdateChecker.fetchLatestRelease() }
+                    .onSuccess { release ->
+                        if (GitHubUpdateChecker.isNewerVersion(release.tagName, BuildConfig.VERSION_NAME)) {
+                            val result = startupSnackbarHostState.showSnackbar(
+                                message = "Update ${release.tagName} is available.",
+                                actionLabel = "Open About",
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Long,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                destination = RootDestination.SETTINGS
+                                settingsPage = SettingsPage.ABOUT
+                            }
+                        }
+                    }
             }
 
             fun returnToLobby() {
@@ -274,6 +302,7 @@ class MainActivity : ComponentActivity() {
                     AppRootScaffold(
                         destination = destination,
                         appearance = navigationAppearance,
+                        snackbarHostState = startupSnackbarHostState,
                         onDestinationChange = {
                             destination = it
                             if (it != RootDestination.SETTINGS) settingsPage = SettingsPage.DIRECTORY
@@ -421,6 +450,7 @@ class MainActivity : ComponentActivity() {
 private fun AppRootScaffold(
     destination: RootDestination,
     appearance: NavigationAppearance,
+    snackbarHostState: SnackbarHostState,
     onDestinationChange: (RootDestination) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -434,15 +464,11 @@ private fun AppRootScaffold(
                 NavigationAppearance.COMPACT -> CompactNavigationDock(destination, onDestinationChange)
             }
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         content = content
     )
 }
 
-/**
- * The standard option deliberately uses the framework Material 3 navigation components.
- * NavigationBarDefaults.windowInsets owns system navigation-bar padding, avoiding a custom
- * wrapper or fixed height that would make the bar taller than the Material specification.
- */
 @Composable
 private fun Material3ExpressiveNavigationBar(
     destination: RootDestination,

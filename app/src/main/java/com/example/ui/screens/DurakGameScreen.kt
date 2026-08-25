@@ -74,6 +74,7 @@ import com.example.durak.model.Card as GameCard
 import com.example.durak.model.Rank
 import com.example.durak.model.TablePair
 import com.example.ui.components.BotAvatarBadge
+import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.components.PlayingCardView
 import com.example.ui.components.TableFeltBackground
 import com.example.ui.theme.ExpressiveCorners
@@ -136,14 +137,6 @@ fun DurakGameScreen(
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     val primaryText = tablePrimaryTextColor()
     val accentText = tableAccentTextColor()
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = tween(140, easing = FastOutSlowInEasing),
-        label = "leaveMatchPress"
-    )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,27 +144,10 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-            tonalElevation = 4.dp
-        ) {
-            IconButton(
-                onClick = onExitGame,
-                interactionSource = interactionSource,
-                modifier = Modifier.graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Leave match",
-                    tint = primaryText
-                )
-            }
-        }
+        ExpressiveBackButton(
+            onClick = onExitGame,
+            contentDescription = "Leave match",
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
