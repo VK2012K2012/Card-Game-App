@@ -34,14 +34,16 @@ data class PaletteOption(
 )
 
 private val curatedPaletteOptions = listOf(
-    materialPalette("coral", "Coral", 0xFFFF5A6D, 0xFFE86A78, 0xFFC43B5B),
+    materialPalette("auto", "Auto", 0xFF6C8DFF, 0xFF7D5FFF, 0xFF54C7FF),
+    materialPalette("coral", "Coral", 0xFFFF6B6B, 0xFFEA5C73, 0xFFFF9AA2),
     materialPalette("pink", "Pink", 0xFFFF5FA2, 0xFFD94F8B, 0xFFFF9CB8),
-    materialPalette("violet", "Violet", 0xFF9B5BD6, 0xFF70418F, 0xFFC17BFF),
-    materialPalette("orange", "Orange", 0xFFFF7A3D, 0xFFD75A35, 0xFFFFB36B),
+    materialPalette("violet", "Violet", 0xFF8F6AEF, 0xFF754BE0, 0xFFC17BFF),
     materialPalette("amber", "Amber", 0xFFFFB000, 0xFFD48700, 0xFFFFD05A),
-    materialPalette("forest", "Green", 0xFF3A934B, 0xFF2F6D48, 0xFF8DBB5A),
-    materialPalette("teal", "Teal", 0xFF20BFA9, 0xFF278B88, 0xFF70D9CC),
-    materialPalette("ocean", "Blue", 0xFF1769E8, 0xFF345BA4, 0xFF62B8FF),
+    materialPalette("sunset", "Sunset", 0xFFFF7A59, 0xFFE9633E, 0xFFFFB38A),
+    materialPalette("forest", "Green", 0xFF3C9A5F, 0xFF2F6D48, 0xFF9FD37B),
+    materialPalette("teal", "Teal", 0xFF20BFA9, 0xFF278B88, 0xFF72E1D0),
+    materialPalette("ocean", "Blue", 0xFF1E6EE8, 0xFF345BA4, 0xFF67B8FF),
+    materialPalette("indigo", "Indigo", 0xFF5668FF, 0xFF4255D2, 0xFF91A1FF),
 )
 
 private fun materialPalette(
