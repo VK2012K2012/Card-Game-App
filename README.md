@@ -2,9 +2,9 @@
 
 Card Game Hub is a native Android card-game application built with **Kotlin**, **Jetpack Compose**, **Material 3 Expressive**, and **Room**. The current playable experience is an offline, single-player game of **Durak** against local bots. The app is designed around a deterministic game engine and a clear separation between gameplay rules, bot decisions, persistence, and UI.
 
-> **Version 1.0 · Build 1**
+> **Version 1.1.2 · Build 4**
 >
-> A focused first release of the Card Game Hub shell and its offline Durak experience.
+> Current version declared by the Android Gradle configuration.
 
 ## Screenshots
 
@@ -20,12 +20,12 @@ The screenshots below are captured from Card Game Hub and show the current home,
 
 ## Features
 
-| Area | Included in Build 1 |
+| Area | Available in the current build |
 |---|---|
 | **Offline Durak** | Play a complete local match without an account, server, or network connection. |
 | **Local opponents** | Play against classic offline bot opponents with Beginner, Standard, and Expert difficulty levels. |
-| **Match configuration** | Choose 2–4 players, a 24-, 36-, or 52-card deck, the Throw-in or Classic game mode, and bot difficulty before dealing. |
-| **Durak rules engine** | Validates attacks, legal defenses, throw-ins, bito clearing, taking the table, hand replenishment, turn progression, and end-of-match states. |
+| **Match configuration** | Choose 2–4 players, a supported 24-, 36-, or 52-card deck, the Standard (Throw-in/Podkidnoy) ruleset, and bot difficulty. Transfer is shown as unavailable until its separate rules are implemented. Four-player tables require at least 36 cards so the trump remains in the draw pile. |
+| **Durak rules engine** | Validates attacks, legal defenses, matching-rank throw-ins, the six-card/defender-hand limit, bito clearing, taking the table, participant-only hand replenishment, turn progression, and end-of-match states. |
 | **Responsive table** | The opponent rail and central attack/defense pairs adapt to the available screen width. Cards reduce to a readable minimum and the table automatically scrolls when the final pairs cannot fit at once. |
 | **Material 3 Expressive UI** | Uses Material theming, expressive shapes, adaptive layout, responsive typography, semantic controls, and official Material 3 list components. |
 | **Adaptive color** | Uses Android dynamic color on Android 12 and newer, with warm Material fallback palettes on earlier supported versions. |
@@ -35,15 +35,15 @@ The screenshots below are captured from Card Game Hub and show the current home,
 
 ## Gameplay
 
-Card Game Hub currently focuses on a clean Durak loop: configure the table, deal the cards, attack, defend or take the table, finish the round, replenish hands, and continue until the match reaches its end state. The engine is deterministic and separated from Compose, which makes the rules testable without rendering the UI.
+Card Game Hub currently focuses on a clean Durak loop: configure the table, deal the cards, attack, defend or take the table, finish the round, replenish hands, and continue until the match reaches its end state. The engine is deterministic and separated from Compose, which makes the rules testable without rendering the UI. The opening attacker is the holder of the lowest trump.
 
-The main release exposes **Throw-in** and **Classic** Durak modes. Transfer-style rules are reserved for a future rules-engine iteration rather than being presented as an unfinished playable option. The default opponent implementation is a reliable offline tactical bot, so the game remains functional without a network connection.
+The playable ruleset is **Standard (Podkidnoy/Throw-in) Durak**: the principal attacker leads, and eligible non-defenders may join with cards matching ranks already on the table. The total attack is limited to six cards or the defender's hand size at the start of the bout, whichever is lower. Only players who joined the attack replenish before the defender. The mode picker no longer presents **Classic** as a separate duplicate choice; **Transfer** is a distinct variant and is clearly marked unavailable until its rules are implemented. See [Podkidnoy Durak rules](https://www.pagat.com/beating/podkidnoy_durak.html) for the reference rules used here.
 
 ## Design and interaction
 
-The UI follows Material 3 principles while using the expressive component family available in the current Compose dependency line. The home screen uses a prominent split action for starting a match and opening match settings. Settings use segmented list items with leading, supporting, and trailing slots; the navigation appearance selector changes the real bottom navigation immediately instead of showing a simulated preview.
+The UI follows Material 3 principles while using the expressive component family available in the current Compose dependency line. The home screen uses a prominent split action for starting a match and opening match settings. Settings use segmented list items with leading, supporting, and trailing slots; the mode detail explains the supported rules and marks Transfer unavailable, while the navigation appearance selector changes the real bottom navigation immediately instead of showing a simulated preview.
 
-Advanced settings motion is intentionally deferred from Build 1. The release prioritizes predictable navigation and stable gameplay over experimental screen-transition effects.
+Back actions use a restrained reverse slide/fade that reveals the actual preceding screen, while lightweight state changes and tactile feedback keep gameplay actions immediate and easy to follow.
 
 ## Technical architecture
 
@@ -73,7 +73,7 @@ The debug APK is written to:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-To build the optimized release APK used for the v1.0.0 release:
+To run unit tests and build an optimized release APK:
 
 ```bash
 ./gradlew clean :app:testDebugUnitTest :app:assembleRelease --no-daemon --console=plain
@@ -99,19 +99,19 @@ Run the Durak engine regression suite directly with:
 ./gradlew :app:testDebugUnitTest --tests 'com.example.durak.game.DurakEngineTest'
 ```
 
-The regression coverage includes card hierarchy cases, legal and illegal defenses, throw-in behavior, hand replenishment, completed rounds, end-of-match behavior, and stalled bot-turn recovery.
+The regression coverage includes card hierarchy cases, legal and illegal defenses, throw-in behavior, participant-only hand replenishment and draw order, completed rounds, end-of-match behavior, and stalled bot-turn recovery.
 
 ## Release and R8
 
-Build 1 uses `versionName = "1.0"` and `versionCode = 1`. The release build keeps **R8 code shrinking, optimization, obfuscation, and resource shrinking enabled**.
+The current app configuration declares `versionName = "1.1.2"` and `versionCode = 4`. Release builds keep **R8 code shrinking, optimization, obfuscation, and resource shrinking enabled**.
 
-R8 is a build-time optimizer; it is not a runtime feature that older Android devices need to support. The APK runtime floor is defined by `minSdk = 24` (Android 7.0). Therefore, using R8 does not by itself make the app incompatible with older supported Android versions. The release configuration is retained because it produces a smaller, optimized APK while preserving the same runtime API floor. The release candidate is verified by the Gradle release build and unit tests.
+R8 is a build-time optimizer; it is not a runtime feature that older Android devices need to support. The APK runtime floor is defined by `minSdk = 24` (Android 7.0). Therefore, using R8 does not by itself make the app incompatible with older supported Android versions. The release configuration produces an optimized APK while preserving the same runtime API floor. The Gradle release build currently uses the local debug signing configuration and is intended for testing; configure a private release keystore before distributing production builds, and never commit signing keys.
 
 For more information, see the official Android documentation on [code shrinking](https://developer.android.com/studio/build/shrink-code) and [Java 8+ API desugaring](https://developer.android.com/studio/write/java8-support).
 
 ## Project status
 
-Card Game Hub is an active first release. The current priority is a polished offline Durak experience with reliable rules, responsive card presentation, adaptive Material 3 theming, and a maintainable architecture for future game modes and multiplayer.
+Card Game Hub is an active offline card-game app. The current priority is a polished Durak experience with reliable rules, responsive card presentation, adaptive Material 3 theming, and a maintainable architecture for future game modes and multiplayer.
 
 ## License
 

@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -70,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -83,15 +85,24 @@ import com.example.durak.model.OpponentEngine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private data class SettingsOption(val key: String, val label: String, val selected: Boolean)
+private data class SettingsOption(
+    val key: String,
+    val label: String,
+    val selected: Boolean,
+    val supportingText: String? = null,
+    val enabled: Boolean = true,
+)
 private data class SettingsCategory(val section: SettingsSection, val title: String, val value: String)
 
 private enum class SettingsSection(val title: String, val supportingText: String) {
     PLAYERS("Players", "Choose how many players join the table"),
-    DECK("Deck", "Choose the deck size for this table"),
-    GAME_MODE("Game mode", "Choose how the attack continues"),
+    DECK("Deck", "Choose a deck that leaves a draw pile after dealing"),
+    GAME_MODE("Game mode", "Review the supported Durak rules"),
     DIFFICULTY("Bot difficulty", "Choose how sharply local bots play")
 }
+
+private fun normalizedDeckSizeForPlayers(playerCount: Int, currentDeckSize: Int): Int =
+    LocalMatchSetup(playerCount = playerCount, deckSize = currentDeckSize).normalized().deckSize
 
 @Composable
 fun HomeHubScreen(
@@ -327,9 +338,10 @@ fun HomeHubScreen(
                                         )
                                         Icon(
                                             Icons.Default.ArrowDropDown,
-                                            contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
+                                            contentDescription = null,
                                             modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
                                         )
+                                        Text("Setup", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                                     }
                                 }
                                 }
@@ -386,7 +398,10 @@ fun HomeHubScreen(
                                             gameMode = gameMode,
                                             botDifficulty = botDifficulty,
                                             onBack = { settingsSection = null },
-                                            onPlayerCountChange = { playerCount = it },
+                                            onPlayerCountChange = {
+                                                playerCount = it
+                                                deckSize = LocalMatchSetup(playerCount = it, deckSize = deckSize).normalized().deckSize
+                                            },
                                             onDeckSizeChange = { deckSize = it },
                                             onGameModeChange = { gameMode = it },
                                             onDifficultyChange = { botDifficulty = it }
@@ -396,7 +411,7 @@ fun HomeHubScreen(
                             }
                         }
                         Text(
-                            text = "Use the arrow to tune the table before you deal.",
+                            text = "Choose Setup to customize players, deck, and bot difficulty before dealing.",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -479,12 +494,24 @@ private fun SettingsDetailView(
         SettingsSection.PLAYERS -> listOf(2, 3, 4).map { count ->
             SettingsOption(count.toString(), "$count players", playerCount == count)
         }
-        SettingsSection.DECK -> listOf(24, 36, 52).map { size ->
+        SettingsSection.DECK -> LocalMatchSetup.availableDeckSizes(playerCount).map { size ->
             SettingsOption(size.toString(), "$size cards", deckSize == size)
         }
-        SettingsSection.GAME_MODE -> listOf(GameMode.PODKIDNOY, GameMode.CLASSIC).map { mode ->
-            SettingsOption(mode.name, mode.title, gameMode == mode)
-        }
+        SettingsSection.GAME_MODE -> listOf(
+            SettingsOption(
+                key = GameMode.PODKIDNOY.name,
+                label = GameMode.PODKIDNOY.title,
+                selected = gameMode == GameMode.PODKIDNOY,
+                supportingText = GameMode.PODKIDNOY.description,
+            ),
+            SettingsOption(
+                key = GameMode.PEREVODNOY.name,
+                label = "Transfer · unavailable",
+                selected = false,
+                supportingText = GameMode.PEREVODNOY.description,
+                enabled = false,
+            ),
+        )
         SettingsSection.DIFFICULTY -> BotDifficulty.entries.map { difficulty ->
             SettingsOption(difficulty.name, difficulty.displayName, botDifficulty == difficulty)
         }
@@ -527,21 +554,35 @@ private fun SettingsDetailView(
         ) {
             options.forEachIndexed { index, option ->
                 SegmentedListItem(
+                    enabled = option.enabled,
                     selected = option.selected,
                     onClick = {
-                        when (section) {
-                            SettingsSection.PLAYERS -> onPlayerCountChange(option.key.toInt())
-                            SettingsSection.DECK -> onDeckSizeChange(option.key.toInt())
-                            SettingsSection.GAME_MODE -> onGameModeChange(GameMode.valueOf(option.key))
-                            SettingsSection.DIFFICULTY -> onDifficultyChange(BotDifficulty.valueOf(option.key))
+                        if (option.enabled) {
+                            when (section) {
+                                SettingsSection.PLAYERS -> onPlayerCountChange(option.key.toInt())
+                                SettingsSection.DECK -> onDeckSizeChange(option.key.toInt())
+                                SettingsSection.GAME_MODE -> onGameModeChange(GameMode.valueOf(option.key))
+                                SettingsSection.DIFFICULTY -> onDifficultyChange(BotDifficulty.valueOf(option.key))
+                            }
                         }
                     },
                     shapes = ListItemDefaults.segmentedShapes(index = index, count = options.size),
                     colors = colors,
                     trailingContent = {
-                        RadioButton(selected = option.selected, onClick = null)
+                        RadioButton(selected = option.selected, onClick = null, enabled = option.enabled)
                     },
-                    content = { Text(option.label) }
+                    content = {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(option.label)
+                            option.supportingText?.let { supportingText ->
+                                Text(
+                                    supportingText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -641,16 +682,32 @@ private fun DurakMatchSetupSheet(
             }
             item {
                 SetupGroup("Players") {
-                    SetupOption("2 players", playerCount == 2) { playerCount = 2 }
-                    SetupOption("3 players", playerCount == 3) { playerCount = 3 }
-                    SetupOption("4 players", playerCount == 4) { playerCount = 4 }
+                    SetupOption("2 players", playerCount == 2) {
+                        playerCount = 2
+                        deckSize = normalizedDeckSizeForPlayers(2, deckSize)
+                    }
+                    SetupOption("3 players", playerCount == 3) {
+                        playerCount = 3
+                        deckSize = normalizedDeckSizeForPlayers(3, deckSize)
+                    }
+                    SetupOption("4 players", playerCount == 4) {
+                        playerCount = 4
+                        deckSize = normalizedDeckSizeForPlayers(4, deckSize)
+                    }
                 }
             }
             item {
                 SetupGroup("Deck") {
-                    SetupOption("24 cards", deckSize == 24) { deckSize = 24 }
-                    SetupOption("36 cards", deckSize == 36) { deckSize = 36 }
-                    SetupOption("52 cards", deckSize == 52) { deckSize = 52 }
+                    LocalMatchSetup.availableDeckSizes(playerCount).forEach { size ->
+                        SetupOption("$size cards", deckSize == size) { deckSize = size }
+                    }
+                    if (playerCount == 4) {
+                        Text(
+                            "A 24-card deck has no draw pile with four players, so 36 is the minimum.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             item {
@@ -705,11 +762,17 @@ private fun androidx.compose.foundation.layout.RowScope.SetupOption(label: Strin
     Box(
         modifier = Modifier
             .weight(1f)
-            .height(46.dp)
+            .height(48.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(shape)
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(
