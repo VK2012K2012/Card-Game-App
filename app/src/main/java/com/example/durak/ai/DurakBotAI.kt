@@ -97,11 +97,14 @@ object DurakBotAI {
 
     private fun shouldPassAttack(candidates: List<Card>, state: DurakGameState, difficulty: BotDifficulty): Boolean {
         if (difficulty == BotDifficulty.EASY) return false
-        // If remaining candidates are high trumps early in game, consider passing
+        // Keep premium trumps out of low-value throw-ins. Expert starts conserving
+        // from a Jack; Standard only holds back Kings and Aces.
         val remainingTrumps = candidates.filter { it.isTrump }
-        if (remainingTrumps.size == candidates.size && state.deck.size > 10) {
+        val deckThreshold = if (difficulty == BotDifficulty.HARD) 8 else 10
+        val rankThreshold = if (difficulty == BotDifficulty.HARD) 11 else 13
+        if (remainingTrumps.size == candidates.size && state.deck.size > deckThreshold) {
             val lowestTrumpRank = remainingTrumps.minOfOrNull { it.rank.value } ?: 0
-            if (lowestTrumpRank >= 12) return true // Save Q, K, A trumps
+            if (lowestTrumpRank >= rankThreshold) return true
         }
         return false
     }

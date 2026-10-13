@@ -25,3 +25,11 @@ data class MatchHistoryEntity(
     val isWin: Boolean,
     val roundsPlayed: Int
 )
+
+@Entity(tableName = "active_match")
+data class ActiveMatchEntity(
+    @PrimaryKey val id: Int = 1,
+    val setupJson: String,
+    val stateJson: String,
+    val updatedAt: Long = System.currentTimeMillis()
+)

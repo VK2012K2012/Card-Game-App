@@ -4,6 +4,18 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
 }
 
+val releaseSigningValues = listOf(
+  providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull,
+  providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull,
+  providers.environmentVariable("ANDROID_KEY_ALIAS").orNull,
+  providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull,
+)
+require(releaseSigningValues.all { it.isNullOrBlank() } || releaseSigningValues.all { !it.isNullOrBlank() }) {
+  "Set all four release signing environment variables, or leave all of them unset."
+}
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
 android {
   namespace = "com.example"
   compileSdk { version = release(37) { minorApiLevel = 1 } }
@@ -12,10 +24,18 @@ android {
     applicationId = "com.aistudio.durakcardgame.vzkqmp"
     minSdk = 24
     targetSdk = 37
-    versionCode = 4
-    versionName = "1.1.2"
-
+    versionCode = 5
+    versionName = "1.1.3"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  if (releaseSigningValues.all { !it.isNullOrBlank() }) {
+    signingConfigs.create("release") {
+      storeFile = file(releaseSigningValues[0]!!)
+      storePassword = releaseSigningValues[1]
+      keyAlias = releaseSigningValues[2]
+      keyPassword = releaseSigningValues[3]
+    }
   }
 
   buildTypes {
@@ -24,10 +44,15 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("debug")
+      signingConfig = if (releaseSigningValues.all { !it.isNullOrBlank() }) {
+        signingConfigs.getByName("release")
+      } else {
+        null
+      }
     }
     debug { signingConfig = signingConfigs.getByName("debug") }
   }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -65,8 +90,8 @@ dependencies {
   testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
-  testImplementation(libs.robolectric)
   androidTestImplementation(platform(libs.androidx.compose.bom))
+  androidTestImplementation(libs.androidx.core)
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)

@@ -2,7 +2,7 @@
 
 Card Game Hub is a native Android card-game application built with **Kotlin**, **Jetpack Compose**, **Material 3 Expressive**, and **Room**. The current playable experience is an offline, single-player game of **Durak** against local bots. The app is designed around a deterministic game engine and a clear separation between gameplay rules, bot decisions, persistence, and UI.
 
-> **Version 1.1.2 · Build 4**
+> **Version 1.1.3 · Build 5**
 >
 > Current version declared by the Android Gradle configuration.
 
@@ -31,6 +31,8 @@ The screenshots below are captured from Card Game Hub and show the current home,
 | **Adaptive color** | Uses Android dynamic color on Android 12 and newer, with warm Material fallback palettes on earlier supported versions. |
 | **Navigation appearance** | Choose the standard labeled Material 3 navigation bar or the compact navigation dock from Settings. The choice is saved locally and applied immediately. |
 | **Statistics and history** | Completed matches and aggregate statistics are stored locally through Room. |
+| **Resume a match** | An in-progress match is saved locally after each transition and restored when the app is reopened. |
+| **Safe database upgrades** | Room schema snapshots are exported and explicit migrations preserve existing statistics and match history. |
 | **Privacy by default** | The current game is local-only. No sign-in, analytics service, remote matchmaking, or network permission is required for gameplay. |
 
 ## Gameplay
@@ -49,13 +51,13 @@ Back actions use a restrained reverse slide/fade that reveals the actual precedi
 
 | Module or package | Responsibility |
 |---|---|
-| `app/src/main/java/com/example/durak/game` | Deterministic Durak state machine, legal move validation, turn sequencing, and bot-turn recovery. |
+| `app/src/main/java/com/example/durak/game` | Deterministic Durak state machine with immutable player/hand snapshots, legal move validation, turn sequencing, and bot-turn recovery. |
 | `app/src/main/java/com/example/durak/ai` | Offline bot decision policies for attack, defense, passing, and taking the table. |
 | `app/src/main/java/com/example/durak/model` | Cards, suits, players, game modes, difficulties, and validated match configuration. |
 | `app/src/main/java/com/example/ui/screens` | Home hub, inline match settings, game table, statistics, history, and settings screens. |
 | `app/src/main/java/com/example/ui/viewmodel` | State orchestration between the game engine, Compose UI, and persisted match results. |
 | `app/src/main/java/com/example/ui/theme` | Dynamic color, fallback palettes, typography, shapes, and Material 3 theme setup. |
-| `app/src/main/java/com/example/data` | Room database entities, DAOs, match history, and transactional statistics persistence. |
+| `app/src/main/java/com/example/data` | Room database entities, exported schemas, explicit migrations, resumable match persistence, history, and transactional statistics. |
 
 The app deliberately keeps future product seams explicit. Additional card games can provide their own rules engine and screen, while online multiplayer can later be introduced behind a dedicated authenticated match service. No future feature is represented as an active online control in the first release.
 
@@ -73,13 +75,13 @@ The debug APK is written to:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-To run unit tests and build an optimized release APK:
+To run local tests and build an optimized release APK:
 
 ```bash
-./gradlew clean :app:testDebugUnitTest :app:assembleRelease --no-daemon --console=plain
+./gradlew clean :app:testDebugUnitTest :app:assembleDebugAndroidTest :app:assembleRelease --no-daemon --console=plain
 ```
 
-The release artifact is written to:
+The release artifact is written to the standard release output directory; Gradle names it `app-release.apk` when signed and `app-release-unsigned.apk` when no private signing values are configured:
 
 ```text
 app/build/outputs/apk/release/app-release.apk
@@ -87,10 +89,16 @@ app/build/outputs/apk/release/app-release.apk
 
 ## Tests
 
-Run the complete local unit-test task with:
+Run local unit tests and compile the Compose instrumentation tests with:
 
 ```bash
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest :app:assembleDebugAndroidTest
+```
+
+Run Compose UI tests on a connected Android device or emulator with:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
 ```
 
 Run the Durak engine regression suite directly with:
@@ -99,13 +107,13 @@ Run the Durak engine regression suite directly with:
 ./gradlew :app:testDebugUnitTest --tests 'com.example.durak.game.DurakEngineTest'
 ```
 
-The regression coverage includes card hierarchy cases, legal and illegal defenses, throw-in behavior, participant-only hand replenishment and draw order, completed rounds, end-of-match behavior, and stalled bot-turn recovery.
+The regression coverage includes immutable old-snapshot checks, card hierarchy, legal and illegal defenses, Expert-vs-Standard bot decisions, throw-in behavior, participant-only replenishment, match endings, active-match JSON round trips, and a version 1-to-2 Room migration preserving statistics and history. Compose UI tests cover match setup and a full human-played match. GitHub Actions runs unit tests, builds debug APKs, and runs the UI suite on an Android emulator.
 
 ## Release and R8
 
-The current app configuration declares `versionName = "1.1.2"` and `versionCode = 4`. Release builds keep **R8 code shrinking, optimization, obfuscation, and resource shrinking enabled**.
+The current app configuration declares `versionName = "1.1.3"` and `versionCode = 5`. Release builds keep **R8 code shrinking, optimization, obfuscation, and resource shrinking enabled**.
 
-R8 is a build-time optimizer; it is not a runtime feature that older Android devices need to support. The APK runtime floor is defined by `minSdk = 24` (Android 7.0). Therefore, using R8 does not by itself make the app incompatible with older supported Android versions. The release configuration produces an optimized APK while preserving the same runtime API floor. The Gradle release build currently uses the local debug signing configuration and is intended for testing; configure a private release keystore before distributing production builds, and never commit signing keys.
+R8 is a build-time optimizer; it is not a runtime feature that older Android devices need to support. The APK runtime floor is defined by `minSdk = 24` (Android 7.0). Therefore, using R8 does not by itself make the app incompatible with older supported Android versions. Release signing is now kept separate from the debug key. To sign a production release, supply `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` in the build environment; leave all unset for an unsigned release build. Keep the private keystore and values out of source control. A debug APK is for testing and is signed with the standard debug key.
 
 For more information, see the official Android documentation on [code shrinking](https://developer.android.com/studio/build/shrink-code) and [Java 8+ API desugaring](https://developer.android.com/studio/write/java8-support).
 

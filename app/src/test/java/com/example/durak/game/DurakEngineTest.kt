@@ -231,6 +231,7 @@ class DurakEngineTest {
         assertTrue(result.isGameOver)
         assertEquals("You", result.durakPlayerName)
         assertEquals(listOf("Bot 1", "Bot 2"), result.winnerPlayerNames)
+        assertTrue("Elimination must not mutate the input snapshot", !newlyOut.isOut)
     }
 
     @Test
@@ -302,6 +303,10 @@ class DurakEngineTest {
         assertTrue(nextRound.players[2].hand.any { it.id == drawForHelper.id })
         assertTrue(nextRound.players[3].hand.any { it.id == drawForDefender.id })
         assertTrue(nextRound.attackParticipants.isEmpty())
+        assertEquals("Replenishment must preserve the prior principal attacker's hand", 5, state.players[0].hand.size)
+        assertEquals("Replenishment must preserve the prior non-participant's hand", 5, state.players[1].hand.size)
+        assertEquals("Replenishment must preserve the prior defender's hand", 5, state.players[3].hand.size)
+        assertEquals(3, state.deck.size)
     }
 
     @Test
@@ -327,6 +332,27 @@ class DurakEngineTest {
             GameMode.PODKIDNOY,
             com.example.durak.model.LocalMatchSetup(gameMode = GameMode.CLASSIC).normalized().gameMode,
         )
+    }
+
+    @Test
+    fun `attack and defense transitions leave every earlier snapshot unchanged`() {
+        val attack = card("immutable_attack", Suit.HEARTS, Rank.SIX)
+        val spare = card("immutable_spare", Suit.CLUBS, Rank.EIGHT)
+        val defense = card("immutable_defense", Suit.HEARTS, Rank.SEVEN)
+        val human = Player("human", "You", true, hand = listOf(attack, spare))
+        val bot = Player("bot", "Bot 1", false, hand = listOf(defense))
+        val initial = state(players = listOf(human, bot))
+
+        val afterAttack = engine.playAttackCard(initial, playerIndex = 0, card = attack)
+        val afterDefense = engine.playDefendCard(afterAttack, defendingCard = defense, pairIndexToDefend = 0)
+
+        assertEquals(listOf(attack, spare), initial.players[0].hand)
+        assertEquals(listOf(defense), initial.players[1].hand)
+        assertEquals(listOf(spare), afterAttack.players[0].hand)
+        assertEquals(listOf(defense), afterAttack.players[1].hand)
+        assertEquals(emptyList<Card>(), afterDefense.players[1].hand)
+        assertEquals(2, initial.players[0].hand.size)
+        assertEquals(1, initial.players[1].hand.size)
     }
 
     @Test

@@ -59,6 +59,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -146,6 +147,7 @@ class MainActivity : ComponentActivity() {
             val stats by viewModel.statsFlow.collectAsState()
             val history by viewModel.historyFlow.collectAsState()
             val gameState by viewModel.gameState.collectAsState()
+            val hasRestoredMatch by viewModel.hasRestoredMatch.collectAsState()
             val selectedCard by viewModel.selectedCard.collectAsState()
             var destination by remember { mutableStateOf(RootDestination.PLAY) }
             var isInMatch by remember { mutableStateOf(false) }
@@ -161,6 +163,10 @@ class MainActivity : ComponentActivity() {
             var showExitMatchDialog by remember { mutableStateOf(false) }
             var showOnboarding by remember {
                 mutableStateOf(!appearancePreferences.getBoolean(ONBOARDING_SEEN_KEY, false))
+            }
+
+            LaunchedEffect(hasRestoredMatch) {
+                if (hasRestoredMatch) isInMatch = true
             }
 
             fun returnToLobby() {

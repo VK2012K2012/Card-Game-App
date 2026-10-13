@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -721,6 +722,7 @@ private fun AdaptiveHandRow(
             hand.forEach { card ->
                 PlayingCardView(
                     card = card,
+                    modifier = Modifier.testTag("human-hand-card"),
                     width = adaptiveWidth,
                     height = adaptiveHeight,
                     isSelectable = isHumanTurn,

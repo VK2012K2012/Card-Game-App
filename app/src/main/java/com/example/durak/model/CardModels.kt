@@ -113,8 +113,8 @@ data class Player(
     val name: String,
     val isHuman: Boolean,
     val difficulty: BotDifficulty = BotDifficulty.MEDIUM,
-    val hand: MutableList<Card> = mutableListOf(),
+    val hand: List<Card> = emptyList(),
     val avatarId: Int = 0,
-    var winsCount: Int = 0,
-    var isOut: Boolean = false
+    val winsCount: Int = 0,
+    val isOut: Boolean = false
 )

@@ -3,8 +3,10 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.ActiveMatchEntity
 import com.example.data.AppDatabase
 import com.example.data.GameRepository
+import com.example.data.GameStateJsonCodec
 import com.example.data.GameStatsEntity
 import com.example.data.MatchHistoryEntity
 import com.example.durak.ai.BotMoveDecision
@@ -15,6 +17,7 @@ import com.example.durak.game.GamePhase
 import com.example.durak.model.Card
 import com.example.durak.model.LocalMatchSetup
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +42,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val _gameState = MutableStateFlow(DurakGameState())
     val gameState: StateFlow<DurakGameState> = _gameState.asStateFlow()
 
+    private val _hasRestoredMatch = MutableStateFlow(false)
+    val hasRestoredMatch: StateFlow<Boolean> = _hasRestoredMatch.asStateFlow()
+
     private val _selectedCard = MutableStateFlow<Card?>(null)
     val selectedCard: StateFlow<Card?> = _selectedCard.asStateFlow()
 
@@ -46,6 +52,37 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var activeSessionId = 0L
     private var recordedSessionId: Long? = null
     private var activeSetup = LocalMatchSetup()
+    private val activeMatchWrites = Channel<ActiveMatchEntity?>(Channel.CONFLATED)
+
+    init {
+        viewModelScope.launch {
+            for (request in activeMatchWrites) {
+                runCatching {
+                    if (request == null) repository.clearActiveMatch()
+                    else repository.saveActiveMatch(request)
+                }
+            }
+        }
+        viewModelScope.launch {
+            val sessionAtLoad = activeSessionId
+            val saved = runCatching { repository.getActiveMatch() }.getOrNull() ?: return@launch
+            if (sessionAtLoad != activeSessionId || _gameState.value.gamePhase != GamePhase.SETUP) return@launch
+            runCatching {
+                GameStateJsonCodec.decodeSetup(saved.setupJson) to GameStateJsonCodec.decodeState(saved.stateJson)
+            }.onSuccess { (setup, state) ->
+                if (state.isGameOver || state.players.isEmpty()) {
+                    activeMatchWrites.trySend(null)
+                } else {
+                    activeSetup = setup
+                    publishGameState(state)
+                    _hasRestoredMatch.value = true
+                    checkTriggerBotMove(activeSessionId)
+                }
+            }.onFailure {
+                activeMatchWrites.trySend(null)
+            }
+        }
+    }
 
     fun startNewGame(setup: LocalMatchSetup) {
         botJob?.cancel()
@@ -54,6 +91,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _selectedCard.value = null
 
         activeSetup = setup.normalized()
+        _hasRestoredMatch.value = false
         val playerNames = buildList {
             add("You")
             repeat(activeSetup.playerCount - 1) { index -> add("Bot ${index + 1}") }
@@ -66,7 +104,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             deckSize = activeSetup.deckSize,
             gameMode = activeSetup.gameMode
         )
-        _gameState.value = initial
+        publishGameState(initial)
         checkTriggerBotMove(activeSessionId)
     }
 
@@ -74,6 +112,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         botJob?.cancel()
         _selectedCard.value = null
         activeSessionId += 1
+        _hasRestoredMatch.value = false
+        activeMatchWrites.trySend(null)
     }
 
     fun selectCard(card: Card) {
@@ -91,7 +131,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             state.defenderIndex != HUMAN_INDEX && HUMAN_INDEX !in state.throwInPasses
         if (state.isGameOver || state.currentTurnPlayerIndex != HUMAN_INDEX || (!isOpeningAttack && !isHumanThrowIn) || !isHumanCard(state, card)) return
 
-        _gameState.value = engine.playAttackCard(state, HUMAN_INDEX, card)
+        publishGameState(engine.playAttackCard(state, HUMAN_INDEX, card))
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -103,7 +143,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             pairIndexToDefend !in state.tablePairs.indices || !isHumanCard(state, defendingCard)
         ) return
 
-        _gameState.value = engine.playDefendCard(state, defendingCard, pairIndexToDefend)
+        publishGameState(engine.playDefendCard(state, defendingCard, pairIndexToDefend))
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -115,7 +155,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             state.tablePairs.isEmpty() || state.tablePairs.any { !it.isDefended } || !engine.isBitoReady(state)
         ) return
 
-        _gameState.value = engine.executeBitoClear(state)
+        publishGameState(engine.executeBitoClear(state))
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -126,7 +166,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             state.defenderIndex == HUMAN_INDEX || state.gamePhase != GamePhase.WAITING_FOR_THROW_IN
         ) return
 
-        _gameState.value = engine.passThrowIn(state, HUMAN_INDEX)
+        publishGameState(engine.passThrowIn(state, HUMAN_INDEX))
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -141,7 +181,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             state.tablePairs.isEmpty()
         ) return
 
-        _gameState.value = engine.executeDefenderTake(state)
+        publishGameState(engine.executeDefenderTake(state))
         _selectedCard.value = null
         checkTriggerBotMove(activeSessionId)
     }
@@ -207,12 +247,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             if (nextState === state) {
                 val recoveredState = engine.recoverStalledBotTurn(state, botIndex)
                 if (recoveredState === state) return
-                _gameState.value = recoveredState
+                publishGameState(recoveredState)
                 actions += 1
                 delay(BOT_SEQUENCE_DELAY_MS)
                 continue
             }
-            _gameState.value = nextState
+            publishGameState(nextState)
             actions += 1
 
             val nextPlayer = nextState.players.getOrNull(nextState.currentTurnPlayerIndex)
@@ -258,6 +298,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 ),
                 humanWon = humanWon,
                 humanWasDurak = humanIsDurak
+            )
+        }
+    }
+
+    private fun publishGameState(state: DurakGameState) {
+        _gameState.value = state
+        if (state.gamePhase == GamePhase.SETUP || state.isGameOver || state.players.isEmpty()) {
+            activeMatchWrites.trySend(null)
+        } else {
+            activeMatchWrites.trySend(
+                ActiveMatchEntity(
+                    setupJson = GameStateJsonCodec.encodeSetup(activeSetup),
+                    stateJson = GameStateJsonCodec.encodeState(state)
+                )
             )
         }
     }
