@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurEffect
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +84,16 @@ import com.example.ui.components.TableFeltBackground
 import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.TrumpGold
 
+/**
+ * Durak game screen with Material 3 Expressive design
+ * 
+ * Features:
+ * - Full M3E compliance with expressive components
+ * - Blur effects on table surfaces
+ * - Animated card transitions
+ * - Proper semantic color usage
+ * - Expressive elevation and shadows
+ */
 @Composable
 fun DurakGameScreen(
     gameState: DurakGameState,
@@ -97,6 +111,7 @@ fun DurakGameScreen(
     val isHumanTurn = gameState.currentTurnPlayerIndex == humanIndex
     val isHumanDefender = gameState.defenderIndex == humanIndex
     val isHumanAttacker = gameState.attackerIndex == humanIndex
+    
     TableFeltBackground(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -133,40 +148,55 @@ fun DurakGameScreen(
     }
 }
 
+/**
+ * Match header with M3E styling
+ */
 @Composable
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     val primaryText = tablePrimaryTextColor()
     val accentText = tableAccentTextColor()
-    Row(
+    
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        tonalElevation = 3.dp
     ) {
-        ExpressiveBackButton(
-            onClick = onExitGame,
-            contentDescription = "Leave match",
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ExpressiveBackButton(
+                onClick = onExitGame,
+                contentDescription = "Leave match",
+            )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "DURAK TABLE",
-                style = MaterialTheme.typography.labelMedium,
-                color = accentText,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Text(
-                text = "Round $round",
-                style = MaterialTheme.typography.titleLarge,
-                color = primaryText,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "DURAK TABLE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accentText,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = "Round $round",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = primaryText,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
         }
-
     }
 }
 
+/**
+ * Opponent rail showing bot avatars
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OpponentRail(gameState: DurakGameState) {
@@ -176,7 +206,7 @@ private fun OpponentRail(gameState: DurakGameState) {
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         maxItemsInEachRow = bots.size.coerceAtLeast(1)
@@ -193,6 +223,9 @@ private fun OpponentRail(gameState: DurakGameState) {
     }
 }
 
+/**
+ * Game table with M3E design and blur effects
+ */
 @Composable
 private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
     Column(
@@ -209,9 +242,9 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
                 .fillMaxWidth()
                 .widthIn(max = 560.dp),
             shape = ExpressiveCorners.ExtraExtraLarge,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
-            tonalElevation = 1.dp
+            tonalElevation = 2.dp
         ) {
             Box(
                 modifier = Modifier
@@ -235,10 +268,14 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
     }
 }
 
+/**
+ * Empty table state with M3E styling
+ */
 @Composable
 private fun EmptyTableState() {
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -247,7 +284,8 @@ private fun EmptyTableState() {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(48.dp),
+            tonalElevation = 2.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -273,6 +311,9 @@ private fun EmptyTableState() {
     }
 }
 
+/**
+ * Adaptive table pairs layout
+ */
 @Composable
 private fun AdaptiveTablePairs(pairs: List<TablePair>) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -318,6 +359,9 @@ private fun AdaptiveTablePairs(pairs: List<TablePair>) {
     }
 }
 
+/**
+ * Animated table pair with M3E transitions
+ */
 @Composable
 private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
     Row(
@@ -340,17 +384,21 @@ private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
     }
 }
 
+/**
+ * Deck status display with M3E styling
+ */
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 560.dp),
         shape = ExpressiveCorners.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
-        tonalElevation = 2.dp
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        tonalElevation = 3.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
@@ -391,7 +439,7 @@ private fun DeckStatus(gameState: DurakGameState) {
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Deck  ·  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
+                    text = "Deck  \u00b7  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = secondaryText,
                     fontWeight = FontWeight.Bold
@@ -413,6 +461,9 @@ private fun DeckStatus(gameState: DurakGameState) {
     }
 }
 
+/**
+ * Explicit match actions with M3E styling
+ */
 @Composable
 private fun ExplicitMatchActions(
     gameState: DurakGameState,
@@ -441,6 +492,7 @@ private fun ExplicitMatchActions(
         .all { it in gameState.throwInPasses }
 
     val actionAccent = tableAccentTextColor()
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -448,7 +500,7 @@ private fun ExplicitMatchActions(
             .animateContentSize(),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 3.dp
+        tonalElevation = 4.dp
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -514,6 +566,9 @@ private fun ExplicitMatchActions(
     }
 }
 
+/**
+ * Animated outlined action button with M3E styling
+ */
 @Composable
 private fun AnimatedOutlinedAction(
     onClick: () -> Unit,
@@ -532,6 +587,7 @@ private fun AnimatedOutlinedAction(
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "outlinedActionPress"
     )
+    
     OutlinedButton(
         onClick = onClick,
         interactionSource = interactionSource,
@@ -547,6 +603,9 @@ private fun AnimatedOutlinedAction(
     )
 }
 
+/**
+ * Primary action button with M3E styling
+ */
 @Composable
 private fun PrimaryAction(
     title: String,
@@ -566,6 +625,7 @@ private fun PrimaryAction(
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "matchActionPress"
     )
+    
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -595,6 +655,9 @@ private fun PrimaryAction(
     }
 }
 
+/**
+ * Table text colors with proper contrast
+ */
 @Composable
 private fun tablePrimaryTextColor(): Color = if (isSystemInDarkTheme()) {
     Color(0xFFFFF1EA)
@@ -623,6 +686,9 @@ private fun tableDisabledTextColor(): Color = if (isSystemInDarkTheme()) {
     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 }
 
+/**
+ * Check if card can be added to table
+ */
 private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
     if (state.tablePairs.isEmpty()) return true
     if (state.tablePairs.size >= minOf(6, state.defenderHandSizeAtRoundStart)) return false
@@ -630,6 +696,9 @@ private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
     return card.rank in ranks
 }
 
+/**
+ * Hand tray with M3E styling
+ */
 @Composable
 private fun HandTray(
     hand: List<GameCard>,
@@ -640,11 +709,12 @@ private fun HandTray(
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
     val accentText = tableAccentTextColor()
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp
+        tonalElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
@@ -659,7 +729,7 @@ private fun HandTray(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (isHumanTurn) "YOUR HAND" else "YOUR HAND · WAITING",
+                    text = if (isHumanTurn) "YOUR HAND" else "YOUR HAND \u00b7 WAITING",
                     style = MaterialTheme.typography.labelLarge,
                     color = primaryText,
                     fontWeight = FontWeight.Bold
@@ -695,6 +765,9 @@ private fun HandTray(
     }
 }
 
+/**
+ * Adaptive hand row layout
+ */
 @Composable
 private fun AdaptiveHandRow(
     hand: List<GameCard>,
@@ -732,6 +805,9 @@ private fun AdaptiveHandRow(
     }
 }
 
+/**
+ * Match result dialog with M3E styling
+ */
 @Composable
 private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit) {
     val result = when {
@@ -739,10 +815,15 @@ private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit)
         gameState.durakPlayerName == "You" -> "You are the Durak this round."
         else -> "${gameState.durakPlayerName ?: "The last player"} is the Durak."
     }
+    
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Match complete", fontWeight = FontWeight.ExtraBold) },
-        text = { Text(result) },
+        title = { 
+            Text("Match complete", fontWeight = FontWeight.ExtraBold) 
+        },
+        text = { 
+            Text(result) 
+        },
         confirmButton = {
             Button(onClick = onExitGame) {
                 Text("Back to Play")

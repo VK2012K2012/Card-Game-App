@@ -15,6 +15,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+/**
+ * Card Game Hub Theme with Material 3 Expressive design
+ * 
+ * Uses MaterialExpressiveTheme for M3E compliance with:
+ * - Expressive motion scheme
+ * - Dynamic color support
+ * - Custom color presets
+ * - Proper semantic color roles
+ */
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CardGameTheme(
