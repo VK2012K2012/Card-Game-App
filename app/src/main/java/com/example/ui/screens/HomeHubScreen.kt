@@ -50,10 +50,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -534,35 +532,19 @@ private fun InlineSettingsMenu(
         SettingsCategory(SettingsSection.GAME_MODE, "Game mode", gameMode.title),
         SettingsCategory(SettingsSection.DIFFICULTY, "Bot difficulty", botDifficulty.displayName)
     )
-    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         categories.forEachIndexed { index, category ->
-            SegmentedListItem(
-                onClick = { onOpen(category.section) },
-                shapes = ListItemDefaults.segmentedShapes(index = index, count = categories.size),
-                colors = colors,
-                leadingContent = {
-                    when (category.section) {
-                        SettingsSection.PLAYERS -> Icon(Icons.Default.Group, contentDescription = null)
-                        SettingsSection.DECK -> Icon(Icons.Default.Layers, contentDescription = null)
-                        SettingsSection.GAME_MODE -> Icon(Icons.Default.Style, contentDescription = null)
-                        SettingsSection.DIFFICULTY -> Icon(Icons.Default.SmartToy, contentDescription = null)
-                    }
-                },
-                supportingContent = { Text(category.value) },
-                trailingContent = {
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Change ${category.title}"
-                    )
-                },
-                content = { Text(category.title) }
+            SettingsMenuItem(
+                category = category,
+                index = index,
+                count = categories.size,
+                onClick = { onOpen(category.section) }
             )
         }
     }
@@ -584,7 +566,7 @@ private fun SettingsDetailView(
     onGameModeChange: (GameMode) -> Unit,
     onDifficultyChange: (BotDifficulty) -> Unit
 ) {
-    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
     val options = when (section) {
         SettingsSection.PLAYERS -> listOf(2, 3, 4).map { count ->
             SettingsOption(count.toString(), "$count players", playerCount == count)
@@ -604,7 +586,7 @@ private fun SettingsDetailView(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
             modifier = Modifier
@@ -633,11 +615,14 @@ private fun SettingsDetailView(
             }
         }
         Column(
-            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             options.forEachIndexed { index, option ->
-                SegmentedListItem(
+                SettingsMenuItem(
+                    title = option.label,
                     selected = option.selected,
+                    index = index,
+                    count = options.size,
                     onClick = {
                         when (section) {
                             SettingsSection.PLAYERS -> onPlayerCountChange(option.key.toInt())
@@ -645,16 +630,131 @@ private fun SettingsDetailView(
                             SettingsSection.GAME_MODE -> onGameModeChange(GameMode.valueOf(option.key))
                             SettingsSection.DIFFICULTY -> onDifficultyChange(BotDifficulty.valueOf(option.key))
                         }
-                    },
-                    shapes = ListItemDefaults.segmentedShapes(index = index, count = options.size),
-                    colors = colors,
-                    trailingContent = {
-                        RadioButton(selected = option.selected, onClick = null)
-                    },
-                    content = { Text(option.label) }
+                    }
                 )
             }
         }
+    }
+}
+
+/**
+ * Settings Menu Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
+ */
+@Composable
+private fun SettingsMenuItem(
+    category: SettingsCategory,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "settingsMenuItemScale"
+    )
+    
+    val shape = when {
+        count == 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        when (category.section) {
+            SettingsSection.PLAYERS -> Icon(Icons.Default.Group, contentDescription = null)
+            SettingsSection.DECK -> Icon(Icons.Default.Layers, contentDescription = null)
+            SettingsSection.GAME_MODE -> Icon(Icons.Default.Style, contentDescription = null)
+            SettingsSection.DIFFICULTY -> Icon(Icons.Default.SmartToy, contentDescription = null)
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(category.title)
+            Text(
+                category.value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = "Change ${category.title}"
+        )
+    }
+}
+
+/**
+ * Settings Menu Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
+ */
+@Composable
+private fun SettingsMenuItem(
+    title: String,
+    selected: Boolean,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "settingsOptionScale"
+    )
+    
+    val shape = when {
+        count == 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(title)
+        }
+        RadioButton(selected = selected, onClick = null)
     }
 }
 

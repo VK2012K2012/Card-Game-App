@@ -56,7 +56,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -621,7 +620,7 @@ private fun CustomizeStep(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(ListItemDefaults.segmentedShapes(0, 1))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { onSystemThemeChange(!systemTheme) }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -705,7 +704,7 @@ private fun CustomizeStep(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(ListItemDefaults.segmentedShapes(0, 1))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { onAmoledBlackChange(!amoledBlack) }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,

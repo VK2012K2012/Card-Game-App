@@ -44,21 +44,14 @@ android {
   
   kotlinOptions {
     jvmTarget = "17"
-    // Enable R8 optimizations for release
     freeCompilerArgs += listOf(
-      "-Xjvm-target=17",
-      "-Xexplicit-api=strict"
+      "-Xjvm-target=17"
     )
   }
   
   buildFeatures {
     compose = true
     buildConfig = true
-    // Enable R8 for release builds
-    if (buildType == "release") {
-      shrinkResources = true
-      minifyEnabled = true
-    }
   }
   
   testOptions {

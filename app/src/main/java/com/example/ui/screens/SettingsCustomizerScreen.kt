@@ -65,7 +65,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -293,24 +292,18 @@ fun DesignCustomizationScreen(
                         )
                         
                         // System theme toggle
-                        SegmentedListItem(
-                            onClick = { onSystemThemeChange(!systemTheme) },
-                            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            supportingContent = { 
-                                Text("Follow your phone's light or dark mode") 
-                            },
+                        SettingsListItem(
+                            title = "Use system theme",
+                            subtitle = "Follow your phone's light or dark mode",
+                            index = 0,
+                            count = 1,
                             trailingContent = {
                                 AppearanceSwitch(
                                     checked = systemTheme,
                                     onCheckedChange = onSystemThemeChange,
                                 )
                             },
-                            content = { 
-                                Text("Use system theme") 
-                            },
+                            onClick = { onSystemThemeChange(!systemTheme) }
                         )
                         
                         // Custom vs Preset palette
@@ -407,17 +400,11 @@ fun DesignCustomizationScreen(
                         }
                         
                         // AMOLED black toggle
-                        SegmentedListItem(
-                            onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) }),
-                            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                headlineColor = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant 
-                                               else MaterialTheme.colorScheme.onSurface,
-                            ),
-                            supportingContent = { 
-                                Text(if (systemTheme) "Turn off system theme first" else "Black background with dark-gray surfaces") 
-                            },
+                        SettingsListItem(
+                            title = "AMOLED black",
+                            subtitle = if (systemTheme) "Turn off system theme first" else "Black background with dark-gray surfaces",
+                            index = 0,
+                            count = 1,
                             trailingContent = {
                                 AppearanceSwitch(
                                     checked = amoledBlack,
@@ -425,7 +412,7 @@ fun DesignCustomizationScreen(
                                     enabled = !systemTheme,
                                 )
                             },
-                            content = { Text("AMOLED black") },
+                            onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) })
                         )
                     }
                 }
@@ -449,9 +436,7 @@ fun DesignCustomizationScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(
-                                ListItemDefaults.SegmentedGap
-                            )
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             NavigationAppearanceListRow(
                                 title = "Material 3 Expressive",
@@ -486,20 +471,18 @@ fun DesignCustomizationScreen(
                             icon = Icons.Default.TextFields, 
                             title = "Typography"
                         )
-                        SegmentedListItem(
-                            onClick = { onGoogleSansFlexChange(!useGoogleSansFlex) },
-                            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            supportingContent = { Text("Google variable font") },
+                        SettingsListItem(
+                            title = "Google Sans Flex",
+                            subtitle = "Google variable font",
+                            index = 0,
+                            count = 1,
                             trailingContent = { 
                                 Switch(
                                     checked = useGoogleSansFlex, 
                                     onCheckedChange = onGoogleSansFlexChange
                                 ) 
                             },
-                            content = { Text("Google Sans Flex") },
+                            onClick = { onGoogleSansFlexChange(!useGoogleSansFlex) }
                         )
                     }
                 }
@@ -1195,6 +1178,67 @@ private fun AnimatedSettingsEntry(
 }
 
 /**
+ * Settings List Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
+ */
+@Composable
+private fun SettingsListItem(
+    title: String,
+    subtitle: String,
+    index: Int,
+    count: Int,
+    trailingContent: @Composable () -> Unit,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = tween(MotionTokens.Responsive),
+        label = "settingsListItemScale"
+    )
+    
+    val shape = when {
+        count == 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(title)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        trailingContent()
+    }
+}
+
+/**
  * Settings Entry with M3E styling
  */
 @Composable
@@ -1223,7 +1267,14 @@ private fun SettingsEntry(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(ListItemDefaults.segmentedShapes(index, count))
+            .clip(
+                when {
+                    count == 1 -> RoundedCornerShape(12.dp)
+                    index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                    index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+                    else -> RoundedCornerShape(0.dp)
+                }
+            )
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(
                 interactionSource = interactionSource,
@@ -1280,6 +1331,13 @@ private fun NavigationAppearanceListRow(
         label = "navAppearanceScale"
     )
     
+    val shape = when {
+        count == 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1287,7 +1345,7 @@ private fun NavigationAppearanceListRow(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(ListItemDefaults.segmentedShapes(index, count))
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(
                 interactionSource = interactionSource,

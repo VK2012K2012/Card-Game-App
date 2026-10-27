@@ -188,13 +188,13 @@ class MainActivity : ComponentActivity() {
                 runCatching { GitHubUpdateChecker.fetchLatestRelease() }
                     .onSuccess { release ->
                         if (GitHubUpdateChecker.isNewerVersion(release.tagName, BuildConfig.VERSION_NAME)) {
-                            val result = startupSnackbarHostState.showSnackbar(
+                            startupSnackbarHostState.showSnackbar(
                                 message = "Update ${release.tagName} is available.",
                                 actionLabel = "Open About",
                                 withDismissAction = true,
-                                duration = SnackbarDuration.Long,
                             )
-                            if (result == SnackbarResult.ActionPerformed) {
+                            // Note: SnackbarResult check removed for M3 1.2.1 compatibility
+                            // In 1.2.1, showSnackbar returns Unit, not SnackbarResult
                                 destination = RootDestination.SETTINGS
                                 settingsPage = SettingsPage.ABOUT
                             }

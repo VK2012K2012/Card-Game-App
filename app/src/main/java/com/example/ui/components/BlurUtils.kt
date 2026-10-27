@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurEffect
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -45,12 +44,10 @@ enum class BlurIntensity(val radius: Float) {
  * Apply blur with proper edge treatment
  */
 fun Modifier.blurEffect(
-    intensity: BlurIntensity = BlurIntensity.MEDIUM,
-    edgeTreatment: BlurEffect.EdgeTreatment = BlurEffect.EdgeTreatment.Unbounded
+    intensity: BlurIntensity = BlurIntensity.MEDIUM
 ): Modifier = this.blur(
     radiusX = intensity.radius,
-    radiusY = intensity.radius,
-    edgeTreatment = edgeTreatment
+    radiusY = intensity.radius
 )
 
 /**
@@ -223,11 +220,4 @@ fun EnhancedTableFeltBackground(
     }
 }
 
-/**
- * Edge treatment presets
- */
-object BlurEdgeTreatment {
-    val Unbounded = BlurEffect.EdgeTreatment.Unbounded
-    val Clamped = BlurEffect.EdgeTreatment.Clamped
-    val Tiled = BlurEffect.EdgeTreatment.Tiled
-}
+

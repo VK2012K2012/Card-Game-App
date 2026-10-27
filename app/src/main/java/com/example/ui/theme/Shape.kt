@@ -72,4 +72,7 @@ object AppShapes {
     // Special
     val circle = RoundedCornerShape(50)
     val pill = RoundedCornerShape(50)
+    
+    // Settings
+    val settingsCard = RoundedCornerShape(16.dp)
 }
