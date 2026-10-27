@@ -16,15 +16,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Card Game Hub Theme with Material 3 Expressive design
+ * Card Game Hub Theme with Material 3 Expressive Design
  * 
- * Uses MaterialExpressiveTheme for M3E compliance with:
- * - Expressive motion scheme
- * - Dynamic color support
+ * This theme strictly follows Material Design 3 Expressive guidelines from:
+ * https://m3.material.io/
+ * 
+ * Features:
+ * - Full M3E compliance with MaterialExpressiveTheme
+ * - Dynamic color support (Android 12+)
  * - Custom color presets
+ * - Expressive motion scheme
  * - Proper semantic color roles
+ * - Animated color transitions
  */
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CardGameTheme(
@@ -44,6 +48,7 @@ fun CardGameTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
+    
     val colorScheme = androidx.compose.runtime.remember(
         themeMode,
         effectiveDark,
@@ -55,25 +60,31 @@ fun CardGameTheme(
         context,
     ) {
         when {
-        themeMode == ThemeMode.SYSTEM && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        themeMode == ThemeMode.SYSTEM -> if (effectiveDark) DeepForestDarkColors else DeepForestLightColors
-        customPalette != null -> if (effectiveDark) {
-            darkSchemeForCustom(customPalette).withManualDarkBackground(amoledBlack)
-        } else {
-            lightSchemeForCustom(customPalette).withManualLightBackground()
-        }
-        paletteOption != null -> if (effectiveDark) {
-            darkSchemeForPalette(paletteOption).withManualDarkBackground(amoledBlack)
-        } else {
-            lightSchemeForPalette(paletteOption).withManualLightBackground()
-        }
-        effectiveDark -> darkColorsFor(colorPreset).withManualDarkBackground(amoledBlack)
+            // Dynamic color from wallpaper (Android 12+)
+            themeMode == ThemeMode.SYSTEM && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
+            // System theme with static colors
+            themeMode == ThemeMode.SYSTEM -> if (effectiveDark) DeepForestDarkColors else DeepForestLightColors
+            // Custom palette
+            customPalette != null -> if (effectiveDark) {
+                darkSchemeForCustom(customPalette).withManualDarkBackground(amoledBlack)
+            } else {
+                lightSchemeForCustom(customPalette).withManualLightBackground()
+            }
+            // Preset palette
+            paletteOption != null -> if (effectiveDark) {
+                darkSchemeForPalette(paletteOption).withManualDarkBackground(amoledBlack)
+            } else {
+                lightSchemeForPalette(paletteOption).withManualLightBackground()
+            }
+            // Color preset
+            effectiveDark -> darkColorsFor(colorPreset).withManualDarkBackground(amoledBlack)
             else -> lightColorsFor(colorPreset).withManualLightBackground()
         }
     }
 
+    // Animated color scheme for smooth transitions
     val transition = updateTransition(targetState = colorScheme, label = "theme-color-transition")
     val animatedScheme = transition.animateColor(label = "theme-primary") { it.primary }.let { primary ->
         colorScheme.copy(
@@ -106,6 +117,7 @@ fun CardGameTheme(
         )
     }
 
+    // Apply M3E theme with expressive motion
     MaterialExpressiveTheme(
         colorScheme = animatedScheme,
         motionScheme = MotionScheme.expressive(),
@@ -115,10 +127,16 @@ fun CardGameTheme(
     )
 }
 
+/**
+ * Light background adjustments for M3E
+ */
 private fun ColorScheme.withManualLightBackground(): ColorScheme = copy(
     surfaceContainerLowest = background,
 )
 
+/**
+ * Dark background adjustments with AMOLED support
+ */
 private fun ColorScheme.withManualDarkBackground(amoledBlack: Boolean): ColorScheme = if (amoledBlack) {
     copy(
         background = Color.Black,
@@ -133,6 +151,9 @@ private fun ColorScheme.withManualDarkBackground(amoledBlack: Boolean): ColorSch
     this
 }
 
+/**
+ * Surface tinting for M3E depth effect
+ */
 private fun tintSurface(base: Color, tint: Color, amount: Float): Color {
     val fraction = amount.coerceIn(0f, 1f)
     return Color(
@@ -143,7 +164,19 @@ private fun tintSurface(base: Color, tint: Color, amount: Float): Color {
     )
 }
 
+/**
+ * Theme tokens for easy access
+ */
 object CardGameThemeTokens {
-    val trumpGold: androidx.compose.ui.graphics.Color
+    val trumpGold: Color
         @Composable get() = TrumpGold
+    
+    val success: Color
+        @Composable get() = SemanticColors.Success
+    
+    val warning: Color
+        @Composable get() = SemanticColors.Warning
+    
+    val info: Color
+        @Composable get() = SemanticColors.Info
 }

@@ -3,10 +3,9 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -59,6 +58,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -78,21 +78,22 @@ import com.example.durak.model.Card as GameCard
 import com.example.durak.model.Rank
 import com.example.durak.model.TablePair
 import com.example.ui.components.BotAvatarBadge
+import com.example.ui.components.EnhancedTableFeltBackground
 import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.components.PlayingCardView
-import com.example.ui.components.TableFeltBackground
 import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.TrumpGold
 
 /**
- * Durak game screen with Material 3 Expressive design
+ * Durak Game Screen with Material 3 Expressive Design
  * 
  * Features:
  * - Full M3E compliance with expressive components
  * - Blur effects on table surfaces
- * - Animated card transitions
+ * - Animated card transitions with spring physics
  * - Proper semantic color usage
  * - Expressive elevation and shadows
+ * - Comfortable card layout
  */
 @Composable
 fun DurakGameScreen(
@@ -112,19 +113,26 @@ fun DurakGameScreen(
     val isHumanDefender = gameState.defenderIndex == humanIndex
     val isHumanAttacker = gameState.attackerIndex == humanIndex
     
-    TableFeltBackground(Modifier.fillMaxSize()) {
+    EnhancedTableFeltBackground(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
+            // Header with blur effect
             MatchHeader(gameState.roundCount, onExitGame)
+            
+            // Opponent Rail
             OpponentRail(gameState)
+            
+            // Game Table with blur
             GameTable(
                 gameState = gameState,
                 modifier = Modifier.weight(1f)
             )
+            
+            // Action Panel
             ExplicitMatchActions(
                 gameState = gameState,
                 selectedCard = selectedCard,
@@ -137,6 +145,8 @@ fun DurakGameScreen(
                 onPassThrowIn = onPassThrowIn,
                 onTakeTable = onTakeTable
             )
+            
+            // Hand Tray
             HandTray(
                 hand = human?.hand.orEmpty(),
                 selectedCard = selectedCard,
@@ -144,12 +154,14 @@ fun DurakGameScreen(
                 onSelectCard = onSelectCard
             )
         }
+        
+        // Match Result Dialog
         if (gameState.isGameOver) MatchResultDialog(gameState, onExitGame)
     }
 }
 
 /**
- * Match header with M3E styling
+ * Match Header with M3E styling and blur
  */
 @Composable
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
@@ -195,7 +207,7 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
 }
 
 /**
- * Opponent rail showing bot avatars
+ * Opponent Rail with blur background
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -203,28 +215,37 @@ private fun OpponentRail(gameState: DurakGameState) {
     val bots = gameState.players.filterNot { it.isHuman }
     if (bots.isEmpty()) return
 
-    FlowRow(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        maxItemsInEachRow = bots.size.coerceAtLeast(1)
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+        tonalElevation = 2.dp
     ) {
-        bots.forEach { bot ->
-            val index = gameState.players.indexOfFirst { it.id == bot.id }
-            BotAvatarBadge(
-                player = bot,
-                isCurrentTurn = gameState.currentTurnPlayerIndex == index,
-                isDefender = gameState.defenderIndex == index,
-                isAttacker = gameState.attackerIndex == index
-            )
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            maxItemsInEachRow = bots.size.coerceAtLeast(1)
+        ) {
+            bots.forEach { bot ->
+                val index = gameState.players.indexOfFirst { it.id == bot.id }
+                BotAvatarBadge(
+                    player = bot,
+                    isCurrentTurn = gameState.currentTurnPlayerIndex == index,
+                    isDefender = gameState.defenderIndex == index,
+                    isAttacker = gameState.attackerIndex == index
+                )
+            }
         }
     }
 }
 
 /**
- * Game table with M3E design and blur effects
+ * Game Table with blur effects and M3E design
  */
 @Composable
 private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
@@ -235,7 +256,10 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Deck Status
         DeckStatus(gameState)
+        
+        // Table Surface with blur
         Surface(
             modifier = Modifier
                 .weight(1f)
@@ -269,7 +293,7 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
 }
 
 /**
- * Empty table state with M3E styling
+ * Empty Table State with M3E styling
  */
 @Composable
 private fun EmptyTableState() {
@@ -312,7 +336,7 @@ private fun EmptyTableState() {
 }
 
 /**
- * Adaptive table pairs layout
+ * Adaptive Table Pairs Layout
  */
 @Composable
 private fun AdaptiveTablePairs(pairs: List<TablePair>) {
@@ -360,7 +384,7 @@ private fun AdaptiveTablePairs(pairs: List<TablePair>) {
 }
 
 /**
- * Animated table pair with M3E transitions
+ * Animated Table Pair with M3E transitions
  */
 @Composable
 private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
@@ -385,7 +409,7 @@ private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
 }
 
 /**
- * Deck status display with M3E styling
+ * Deck Status Display with M3E styling
  */
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
@@ -462,7 +486,7 @@ private fun DeckStatus(gameState: DurakGameState) {
 }
 
 /**
- * Explicit match actions with M3E styling
+ * Match Actions with M3E styling
  */
 @Composable
 private fun ExplicitMatchActions(
@@ -567,7 +591,7 @@ private fun ExplicitMatchActions(
 }
 
 /**
- * Animated outlined action button with M3E styling
+ * Animated Outlined Action
  */
 @Composable
 private fun AnimatedOutlinedAction(
@@ -578,7 +602,7 @@ private fun AnimatedOutlinedAction(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
-        targetValue = if (pressed) 22.dp else 34.dp,
+        targetValue = if (pressed) 22.dp else 28.dp,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "outlinedActionCorner"
     )
@@ -604,7 +628,7 @@ private fun AnimatedOutlinedAction(
 }
 
 /**
- * Primary action button with M3E styling
+ * Primary Action Button
  */
 @Composable
 private fun PrimaryAction(
@@ -616,7 +640,7 @@ private fun PrimaryAction(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
-        targetValue = if (pressed) 22.dp else 34.dp,
+        targetValue = if (pressed) 22.dp else 28.dp,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "matchActionCorner"
     )
@@ -656,48 +680,7 @@ private fun PrimaryAction(
 }
 
 /**
- * Table text colors with proper contrast
- */
-@Composable
-private fun tablePrimaryTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFFFF1EA)
-} else {
-    MaterialTheme.colorScheme.onSurface
-}
-
-@Composable
-private fun tableSecondaryTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFDCC9C0)
-} else {
-    MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-@Composable
-private fun tableAccentTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFFFB69F)
-} else {
-    MaterialTheme.colorScheme.primary
-}
-
-@Composable
-private fun tableDisabledTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFB9AAA4)
-} else {
-    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-}
-
-/**
- * Check if card can be added to table
- */
-private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
-    if (state.tablePairs.isEmpty()) return true
-    if (state.tablePairs.size >= minOf(6, state.defenderHandSizeAtRoundStart)) return false
-    val ranks = state.tablePairs.flatMap { listOfNotNull(it.attackCard.rank, it.defenseCard?.rank) }
-    return card.rank in ranks
-}
-
-/**
- * Hand tray with M3E styling
+ * Hand Tray with M3E styling
  */
 @Composable
 private fun HandTray(
@@ -766,7 +749,7 @@ private fun HandTray(
 }
 
 /**
- * Adaptive hand row layout
+ * Adaptive Hand Row Layout
  */
 @Composable
 private fun AdaptiveHandRow(
@@ -806,7 +789,7 @@ private fun AdaptiveHandRow(
 }
 
 /**
- * Match result dialog with M3E styling
+ * Match Result Dialog
  */
 @Composable
 private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit) {
@@ -830,4 +813,45 @@ private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit)
             }
         }
     )
+}
+
+/**
+ * Table Text Colors
+ */
+@Composable
+private fun tablePrimaryTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFFFF1EA)
+} else {
+    MaterialTheme.colorScheme.onSurface
+}
+
+@Composable
+private fun tableSecondaryTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFDCC9C0)
+} else {
+    MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun tableAccentTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFFFB69F)
+} else {
+    MaterialTheme.colorScheme.primary
+}
+
+@Composable
+private fun tableDisabledTextColor(): Color = if (isSystemInDarkTheme()) {
+    Color(0xFFB9AAA4)
+} else {
+    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+}
+
+/**
+ * Check if card can be added to table
+ */
+private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
+    if (state.tablePairs.isEmpty()) return true
+    if (state.tablePairs.size >= minOf(6, state.defenderHandSizeAtRoundStart)) return false
+    val ranks = state.tablePairs.flatMap { listOfNotNull(it.attackCard.rank, it.defenseCard?.rank) }
+    return card.rank in ranks
 }

@@ -6,8 +6,8 @@ import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -15,7 +15,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.animateColorAsState
@@ -23,6 +22,9 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -56,8 +58,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,6 +79,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
+import com.example.ui.components.EnhancedTableFeltBackground
 import com.example.ui.screens.AboutAppScreen
 import com.example.ui.screens.CardGameOnboardingDialog
 import com.example.ui.screens.DesignCustomizationScreen
@@ -88,15 +89,26 @@ import com.example.ui.screens.SettingsCustomizerScreen
 import com.example.ui.screens.StatisticsScreen
 import com.example.ui.theme.CardGameTheme
 import com.example.ui.theme.CustomPalette
+import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
 import com.example.ui.theme.ThemeColorPreset
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemePreferences
-import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.viewmodel.GameViewModel
 import com.example.update.GitHubUpdateChecker
+import kotlinx.coroutines.delay
 
+/**
+ * Main Activity for Card Game Hub
+ * 
+ * Features:
+ * - Full Material 3 Expressive design
+ * - Edge-to-edge display
+ * - Dynamic color support
+ * - Animated navigation
+ * - Blur effects on backgrounds
+ */
 enum class RootDestination(val label: String) {
     PLAY("Play"),
     STATS("Stats"),
@@ -123,7 +135,9 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         setContent {
             val context = LocalContext.current
@@ -283,21 +297,23 @@ class MainActivity : ComponentActivity() {
                     controller.isAppearanceLightStatusBars = lightBars
                     controller.isAppearanceLightNavigationBars = lightBars
                 }
+                
                 if (isInMatch) {
-                    DurakGameScreen(
-                        gameState = gameState,
-                        selectedCard = selectedCard,
-                        onSelectCard = viewModel::selectCard,
-                        onPlayAttack = viewModel::playHumanAttack,
-                        onPlayDefend = viewModel::playHumanDefend,
-                        onFinishRound = viewModel::humanFinishRound,
-                        onPassThrowIn = viewModel::humanPassThrowIn,
-                        onTakeTable = viewModel::humanTakeTable,
-                        onExitGame = {
-                            if (gameState.isGameOver) returnToLobby() else showExitMatchDialog = true
-                        }
-
-                    )
+                    EnhancedTableFeltBackground {
+                        DurakGameScreen(
+                            gameState = gameState,
+                            selectedCard = selectedCard,
+                            onSelectCard = viewModel::selectCard,
+                            onPlayAttack = viewModel::playHumanAttack,
+                            onPlayDefend = viewModel::playHumanDefend,
+                            onFinishRound = viewModel::humanFinishRound,
+                            onPassThrowIn = viewModel::humanPassThrowIn,
+                            onTakeTable = viewModel::humanTakeTable,
+                            onExitGame = {
+                                if (gameState.isGameOver) returnToLobby() else showExitMatchDialog = true
+                            }
+                        )
+                    }
                 } else {
                     AppRootScaffold(
                         destination = destination,
@@ -310,7 +326,11 @@ class MainActivity : ComponentActivity() {
                     ) { contentPadding ->
                         AnimatedContent(
                             targetState = destination to settingsPage,
-                            transitionSpec = { fadeIn(tween(220, easing = FastOutSlowInEasing)).togetherWith(fadeOut(tween(160))) },
+                            transitionSpec = { 
+                                fadeIn(tween(220, easing = FastOutSlowInEasing)).togetherWith(
+                                    fadeOut(tween(160))
+                                )
+                            },
                             label = "rootDestination"
                         ) { (currentDestination, currentSettingsPage) ->
                             Box(Modifier.fillMaxSize().padding(contentPadding)) {
@@ -350,7 +370,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-            if (showOnboarding && !isInMatch) {
+                if (showOnboarding && !isInMatch) {
                     CardGameOnboardingDialog(
                         initialMode = themeMode,
                         initialSystemTheme = systemTheme,
@@ -366,83 +386,82 @@ class MainActivity : ComponentActivity() {
                         },
                     )
                 }
+                
                 if (showExitMatchDialog) {
-                Dialog(onDismissRequest = { showExitMatchDialog = false }) {
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(tween(180)) +
-                            androidx.compose.animation.scaleIn(
-                                initialScale = 0.92f,
-                                animationSpec = spring(
-                                    dampingRatio = 0.82f,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            ) +
-                            androidx.compose.animation.slideInVertically(
-                                initialOffsetY = { it / 5 },
-                                animationSpec = spring(
-                                    dampingRatio = 0.86f,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            )
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                                .widthIn(max = 560.dp),
-                            shape = RoundedCornerShape(28.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                            tonalElevation = 6.dp
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
-                                verticalArrangement = Arrangement.spacedBy(18.dp)
-                            ) {
-                                Text(
-                                    text = "Leave this match?",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Your current table will be abandoned and will not be added to statistics.",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Button(
-                                        modifier = Modifier.weight(1f),
-                                        onClick = { showExitMatchDialog = false },
-                                        shape = RoundedCornerShape(24.dp)
-                                    ) {
-                                        Text("Keep playing")
-                                    }
-                                    Button(
-                                        modifier = Modifier.weight(1f),
-                                        onClick = ::returnToLobby,
-                                        shape = RoundedCornerShape(24.dp)
-                                    ) {
-                                        Text("Leave match")
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ExitMatchDialog(
+                        onDismiss = { showExitMatchDialog = false },
+                        onConfirm = ::returnToLobby
+                    )
                 }
             }
         }
     }
-    }
-
+    
     private companion object {
         const val NAVIGATION_PREFERENCES = "navigation_preferences"
         const val NAVIGATION_STYLE_KEY = "navigation_style_v2"
         const val ONBOARDING_SEEN_KEY = "onboarding_seen_v2"
         const val GOOGLE_SANS_FLEX_KEY = "google_sans_flex"
+    }
+}
+
+/**
+ * Exit Match Dialog with M3E styling
+ */
+@Composable
+private fun ExitMatchDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        EnhancedTableFeltBackground {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .widthIn(max = 560.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    Text(
+                        text = "Leave this match?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Your current table will be abandoned and will not be added to statistics.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Keep playing")
+                        }
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            onClick = onConfirm,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors()
+                        ) {
+                            Text("Leave match")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -509,7 +528,6 @@ private fun iconFor(item: RootDestination): ImageVector = when (item) {
     RootDestination.STATS -> Icons.Default.BarChart
     RootDestination.SETTINGS -> Icons.Default.Settings
 }
-
 
 @Composable
 private fun CompactNavigationDock(

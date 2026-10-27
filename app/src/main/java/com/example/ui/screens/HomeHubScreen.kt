@@ -2,15 +2,17 @@ package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,13 +27,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -43,15 +46,14 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedListItem
-import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,18 +78,21 @@ import com.example.durak.model.BotDifficulty
 import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
+import com.example.ui.components.EnhancedTableFeltBackground
+import com.example.ui.theme.ExpressiveCorners
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Home Hub Screen with Material 3 Expressive design
+ * Home Hub Screen with Material 3 Expressive Design
  * 
  * Features:
- * - Hero welcome section with animated cards
+ * - Hero welcome section with animated card display
  * - Expressive play button with morphing animations
  * - Settings inline menu with smooth transitions
  * - M3E compliant color and shape usage
  * - Proper semantic typography
+ * - Blur background effects
  */
 private data class SettingsOption(val key: String, val label: String, val selected: Boolean)
 private data class SettingsCategory(val section: SettingsSection, val title: String, val value: String)
@@ -112,11 +117,7 @@ fun HomeHubScreen(
     var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
     val buttonScope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    EnhancedTableFeltBackground(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -126,6 +127,8 @@ fun HomeHubScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Spacer(Modifier.height(8.dp))
+            
+            // Header
             Text(
                 text = "CARD GAME HUB",
                 style = MaterialTheme.typography.labelLarge,
@@ -149,8 +152,10 @@ fun HomeHubScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            WelcomeHeroSection()
+            // Hero Section with Animated Cards
+            HeroSection()
             
+            // Main Action Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -161,7 +166,7 @@ fun HomeHubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 600.dp),
-                    shape = RoundedCornerShape(32.dp),
+                    shape = ExpressiveCorners.ExtraExtraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     tonalElevation = 3.dp
                 ) {
@@ -190,6 +195,8 @@ fun HomeHubScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
+                        
+                        // Current settings pills
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -199,6 +206,8 @@ fun HomeHubScreen(
                             ModePill("$deckSize cards", Modifier.weight(1f))
                             ModePill(gameMode.title, Modifier.weight(1f))
                         }
+                        
+                        // Action buttons
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -347,13 +356,15 @@ fun HomeHubScreen(
                                     }
                                 }
                             }
+                            
+                            // Settings menu
                             AnimatedVisibility(
                                 visible = modeMenuExpanded,
-                                enter = fadeIn(tween(180)) + androidx.compose.animation.expandVertically(
+                                enter = fadeIn(tween(180)) + expandVertically(
                                     animationSpec = tween(260, easing = FastOutSlowInEasing),
                                     expandFrom = Alignment.Top
                                 ),
-                                exit = fadeOut(tween(120)) + androidx.compose.animation.shrinkVertically(
+                                exit = fadeOut(tween(120)) + shrinkVertically(
                                     animationSpec = tween(180, easing = FastOutSlowInEasing),
                                     shrinkTowards = Alignment.Top
                                 )
@@ -408,6 +419,7 @@ fun HomeHubScreen(
                                 }
                             }
                         }
+                        
                         Text(
                             text = "Use the arrow to tune the table before you deal.",
                             style = MaterialTheme.typography.labelMedium,
@@ -422,10 +434,10 @@ fun HomeHubScreen(
 }
 
 /**
- * Welcome hero section with animated card display
+ * Hero Section with animated card display
  */
 @Composable
-private fun WelcomeHeroSection() {
+private fun HeroSection() {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -443,7 +455,7 @@ private fun WelcomeHeroSection() {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CardPreview(
+                HeroCard(
                     symbol = "\u2660",
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     onColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -451,7 +463,7 @@ private fun WelcomeHeroSection() {
                         .size(120.dp, 160.dp)
                         .padding(end = 8.dp)
                 )
-                CardPreview(
+                HeroCard(
                     symbol = "\u2665",
                     color = MaterialTheme.colorScheme.primaryContainer,
                     onColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -465,10 +477,10 @@ private fun WelcomeHeroSection() {
 }
 
 /**
- * Animated card preview for welcome section
+ * Animated Hero Card
  */
 @Composable
-private fun CardPreview(
+private fun HeroCard(
     symbol: String,
     color: Color,
     onColor: Color,
@@ -479,7 +491,7 @@ private fun CardPreview(
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "cardPreviewScale"
+        label = "heroCardScale"
     )
     
     Surface(
@@ -506,7 +518,7 @@ private fun CardPreview(
 }
 
 /**
- * Inline settings menu with M3E styling
+ * Inline Settings Menu
  */
 @Composable
 private fun InlineSettingsMenu(
@@ -557,7 +569,7 @@ private fun InlineSettingsMenu(
 }
 
 /**
- * Settings detail view with M3E styling
+ * Settings Detail View
  */
 @Composable
 private fun SettingsDetailView(
@@ -647,7 +659,7 @@ private fun SettingsDetailView(
 }
 
 /**
- * Mode pill for displaying current settings
+ * Mode Pill for displaying current settings
  */
 @Composable
 private fun ModePill(label: String, modifier: Modifier = Modifier) {
@@ -662,175 +674,6 @@ private fun ModePill(label: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-/**
- * Morph action with M3E styling
- */
-@Composable
-private fun MorphAction(
-    title: String,
-    subtitle: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    compact: Boolean = false
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val corner by animateDpAsState(
-        targetValue = if (pressed) 22.dp else 34.dp,
-        animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "cornerMorph"
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "pressScale"
-    )
-    val shape = RoundedCornerShape(corner)
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(if (compact) 54.dp else 88.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(shape)
-            .background(containerColor)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = if (compact) 16.dp else 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.size(if (compact) 34.dp else 46.dp),
-            contentAlignment = Alignment.Center
-        ) { icon() }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = contentColor)
-            if (!compact) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = contentColor.copy(alpha = 0.82f))
-        }
-    }
-}
-
-/**
- * Durak match setup sheet with M3E styling
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DurakMatchSetupSheet(
-    gameMode: GameMode,
-    onDismiss: () -> Unit,
-    onStart: (LocalMatchSetup) -> Unit
-) {
-    var playerCount by remember { mutableIntStateOf(2) }
-    var deckSize by remember { mutableIntStateOf(36) }
-    var difficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        androidx.compose.foundation.lazy.LazyColumn(
-            contentPadding = PaddingValues(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("Build your table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-                    Text("Everything stays on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            item {
-                SetupGroup("Players") {
-                    SetupOption("2 players", playerCount == 2) { playerCount = 2 }
-                    SetupOption("3 players", playerCount == 3) { playerCount = 3 }
-                    SetupOption("4 players", playerCount == 4) { playerCount = 4 }
-                }
-            }
-            item {
-                SetupGroup("Deck") {
-                    SetupOption("24 cards", deckSize == 24) { deckSize = 24 }
-                    SetupOption("36 cards", deckSize == 36) { deckSize = 36 }
-                    SetupOption("52 cards", deckSize == 52) { deckSize = 52 }
-                }
-            }
-            item {
-                SetupGroup("Bot difficulty") {
-                    BotDifficulty.entries.forEach { level -> SetupOption(level.displayName, difficulty == level) { difficulty = level } }
-                }
-            }
-            item {
-                MorphAction(
-                    title = "Start match",
-                    subtitle = "",
-                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                    onClick = {
-                        onStart(
-                            LocalMatchSetup(
-                                playerCount = playerCount,
-                                deckSize = deckSize,
-                                botDifficulty = difficulty,
-                                gameMode = gameMode,
-                                opponentEngine = OpponentEngine.CLASSIC
-                            ).normalized()
-                        )
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    compact = true
-                )
-            }
-        }
-    }
-}
-
-/**
- * Setup group for match configuration
- */
-@Composable
-private fun SetupGroup(title: String, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
-    }
-}
-
-/**
- * Setup option for match configuration
- */
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.SetupOption(label: String, selected: Boolean, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val corner by animateDpAsState(if (pressed) 10.dp else 18.dp, label = "choiceMorph")
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(150, easing = FastOutSlowInEasing),
-        label = "choicePress"
-    )
-    val shape = RoundedCornerShape(corner)
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .height(46.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(shape)
-            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

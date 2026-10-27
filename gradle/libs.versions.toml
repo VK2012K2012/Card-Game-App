@@ -1,4 +1,5 @@
 [versions]
+# Updated to latest stable versions
 agp = "9.3.0"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -10,7 +11,7 @@ lifecycleRuntimeCompose = "2.11.0"
 activityCompose = "1.13.0"
 kotlin = "2.2.10"
 composeBom = "2026.08.00"
-material3 = "1.5.0-alpha26"
+material3 = "1.5.0"
 googleDevtoolsKsp = "2.3.11"
 roomRuntime = "2.8.4"
 roomKtx = "2.8.4"
