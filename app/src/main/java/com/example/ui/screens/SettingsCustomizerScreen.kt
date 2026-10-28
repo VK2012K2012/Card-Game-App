@@ -106,7 +106,7 @@ import com.example.ui.components.frostedGlass
 import com.example.ui.theme.AppShapes
 import com.example.ui.theme.CustomPalette
 import com.example.ui.theme.DesignSystem
-import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.AppShapes
 import com.example.ui.theme.MotionTokens
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption

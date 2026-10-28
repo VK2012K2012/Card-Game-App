@@ -77,7 +77,7 @@ import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
 import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.AppShapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -164,7 +164,7 @@ fun HomeHubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 600.dp),
-                    shape = ExpressiveCorners.ExtraExtraLarge,
+                    shape = AppShapes.ExtraExtraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     tonalElevation = 3.dp
                 ) {

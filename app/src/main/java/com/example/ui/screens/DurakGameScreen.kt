@@ -80,7 +80,7 @@ import com.example.ui.components.BotAvatarBadge
 import com.example.ui.components.EnhancedTableFeltBackground
 import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.components.PlayingCardView
-import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.AppShapes
 import com.example.ui.theme.TrumpGold
 
 /**
@@ -171,7 +171,7 @@ private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         tonalElevation = 3.dp
     ) {
@@ -218,7 +218,7 @@ private fun OpponentRail(gameState: DurakGameState) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
         tonalElevation = 2.dp
     ) {
@@ -264,7 +264,7 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
                 .weight(1f)
                 .fillMaxWidth()
                 .widthIn(max = 560.dp),
-            shape = ExpressiveCorners.ExtraExtraLarge,
+            shape = AppShapes.ExtraExtraLarge,
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
             tonalElevation = 2.dp
@@ -419,7 +419,7 @@ private fun DeckStatus(gameState: DurakGameState) {
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 560.dp),
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         tonalElevation = 3.dp
     ) {
@@ -469,7 +469,7 @@ private fun DeckStatus(gameState: DurakGameState) {
                 )
             }
             Surface(
-                shape = ExpressiveCorners.Full,
+                shape = AppShapes.Full,
                 color = MaterialTheme.colorScheme.tertiaryContainer
             ) {
                 Text(
@@ -521,7 +521,7 @@ private fun ExplicitMatchActions(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .animateContentSize(),
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 4.dp
     ) {
@@ -694,7 +694,7 @@ private fun HandTray(
     
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 4.dp
     ) {

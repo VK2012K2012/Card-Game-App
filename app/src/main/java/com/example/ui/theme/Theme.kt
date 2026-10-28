@@ -8,9 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MotionScheme
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -29,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
  * - Proper semantic color roles
  * - Animated color transitions
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 @Composable
 fun CardGameTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -117,10 +115,9 @@ fun CardGameTheme(
         )
     }
 
-    // Apply M3E theme with expressive motion
-    MaterialExpressiveTheme(
+    // Apply M3 theme
+    MaterialTheme(
         colorScheme = animatedScheme,
-        motionScheme = MotionScheme.expressive(),
         typography = if (useRobotoFlex) GoogleSansFlexTypography else CardGameTypography,
         shapes = CardGameShapes,
         content = content,

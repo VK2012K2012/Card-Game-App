@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.GameStatsEntity
 import com.example.data.MatchHistoryEntity
 import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.AppShapes
 
 /**
  * Statistics Screen with Material 3 Expressive Design
@@ -131,14 +131,14 @@ private fun RecordSummary(
     var animated by remember { mutableStateOf(false) }
     
     Card(
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = ExpressiveCorners.ExtraExtraLarge
+                shape = AppShapes.ExtraExtraLarge
             )
     ) {
         Column(
@@ -151,7 +151,7 @@ private fun RecordSummary(
             ) {
                 Surface(
                     modifier = Modifier.size(44.dp),
-                    shape = ExpressiveCorners.Full,
+                    shape = AppShapes.Full,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -221,7 +221,7 @@ private fun SummaryNumber(label: String, value: String) {
 @Composable
 private fun EmptyHistory() {
     Surface(
-        shape = ExpressiveCorners.ExtraExtraLarge,
+        shape = AppShapes.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Column(
@@ -231,7 +231,7 @@ private fun EmptyHistory() {
         ) {
             Surface(
                 modifier = Modifier.size(48.dp),
-                shape = ExpressiveCorners.Full,
+                shape = AppShapes.Full,
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -269,7 +269,7 @@ private fun MatchHistoryRow(match: MatchHistoryEntity) {
     val resultText = if (match.isWin) "WIN" else if (match.playerPosition == "Draw") "DRAW" else "LOSS"
     
     Card(
-        shape = ExpressiveCorners.ExtraLarge,
+        shape = AppShapes.ExtraLarge,
         colors = CardDefaults.cardColors(containerColor = resultColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -279,7 +279,7 @@ private fun MatchHistoryRow(match: MatchHistoryEntity) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Surface(
-                shape = ExpressiveCorners.Full,
+                shape = AppShapes.Full,
                 color = if (match.isWin) {
                     MaterialTheme.colorScheme.primary
                 } else {

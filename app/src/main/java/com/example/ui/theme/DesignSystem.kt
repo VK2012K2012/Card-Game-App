@@ -92,31 +92,7 @@ object ShapeTokens {
     val PillCorner = 50.dp
 }
 
-/**
- * Updated CardGameShapes with M3E compliance
- */
-val CardGameShapes = Shapes(
-    extraSmall = RoundedCornerShape(ShapeTokens.ExtraSmall),
-    small = RoundedCornerShape(ShapeTokens.Small),
-    medium = RoundedCornerShape(ShapeTokens.Medium),
-    large = RoundedCornerShape(ShapeTokens.Large),
-    extraLarge = RoundedCornerShape(ShapeTokens.ExtraLarge),
-)
 
-/**
- * Expressive Corners for M3E hero surfaces
- */
-object ExpressiveCorners {
-    val None = RoundedCornerShape(0.dp)
-    val ExtraSmall = RoundedCornerShape(4.dp)
-    val Small = RoundedCornerShape(8.dp)
-    val Medium = RoundedCornerShape(12.dp)
-    val Large = RoundedCornerShape(16.dp)
-    val ExtraLarge = RoundedCornerShape(24.dp)
-    val ExtraExtraLarge = RoundedCornerShape(28.dp)
-    val ExtraExtraExtraLarge = RoundedCornerShape(36.dp)
-    val Full = RoundedCornerShape(50)
-}
 
 /**
  * Elevation System for M3E

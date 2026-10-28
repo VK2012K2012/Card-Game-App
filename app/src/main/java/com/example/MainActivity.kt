@@ -89,7 +89,7 @@ import com.example.ui.screens.SettingsCustomizerScreen
 import com.example.ui.screens.StatisticsScreen
 import com.example.ui.theme.CardGameTheme
 import com.example.ui.theme.CustomPalette
-import com.example.ui.theme.ExpressiveCorners
+import com.example.ui.theme.AppShapes
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
 import com.example.ui.theme.ThemeColorPreset
@@ -582,7 +582,7 @@ private fun CompactDestination(
         modifier = Modifier
             .size(width = animatedWidth, height = 48.dp)
             .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
-            .clip(ExpressiveCorners.Full)
+            .clip(AppShapes.Full)
             .background(animatedContainer)
             .clickable(interactionSource = interactionSource, indication = null) { onDestinationChange(item) },
         contentAlignment = Alignment.Center

@@ -25,12 +25,11 @@ val CardGameShapes = Shapes(
 )
 
 /**
- * Extra expressive radii beyond the standard M3 [Shapes] container
- * Used for hero surfaces, dialogs, and feature cards
- * 
- * M3E Convention: Use larger corners for prominent surfaces
+ * Shape tokens for specific use cases
+ * Combines expressive corners and standard shapes for M3E compliance
  */
-object ExpressiveCorners {
+object AppShapes {
+    // Standard M3 shapes
     val None = RoundedCornerShape(0.dp)
     val ExtraSmall = RoundedCornerShape(4.dp)
     val Small = RoundedCornerShape(8.dp)
@@ -39,13 +38,9 @@ object ExpressiveCorners {
     val ExtraLarge = RoundedCornerShape(24.dp)
     val ExtraExtraLarge = RoundedCornerShape(28.dp)
     val ExtraExtraExtraLarge = RoundedCornerShape(36.dp)
-    val Full = RoundedCornerShape(50)
-}
-
-/**
- * Shape tokens for specific use cases
- */
-object AppShapes {
+    val Full = RoundedCornerShape(50.dp)
+    
+    // Cards
     // Cards
     val cardSmall = RoundedCornerShape(12.dp)
     val cardMedium = RoundedCornerShape(16.dp)
