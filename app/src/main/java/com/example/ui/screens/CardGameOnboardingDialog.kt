@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import android.graphics.Color as AndroidColor
@@ -9,7 +11,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -61,6 +62,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,7 +89,6 @@ import com.example.ui.components.EnhancedTableFeltBackground
 import com.example.ui.components.blurEffect
 import com.example.ui.components.frostedGlass
 import com.example.ui.theme.AppShapes
-import com.example.ui.theme.DesignSystem
 import com.example.ui.theme.MotionTokens
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
@@ -455,10 +456,10 @@ private fun WelcomeHero() {
     
     val card2Scale by animateFloatAsState(
         targetValue = if (animationPhase >= 2) 1f else 0.8f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-            delayMillis = 100
+        animationSpec = tween(
+            durationMillis = MotionTokens.Responsive,
+            delayMillis = 100,
+            easing = FastOutSlowInEasing,
         ),
         label = "heroCard2Scale"
     )
@@ -474,10 +475,10 @@ private fun WelcomeHero() {
     
     val card2OffsetY by animateFloatAsState(
         targetValue = if (animationPhase >= 2) 0f else 20f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-            delayMillis = 100
+        animationSpec = tween(
+            durationMillis = MotionTokens.Responsive,
+            delayMillis = 100,
+            easing = FastOutSlowInEasing,
         ),
         label = "heroCard2Offset"
     )
@@ -843,7 +844,10 @@ private fun OnboardingPaletteTile(
             AnimatedVisibility(
                 visible = selected,
                 enter = fadeIn(tween(MotionTokens.Quick)) + 
-                    keyframes(MotionTokens.Responsive) { initialOffsetX -> initialOffsetX / 2 },
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth / 2 },
+                        animationSpec = tween(MotionTokens.Responsive),
+                    ),
                 exit = fadeOut(tween(MotionTokens.Quick))
             ) {
                 Surface(

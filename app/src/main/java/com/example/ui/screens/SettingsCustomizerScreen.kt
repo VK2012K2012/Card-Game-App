@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import android.content.Intent
@@ -11,7 +13,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,12 +52,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TextFields
@@ -105,8 +109,6 @@ import com.example.ui.components.blurEffect
 import com.example.ui.components.frostedGlass
 import com.example.ui.theme.AppShapes
 import com.example.ui.theme.CustomPalette
-import com.example.ui.theme.DesignSystem
-import com.example.ui.theme.AppShapes
 import com.example.ui.theme.MotionTokens
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
@@ -601,7 +603,10 @@ private fun SettingsPaletteTile(
             AnimatedVisibility(
                 visible = selected,
                 enter = fadeIn(tween(MotionTokens.Quick)) + 
-                    keyframes(MotionTokens.Responsive) { initialOffsetX -> initialOffsetX / 2 },
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth / 2 },
+                        animationSpec = tween(MotionTokens.Responsive),
+                    ),
                 exit = fadeOut(tween(MotionTokens.Quick))
             ) {
                 Surface(
@@ -775,7 +780,7 @@ private fun CustomSettingsPaletteEditor(
  * Custom Color Role Row
  */
 @Composable
-private fun CustomColorRoleRow(
+private fun RowScope.CustomColorRoleRow(
     label: String,
     color: Color,
     selected: Boolean,

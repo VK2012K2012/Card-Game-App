@@ -6,30 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.asComposePath
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Blur utilities for Material 3 Expressive design
- * 
- * Provides glassmorphism effects, depth blurs, and modern blur treatments
- * following M3E guidelines: https://m3.material.io/styles/effects/overview
- */
-
-/**
- * Blur intensity levels for different use cases
- */
+/** Blur intensity levels used by the app's surfaces and screens. */
 enum class BlurIntensity(val radius: Float) {
     NONE(0f),
     SUBTLE(4f),
@@ -37,104 +22,88 @@ enum class BlurIntensity(val radius: Float) {
     MEDIUM(12f),
     STRONG(16f),
     EXTRA_STRONG(24f),
-    INTENSE(32f)
+    INTENSE(32f),
 }
 
-/**
- * Apply blur with proper edge treatment
- */
+/** Applies a Compose blur using the intensity in density-independent pixels. */
 fun Modifier.blurEffect(
-    intensity: BlurIntensity = BlurIntensity.MEDIUM
-): Modifier = this.blur(
-    radiusX = intensity.radius,
-    radiusY = intensity.radius
+    intensity: BlurIntensity = BlurIntensity.MEDIUM,
+): Modifier = blur(
+    radiusX = intensity.radius.dp,
+    radiusY = intensity.radius.dp,
 )
 
-/**
- * Glassmorphism surface with blur
- */
 @Composable
 fun GlassSurface(
     modifier: Modifier = Modifier,
     blurRadius: Float = 16f,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer,
-    content: @Composable () -> Unit
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    content: @Composable () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val blurPx = with(density) { blurRadius.toDp().toPx() }
-    
     Box(
         modifier = modifier
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
                         backgroundColor.copy(alpha = 0.95f),
-                        backgroundColor.copy(alpha = 0.85f)
-                    )
-                )
+                        backgroundColor.copy(alpha = 0.85f),
+                    ),
+                ),
             )
-            .blur(blurPx, blurPx)
+            .blur(blurRadius.dp),
     ) {
         content()
     }
 }
 
-/**
- * Frosted glass effect with gradient
- */
 @Composable
 fun FrostedGlass(
     modifier: Modifier = Modifier,
     blurRadius: Float = 24f,
     gradientColors: List<Color> = listOf(
         Color.Transparent,
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
     ),
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val gradient = Brush.verticalGradient(
-                colors = gradientColors,
-                startY = 0f,
-                endY = size.height,
-                tileMode = TileMode.Clamp
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = gradientColors,
+                    startY = 0f,
+                    endY = size.height,
+                    tileMode = TileMode.Clamp,
+                ),
             )
-            drawRect(brush = gradient)
         }
-        
+        // Keep foreground text crisp; this layer provides the translucent glass tint.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(blurRadius, blurRadius)
+                .background(Brush.verticalGradient(gradientColors)),
         ) {
             content()
         }
     }
 }
 
-/**
- * Depth blur for layered surfaces
- */
 @Composable
 fun DepthBlur(
     modifier: Modifier = Modifier,
     intensity: BlurIntensity = BlurIntensity.STRONG,
     color: Color = MaterialTheme.colorScheme.surface,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier
             .background(color.copy(alpha = 0.9f))
-            .blur(intensity.radius, intensity.radius)
+            .blur(intensity.radius.dp),
     ) {
         content()
     }
 }
 
-/**
- * Radial blur effect
- */
 @Composable
 fun RadialBlurBackground(
     modifier: Modifier = Modifier,
@@ -142,62 +111,59 @@ fun RadialBlurBackground(
     radius: Float = 0.8f,
     blurRadius: Float = 16f,
     colors: List<Color> = listOf(
-        MaterialTheme.colorScheme.surfaceContainerLow,
-        MaterialTheme.colorScheme.background
+        MaterialTheme.colorScheme.surface,
+        MaterialTheme.colorScheme.background,
     ),
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val gradient = Brush.radialGradient(
-                colors = colors,
-                center = center,
-                radius = size.minDimension * radius
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = colors,
+                    center = center,
+                    radius = size.minDimension * radius,
+                ),
             )
-            drawRect(brush = gradient)
         }
-        
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(blurRadius, blurRadius)
+                .background(Brush.verticalGradient(colors)),
         ) {
             content()
         }
     }
 }
 
-/**
- * Table felt with blur and depth
- */
+/** Layered table background; the gameplay content remains sharp above its gradients. */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun EnhancedTableFeltBackground(
     modifier: Modifier = Modifier,
     blurIntensity: BlurIntensity = BlurIntensity.STRONG,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val surfaceBg = MaterialTheme.colorScheme.surfaceContainerLow
+    val surfaceBg = MaterialTheme.colorScheme.surface
     val backgroundBg = MaterialTheme.colorScheme.background
     val primaryColor = MaterialTheme.colorScheme.primary
-    
+
     Box(modifier = modifier.fillMaxSize()) {
-        // Base gradient
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val radialGradient = Brush.radialGradient(
-                colors = listOf(
-                    surfaceBg,
-                    surfaceBg.copy(alpha = 0.85f),
-                    backgroundBg
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        surfaceBg,
+                        surfaceBg.copy(alpha = 0.85f),
+                        backgroundBg,
+                    ),
+                    center = Offset(w / 2f, h * 0.4f),
+                    radius = h * 0.9f,
                 ),
-                center = Offset(w / 2f, h * 0.4f),
-                radius = h * 0.9f
             )
-            drawRect(brush = radialGradient)
         }
-        
-        // Blur overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -206,18 +172,22 @@ fun EnhancedTableFeltBackground(
                         colors = listOf(
                             Color.Transparent,
                             primaryColor.copy(alpha = 0.08f),
-                            primaryColor.copy(alpha = 0.04f)
+                            primaryColor.copy(alpha = 0.04f),
                         ),
-                        startY = 0f,
-                        endY = size.height * 0.5f,
-                        tileMode = TileMode.Clamp
-                    )
-                )
-                .blur(blurIntensity.radius, blurIntensity.radius)
+                    ),
+                ),
         ) {
             content()
         }
     }
 }
 
-
+/** Adds the translucent gradient used by glass-style cards. */
+@Suppress("UNUSED_PARAMETER")
+fun Modifier.frostedGlass(
+    blurRadius: Float = 16f,
+    gradientColors: List<Color> = listOf(
+        Color.Transparent,
+        Color.White.copy(alpha = 0.1f),
+    ),
+): Modifier = background(Brush.verticalGradient(gradientColors))

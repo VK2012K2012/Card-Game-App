@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.unit.dp
 
 /**
  * Enhanced Table Felt Background with Material 3 Expressive Design
@@ -65,12 +67,10 @@ fun TableFeltBackground(
                             primaryColor.copy(alpha = 0.04f),
                             Color.Transparent
                         ),
-                        startY = 0f,
-                        endY = size.height * 0.6f,
                         tileMode = TileMode.Clamp
                     )
                 )
-                .blur(blurRadius, blurRadius)
+                .blur(blurRadius.dp)
         ) {
             content()
         }
@@ -116,11 +116,9 @@ fun ModalTableFeltBackground(
                             primaryColor.copy(alpha = 0.12f),
                             Color.Transparent
                         ),
-                        startY = 0f,
-                        endY = size.height * 0.5f
                     )
                 )
-                .blur(blurRadius, blurRadius)
+                .blur(blurRadius.dp)
         ) {
             content()
         }

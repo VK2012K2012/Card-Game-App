@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,7 +75,7 @@ fun BotAvatarBadge(
     Surface(
         modifier = modifier
             .animateContentSize(
-                animationSpec = Spring.spec(
+                animationSpec = spring(
                     dampingRatio = 0.8f,
                     stiffness = Spring.StiffnessMedium
                 )

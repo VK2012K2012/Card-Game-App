@@ -70,4 +70,9 @@ object AppShapes {
     
     // Settings
     val settingsCard = RoundedCornerShape(16.dp)
+    val button = RoundedCornerShape(12.dp)
+    val badge = RoundedCornerShape(50.dp)
+    val paletteTile = RoundedCornerShape(14.dp)
+    val previewCard = RoundedCornerShape(14.dp)
+    val colorRole = RoundedCornerShape(12.dp)
 }

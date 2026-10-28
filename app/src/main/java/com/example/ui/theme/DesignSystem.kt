@@ -3,6 +3,7 @@ package com.example.ui.theme
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
@@ -42,17 +43,17 @@ object MotionTokens {
     val ExtendedDeliberate = 800
     
     // Spring configurations
-    val StandardSpring = Spring<Float>(
+    val StandardSpring = spring<Float>(
         dampingRatio = 0.8f,
         stiffness = Spring.StiffnessMedium
     )
     
-    val EmphasizedSpring = Spring<Float>(
+    val EmphasizedSpring = spring<Float>(
         dampingRatio = 0.7f,
         stiffness = Spring.StiffnessLow
     )
     
-    val ResponsiveSpring = Spring<Float>(
+    val ResponsiveSpring = spring<Float>(
         dampingRatio = 0.85f,
         stiffness = Spring.StiffnessMediumLow
     )
@@ -212,7 +213,7 @@ object AnimationPresets {
     val PageTransition = tween<Float>(300, easing = FastOutSlowInEasing)
     
     // Spring-based card selection
-    val CardSelectSpring = Spring<Float>(
+    val CardSelectSpring = spring<Float>(
         dampingRatio = 0.82f,
         stiffness = Spring.StiffnessMediumLow
     )
