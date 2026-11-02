@@ -29,21 +29,22 @@ data class PaletteOption(
     val id: String,
     val title: String,
     val seed: Color,
+    val secondarySeed: Color,
+    val tertiarySeed: Color,
     val lightScheme: ColorScheme,
     val darkScheme: ColorScheme,
 )
 
 private val curatedPaletteOptions = listOf(
-    materialPalette("auto", "Auto", 0xFF6C8DFF, 0xFF7D5FFF, 0xFF54C7FF),
-    materialPalette("coral", "Coral", 0xFFFF6B6B, 0xFFEA5C73, 0xFFFF9AA2),
-    materialPalette("pink", "Pink", 0xFFFF5FA2, 0xFFD94F8B, 0xFFFF9CB8),
-    materialPalette("violet", "Violet", 0xFF8F6AEF, 0xFF754BE0, 0xFFC17BFF),
-    materialPalette("amber", "Amber", 0xFFFFB000, 0xFFD48700, 0xFFFFD05A),
-    materialPalette("sunset", "Sunset", 0xFFFF7A59, 0xFFE9633E, 0xFFFFB38A),
-    materialPalette("forest", "Green", 0xFF3C9A5F, 0xFF2F6D48, 0xFF9FD37B),
-    materialPalette("teal", "Teal", 0xFF20BFA9, 0xFF278B88, 0xFF72E1D0),
-    materialPalette("ocean", "Blue", 0xFF1E6EE8, 0xFF345BA4, 0xFF67B8FF),
-    materialPalette("indigo", "Indigo", 0xFF5668FF, 0xFF4255D2, 0xFF91A1FF),
+    materialPalette("modern-library", "Modern Library", 0xFF133A2F, 0xFF5C1E2F, 0xFFC7A35E),
+    materialPalette("vineyard-evergreen", "Vineyard Evergreen", 0xFF0F3D2E, 0xFF6B1F33, 0xFF8FBFA4),
+    materialPalette("autumn-terrace", "Autumn Terrace", 0xFF2A6B4F, 0xFF7B2B3F, 0xFFD7C9B2),
+    materialPalette("museum-velvet", "Museum Velvet", 0xFF0A3D3B, 0xFF115E59, 0xFFC9A227),
+    materialPalette("botanical-foil", "Botanical Foil", 0xFF0B6B6B, 0xFF2EC4B6, 0xFFC6A15B),
+    materialPalette("tech-dashboard", "Tech Dashboard", 0xFF064663, 0xFF0EA5A4, 0xFFFBBF24),
+    materialPalette("coastal-wedding", "Coastal Wedding", 0xFF1B998B, 0xFF2D3047, 0xFFD4AF37),
+    materialPalette("winter-evergreen", "Winter Evergreen", 0xFF064E3B, 0xFF0F766E, 0xFFEAB308),
+    materialPalette("burgundy-gold", "Burgundy Gold", 0xFF730000, 0xFF9B000A, 0xFFFFBD00),
 )
 
 private fun materialPalette(
@@ -60,6 +61,8 @@ private fun materialPalette(
         id = id,
         title = title,
         seed = primary,
+        secondarySeed = secondary,
+        tertiarySeed = tertiary,
         lightScheme = schemeFromSeeds(primary, secondary, tertiary, dark = false),
         darkScheme = schemeFromSeeds(primary, secondary, tertiary, dark = true),
     )
@@ -69,14 +72,26 @@ object PaletteCatalog {
     val featured: List<PaletteOption> = curatedPaletteOptions
     val all: List<PaletteOption> = curatedPaletteOptions
 
-    fun byId(id: String?): PaletteOption = all.firstOrNull { it.id == id } ?: featured.first()
+    fun byId(id: String?): PaletteOption {
+        val legacyId = when (id) {
+            "auto" -> "modern-library"
+            "coral", "sunset" -> "autumn-terrace"
+            "pink" -> "coastal-wedding"
+            "violet", "ocean", "indigo" -> "tech-dashboard"
+            "amber" -> "burgundy-gold"
+            "forest" -> "vineyard-evergreen"
+            "teal" -> "botanical-foil"
+            else -> id
+        }
+        return all.firstOrNull { it.id == legacyId } ?: featured.first()
+    }
 }
 
 fun palettePreviewTones(option: PaletteOption): List<Color> = listOf(
-    tone(option.seed, 92f),
-    tone(option.seed, 68f),
-    rotateHue(tone(option.seed, 78f), 18f),
-    rotateHue(tone(option.seed, 58f), -18f),
+    option.seed,
+    option.secondarySeed,
+    option.tertiarySeed,
+    option.lightScheme.surfaceVariant,
 )
 
 fun lightSchemeForPalette(palette: PaletteOption): ColorScheme = palette.lightScheme
@@ -129,12 +144,12 @@ private fun schemeFromSeeds(
     val primaryContainer = accessibleTone(primarySeed, if (dark) 28f else 90f)
     val secondaryContainer = accessibleTone(secondarySeed, if (dark) 27f else 90f)
     val tertiaryContainer = accessibleTone(tertiarySeed, if (dark) 30f else 90f)
-    val darkBackground = tintSurface(Color(0xFF111216), primarySeed, 0.06f)
-    val darkSurface = tintSurface(Color(0xFF141319), primarySeed, 0.08f)
-    val darkSurfaceLow = tintSurface(Color(0xFF1B191F), primarySeed, 0.10f)
-    val darkSurfaceContainer = tintSurface(Color(0xFF211F26), primarySeed, 0.12f)
-    val darkSurfaceHigh = tintSurface(Color(0xFF2A2730), primarySeed, 0.14f)
-    val darkSurfaceHighest = tintSurface(Color(0xFF34303A), primarySeed, 0.16f)
+    val darkBackground = tintSurface(Color(0xFF101411), primarySeed, 0.08f)
+    val darkSurface = tintSurface(Color(0xFF141A16), primarySeed, 0.10f)
+    val darkSurfaceLow = tintSurface(Color(0xFF1A211C), primarySeed, 0.12f)
+    val darkSurfaceContainer = tintSurface(Color(0xFF202922), primarySeed, 0.14f)
+    val darkSurfaceHigh = tintSurface(Color(0xFF29342C), primarySeed, 0.16f)
+    val darkSurfaceHighest = tintSurface(Color(0xFF334037), primarySeed, 0.18f)
 
     return if (dark) {
         darkColorScheme(
@@ -151,12 +166,12 @@ private fun schemeFromSeeds(
             tertiaryContainer = tertiaryContainer,
             onTertiaryContainer = bestOnColor(tertiaryContainer),
             background = darkBackground,
-            onBackground = Color(0xFFE6E2E9),
+            onBackground = Color(0xFFE6E5DC),
             surface = darkSurface,
-            onSurface = Color(0xFFE6E2E9),
+            onSurface = Color(0xFFE6E5DC),
             surfaceVariant = darkSurfaceHigh,
-            onSurfaceVariant = Color(0xFFC7C5CE),
-            outline = Color(0xFFB0AAB5),
+            onSurfaceVariant = Color(0xFFC9CEC6),
+            outline = Color(0xFFB2B9B0),
             outlineVariant = darkSurfaceHigh,
             surfaceDim = darkBackground,
             surfaceBright = darkSurfaceHighest,
@@ -180,14 +195,14 @@ private fun schemeFromSeeds(
             onTertiary = bestOnColor(tertiary),
             tertiaryContainer = tertiaryContainer,
             onTertiaryContainer = bestOnColor(tertiaryContainer),
-            background = Color(0xFFFBF9FE),
-            onBackground = Color(0xFF1B1B20),
-            surface = Color(0xFFFBF9FE),
-            onSurface = Color(0xFF1B1B20),
-            surfaceVariant = Color(0xFFE5E1E8),
-            onSurfaceVariant = Color(0xFF47464D),
-            outline = Color(0xFF77767D),
-            outlineVariant = Color(0xFFC8C5CC),
+            background = tintSurface(Color(0xFFFFF9F0), tertiarySeed, 0.035f),
+            onBackground = Color(0xFF1B1C18),
+            surface = tintSurface(Color(0xFFFFFCF7), tertiarySeed, 0.025f),
+            onSurface = Color(0xFF1B1C18),
+            surfaceVariant = tintSurface(Color(0xFFE9E4D9), secondarySeed, 0.035f),
+            onSurfaceVariant = Color(0xFF484A43),
+            outline = Color(0xFF77796F),
+            outlineVariant = Color(0xFFC8C6BB),
         )
     }
 }

@@ -3,9 +3,10 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -15,8 +16,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +46,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TableRestaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -58,15 +58,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -74,26 +73,16 @@ import androidx.compose.ui.unit.dp
 import com.example.durak.game.DurakGameState
 import com.example.durak.game.GamePhase
 import com.example.durak.model.Card as GameCard
+import com.example.durak.model.GameMode
 import com.example.durak.model.Rank
 import com.example.durak.model.TablePair
 import com.example.ui.components.BotAvatarBadge
-import com.example.ui.components.EnhancedTableFeltBackground
 import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.components.PlayingCardView
-import com.example.ui.theme.AppShapes
+import com.example.ui.components.TableFeltBackground
+import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.TrumpGold
 
-/**
- * Durak Game Screen with Material 3 Expressive Design
- * 
- * Features:
- * - Full M3E compliance with expressive components
- * - Blur effects on table surfaces
- * - Animated card transitions with spring physics
- * - Proper semantic color usage
- * - Expressive elevation and shadows
- * - Comfortable card layout
- */
 @Composable
 fun DurakGameScreen(
     gameState: DurakGameState,
@@ -101,6 +90,7 @@ fun DurakGameScreen(
     onSelectCard: (GameCard) -> Unit,
     onPlayAttack: (GameCard) -> Unit,
     onPlayDefend: (GameCard, Int) -> Unit,
+    onTransferCard: (GameCard) -> Unit,
     onFinishRound: () -> Unit,
     onPassThrowIn: () -> Unit,
     onTakeTable: () -> Unit,
@@ -111,27 +101,19 @@ fun DurakGameScreen(
     val isHumanTurn = gameState.currentTurnPlayerIndex == humanIndex
     val isHumanDefender = gameState.defenderIndex == humanIndex
     val isHumanAttacker = gameState.attackerIndex == humanIndex
-    
-    EnhancedTableFeltBackground(modifier = Modifier.fillMaxSize()) {
+    TableFeltBackground(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Header with blur effect
             MatchHeader(gameState.roundCount, onExitGame)
-            
-            // Opponent Rail
             OpponentRail(gameState)
-            
-            // Game Table with blur
             GameTable(
                 gameState = gameState,
                 modifier = Modifier.weight(1f)
             )
-            
-            // Action Panel
             ExplicitMatchActions(
                 gameState = gameState,
                 selectedCard = selectedCard,
@@ -140,12 +122,11 @@ fun DurakGameScreen(
                 isHumanDefender = isHumanDefender,
                 onPlayAttack = onPlayAttack,
                 onPlayDefend = onPlayDefend,
+                onTransferCard = onTransferCard,
                 onFinishRound = onFinishRound,
                 onPassThrowIn = onPassThrowIn,
                 onTakeTable = onTakeTable
             )
-            
-            // Hand Tray
             HandTray(
                 hand = human?.hand.orEmpty(),
                 selectedCard = selectedCard,
@@ -153,99 +134,70 @@ fun DurakGameScreen(
                 onSelectCard = onSelectCard
             )
         }
-        
-        // Match Result Dialog
         if (gameState.isGameOver) MatchResultDialog(gameState, onExitGame)
     }
 }
 
-/**
- * Match Header with M3E styling and blur
- */
 @Composable
 private fun MatchHeader(round: Int, onExitGame: () -> Unit) {
     val primaryText = tablePrimaryTextColor()
     val accentText = tableAccentTextColor()
-    
-    Surface(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = AppShapes.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-        tonalElevation = 3.dp
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ExpressiveBackButton(
-                onClick = onExitGame,
-                contentDescription = "Leave match",
-            )
+        ExpressiveBackButton(
+            onClick = onExitGame,
+            contentDescription = "Leave match",
+        )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "DURAK TABLE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = accentText,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    text = "Round $round",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = primaryText,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "DURAK TABLE",
+                style = MaterialTheme.typography.labelMedium,
+                color = accentText,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                text = "Round $round",
+                style = MaterialTheme.typography.titleLarge,
+                color = primaryText,
+                fontWeight = FontWeight.ExtraBold
+            )
         }
+
     }
 }
 
-/**
- * Opponent Rail with blur background
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OpponentRail(gameState: DurakGameState) {
     val bots = gameState.players.filterNot { it.isHuman }
     if (bots.isEmpty()) return
 
-    Surface(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = AppShapes.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-        tonalElevation = 2.dp
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        maxItemsInEachRow = bots.size.coerceAtLeast(1)
     ) {
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            maxItemsInEachRow = bots.size.coerceAtLeast(1)
-        ) {
-            bots.forEach { bot ->
-                val index = gameState.players.indexOfFirst { it.id == bot.id }
-                BotAvatarBadge(
-                    player = bot,
-                    isCurrentTurn = gameState.currentTurnPlayerIndex == index,
-                    isDefender = gameState.defenderIndex == index,
-                    isAttacker = gameState.attackerIndex == index
-                )
-            }
+        bots.forEach { bot ->
+            val index = gameState.players.indexOfFirst { it.id == bot.id }
+            BotAvatarBadge(
+                player = bot,
+                isCurrentTurn = gameState.currentTurnPlayerIndex == index,
+                isDefender = gameState.defenderIndex == index,
+                isAttacker = gameState.attackerIndex == index
+            )
         }
     }
 }
 
-/**
- * Game Table with blur effects and M3E design
- */
 @Composable
 private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
     Column(
@@ -255,19 +207,16 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Deck Status
         DeckStatus(gameState)
-        
-        // Table Surface with blur
         Surface(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .widthIn(max = 560.dp),
-            shape = AppShapes.ExtraExtraLarge,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+            shape = ExpressiveCorners.ExtraExtraLarge,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
-            tonalElevation = 2.dp
+            tonalElevation = 1.dp
         ) {
             Box(
                 modifier = Modifier
@@ -291,14 +240,10 @@ private fun GameTable(gameState: DurakGameState, modifier: Modifier) {
     }
 }
 
-/**
- * Empty Table State with M3E styling
- */
 @Composable
 private fun EmptyTableState() {
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
-    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -307,8 +252,7 @@ private fun EmptyTableState() {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(48.dp),
-            tonalElevation = 2.dp
+            modifier = Modifier.size(48.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -334,9 +278,6 @@ private fun EmptyTableState() {
     }
 }
 
-/**
- * Adaptive Table Pairs Layout
- */
 @Composable
 private fun AdaptiveTablePairs(pairs: List<TablePair>) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -382,9 +323,6 @@ private fun AdaptiveTablePairs(pairs: List<TablePair>) {
     }
 }
 
-/**
- * Animated Table Pair with M3E transitions
- */
 @Composable
 private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
     Row(
@@ -407,21 +345,17 @@ private fun AnimatedTablePair(pair: TablePair, cardWidth: Dp, cardHeight: Dp) {
     }
 }
 
-/**
- * Deck Status Display with M3E styling
- */
 @Composable
 private fun DeckStatus(gameState: DurakGameState) {
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
-    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 560.dp),
-        shape = AppShapes.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-        tonalElevation = 3.dp
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+        tonalElevation = 2.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
@@ -462,14 +396,14 @@ private fun DeckStatus(gameState: DurakGameState) {
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Deck  \u00b7  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
+                    text = "Deck  ·  Trump ${gameState.trumpSuit.symbol} ${gameState.trumpSuit.suitName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = secondaryText,
                     fontWeight = FontWeight.Bold
                 )
             }
             Surface(
-                shape = AppShapes.Full,
+                shape = ExpressiveCorners.Full,
                 color = MaterialTheme.colorScheme.tertiaryContainer
             ) {
                 Text(
@@ -484,9 +418,25 @@ private fun DeckStatus(gameState: DurakGameState) {
     }
 }
 
-/**
- * Match Actions with M3E styling
- */
+private fun canTransferWithSelectedCard(gameState: DurakGameState, card: GameCard?): Boolean {
+    if (card == null || gameState.gameMode != GameMode.PEREVODNOY ||
+        gameState.defenderIndex !in gameState.players.indices || gameState.tablePairs.isEmpty() ||
+        gameState.tablePairs.any { it.isDefended } ||
+        gameState.tablePairs.any { it.attackCard.rank != card.rank } ||
+        gameState.players[gameState.defenderIndex].hand.none { it.id == card.id }
+    ) return false
+
+    val defenderIndex = gameState.defenderIndex
+    val nextDefenderIndex = (1..gameState.players.size)
+        .asSequence()
+        .map { (defenderIndex + it) % gameState.players.size }
+        .firstOrNull { candidate -> candidate != defenderIndex && !gameState.players[candidate].isOut }
+        ?: return false
+
+    return nextDefenderIndex != gameState.attackerIndex &&
+        gameState.players[nextDefenderIndex].hand.size >= gameState.tablePairs.size + 1
+}
+
 @Composable
 private fun ExplicitMatchActions(
     gameState: DurakGameState,
@@ -496,6 +446,7 @@ private fun ExplicitMatchActions(
     isHumanDefender: Boolean,
     onPlayAttack: (GameCard) -> Unit,
     onPlayDefend: (GameCard, Int) -> Unit,
+    onTransferCard: (GameCard) -> Unit,
     onFinishRound: () -> Unit,
     onPassThrowIn: () -> Unit,
     onTakeTable: () -> Unit
@@ -509,21 +460,21 @@ private fun ExplicitMatchActions(
     val cardCanDefend = selectedCard != null &&
         firstUnmatched >= 0 &&
         selectedCard.beats(gameState.tablePairs[firstUnmatched].attackCard, gameState.trumpSuit)
+    val cardCanTransfer = canTransferWithSelectedCard(gameState, selectedCard)
     val cardCanAttack = selectedCard != null && canAddToTable(selectedCard, gameState)
     val allAttackersPassed = gameState.players.indices
         .filter { it != gameState.defenderIndex && !gameState.players[it].isOut }
         .all { it in gameState.throwInPasses }
 
     val actionAccent = tableAccentTextColor()
-    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .animateContentSize(),
-        shape = AppShapes.ExtraExtraLarge,
+        shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 4.dp
+        tonalElevation = 3.dp
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -550,6 +501,16 @@ private fun ExplicitMatchActions(
                         icon = { Icon(Icons.Default.Check, contentDescription = null) },
                         onClick = { if (cardCanDefend) onPlayDefend(selectedCard!!, firstUnmatched) }
                     )
+                    if (gameState.gameMode == GameMode.PEREVODNOY && gameState.tablePairs.isNotEmpty()) {
+                        AnimatedOutlinedAction(
+                            onClick = { if (cardCanTransfer) selectedCard?.let(onTransferCard) },
+                            enabled = cardCanTransfer,
+                        ) {
+                            Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                            Spacer(Modifier.width(7.dp))
+                            Text("Transfer to next player", fontWeight = FontWeight.Bold)
+                        }
+                    }
                     AnimatedOutlinedAction(onClick = onTakeTable) {
                         Icon(Icons.Default.KeyboardDoubleArrowDown, contentDescription = null)
                         Spacer(Modifier.width(7.dp))
@@ -589,19 +550,17 @@ private fun ExplicitMatchActions(
     }
 }
 
-/**
- * Animated Outlined Action
- */
 @Composable
 private fun AnimatedOutlinedAction(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
     val actionText = tablePrimaryTextColor()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
-        targetValue = if (pressed) 22.dp else 28.dp,
+        targetValue = if (pressed) 22.dp else 34.dp,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "outlinedActionCorner"
     )
@@ -610,9 +569,9 @@ private fun AnimatedOutlinedAction(
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "outlinedActionPress"
     )
-    
     OutlinedButton(
         onClick = onClick,
+        enabled = enabled,
         interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
@@ -626,9 +585,6 @@ private fun AnimatedOutlinedAction(
     )
 }
 
-/**
- * Primary Action Button
- */
 @Composable
 private fun PrimaryAction(
     title: String,
@@ -639,7 +595,7 @@ private fun PrimaryAction(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val corner by animateDpAsState(
-        targetValue = if (pressed) 22.dp else 28.dp,
+        targetValue = if (pressed) 22.dp else 34.dp,
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "matchActionCorner"
     )
@@ -648,7 +604,6 @@ private fun PrimaryAction(
         animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "matchActionPress"
     )
-    
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -664,7 +619,7 @@ private fun PrimaryAction(
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = if (isSystemInDarkTheme()) Color(0xFF3B332F) else MaterialTheme.colorScheme.surfaceContainerHighest,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             disabledContentColor = tableDisabledTextColor()
         )
     ) {
@@ -678,9 +633,41 @@ private fun PrimaryAction(
     }
 }
 
-/**
- * Hand Tray with M3E styling
- */
+@Composable
+private fun tablePrimaryTextColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+    Color(0xFFFFF1EA)
+} else {
+    MaterialTheme.colorScheme.onSurface
+}
+
+@Composable
+private fun tableSecondaryTextColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+    Color(0xFFDCC9C0)
+} else {
+    MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun tableAccentTextColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+    Color(0xFFFFB69F)
+} else {
+    MaterialTheme.colorScheme.primary
+}
+
+@Composable
+private fun tableDisabledTextColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+    Color(0xFFB9AAA4)
+} else {
+    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+}
+
+private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
+    if (state.tablePairs.isEmpty()) return true
+    if (state.tablePairs.size >= minOf(6, state.defenderHandSizeAtRoundStart)) return false
+    val ranks = state.tablePairs.flatMap { listOfNotNull(it.attackCard.rank, it.defenseCard?.rank) }
+    return card.rank in ranks
+}
+
 @Composable
 private fun HandTray(
     hand: List<GameCard>,
@@ -691,12 +678,11 @@ private fun HandTray(
     val primaryText = tablePrimaryTextColor()
     val secondaryText = tableSecondaryTextColor()
     val accentText = tableAccentTextColor()
-    
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.ExtraExtraLarge,
+        shape = ExpressiveCorners.ExtraExtraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 4.dp
+        tonalElevation = 3.dp
     ) {
         Column(
             modifier = Modifier
@@ -711,7 +697,7 @@ private fun HandTray(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (isHumanTurn) "YOUR HAND" else "YOUR HAND \u00b7 WAITING",
+                    text = if (isHumanTurn) "YOUR HAND" else "YOUR HAND · WAITING",
                     style = MaterialTheme.typography.labelLarge,
                     color = primaryText,
                     fontWeight = FontWeight.Bold
@@ -747,9 +733,6 @@ private fun HandTray(
     }
 }
 
-/**
- * Adaptive Hand Row Layout
- */
 @Composable
 private fun AdaptiveHandRow(
     hand: List<GameCard>,
@@ -776,6 +759,7 @@ private fun AdaptiveHandRow(
             hand.forEach { card ->
                 PlayingCardView(
                     card = card,
+                    modifier = Modifier.testTag("human-hand-card"),
                     width = adaptiveWidth,
                     height = adaptiveHeight,
                     isSelectable = isHumanTurn,
@@ -787,9 +771,6 @@ private fun AdaptiveHandRow(
     }
 }
 
-/**
- * Match Result Dialog
- */
 @Composable
 private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit) {
     val result = when {
@@ -797,60 +778,14 @@ private fun MatchResultDialog(gameState: DurakGameState, onExitGame: () -> Unit)
         gameState.durakPlayerName == "You" -> "You are the Durak this round."
         else -> "${gameState.durakPlayerName ?: "The last player"} is the Durak."
     }
-    
     AlertDialog(
         onDismissRequest = {},
-        title = { 
-            Text("Match complete", fontWeight = FontWeight.ExtraBold) 
-        },
-        text = { 
-            Text(result) 
-        },
+        title = { Text("Match complete", fontWeight = FontWeight.ExtraBold) },
+        text = { Text(result) },
         confirmButton = {
             Button(onClick = onExitGame) {
                 Text("Back to Play")
             }
         }
     )
-}
-
-/**
- * Table Text Colors
- */
-@Composable
-private fun tablePrimaryTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFFFF1EA)
-} else {
-    MaterialTheme.colorScheme.onSurface
-}
-
-@Composable
-private fun tableSecondaryTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFDCC9C0)
-} else {
-    MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-@Composable
-private fun tableAccentTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFFFB69F)
-} else {
-    MaterialTheme.colorScheme.primary
-}
-
-@Composable
-private fun tableDisabledTextColor(): Color = if (isSystemInDarkTheme()) {
-    Color(0xFFB9AAA4)
-} else {
-    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-}
-
-/**
- * Check if card can be added to table
- */
-private fun canAddToTable(card: GameCard, state: DurakGameState): Boolean {
-    if (state.tablePairs.isEmpty()) return true
-    if (state.tablePairs.size >= minOf(6, state.defenderHandSizeAtRoundStart)) return false
-    val ranks = state.tablePairs.flatMap { listOfNotNull(it.attackCard.rank, it.defenseCard?.rank) }
-    return card.rank in ranks
 }

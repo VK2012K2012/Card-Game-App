@@ -4,6 +4,18 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
 }
 
+val releaseSigningValues = listOf(
+  providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull,
+  providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull,
+  providers.environmentVariable("ANDROID_KEY_ALIAS").orNull,
+  providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull,
+)
+require(releaseSigningValues.all { it.isNullOrBlank() } || releaseSigningValues.all { !it.isNullOrBlank() }) {
+  "Set all four release signing environment variables, or leave all of them unset."
+}
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
 android {
   namespace = "com.example"
   compileSdk { version = release(37) { minorApiLevel = 1 } }
@@ -12,126 +24,79 @@ android {
     applicationId = "com.aistudio.durakcardgame.vzkqmp"
     minSdk = 24
     targetSdk = 37
-    versionCode = 5
-    versionName = "1.2.0"
+    versionCode = 10
+    versionName = "1.1.8"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
 
-    testInstrumentationRunner = "androidx.test.runner.AndJUnitRunner"
+  if (releaseSigningValues.all { !it.isNullOrBlank() }) {
+    signingConfigs.create("release") {
+      storeFile = file(releaseSigningValues[0]!!)
+      storePassword = releaseSigningValues[1]
+      keyAlias = releaseSigningValues[2]
+      keyPassword = releaseSigningValues[3]
+    }
   }
 
   buildTypes {
     release {
-      isCrunchPngs = true
+      isCrunchPngs = false
       isMinifyEnabled = true
       isShrinkResources = true
-      proguardFiles(
-        getDefaultProguardFile("proguard-android-optimize.txt"),
-        "proguard-rules.pro"
-      )
-      signingConfig = signingConfigs.getByName("debug")
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      signingConfig = if (releaseSigningValues.all { !it.isNullOrBlank() }) {
+        signingConfigs.getByName("release")
+      } else {
+        null
+      }
     }
-    debug {
-      signingConfig = signingConfigs.getByName("debug")
-      // Enable debug optimizations
-      isMinifyEnabled = false
-      isShrinkResources = false
-    }
+    debug { signingConfig = signingConfigs.getByName("debug") }
   }
-  
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
-  
-  kotlin {
-    jvmToolchain(17)
-  }
-  
   buildFeatures {
     compose = true
     buildConfig = true
   }
-  
-  testOptions {
-    unitTests {
-      isIncludeAndroidResources = true
-      isReturnDefaultValues = true
-    }
-  }
-  
+  testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
   }
-  
-  // Enable R8 full mode for better optimization
-  androidResources {
-    ignoreAssetsPattern = "!*.svg:!*.md"
-  }
-  
-  // Packaging options
-  packaging {
-    jniLibs {
-      useLegacyPackaging = false
-    }
-    resources {
-      excludes += "/META-INF/{AL2.0,LGPL2.1}"
-      excludes += "META-INF/versions/9/license.txt"
-    }
-  }
 }
 
 dependencies {
-  // Compose BOM - Latest stable
   implementation(platform(libs.androidx.compose.bom))
-  
-  // AndroidX Core
-  implementation(libs.androidx.core.ktx)
-  
-  // Activity Compose
   implementation(libs.androidx.activity.compose)
-  
-  // Material 3 - Latest stable
-  implementation(libs.androidx.compose.material3)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
-  
-  // Compose UI
+  implementation(libs.androidx.compose.material3)
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
-  
-  // Lifecycle
+  implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
-  
-  // Room Database
-  implementation(libs.androidx.room.runtime)
   implementation(libs.androidx.room.ktx)
-  
-  // Coroutines
+  implementation(libs.androidx.room.runtime)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  
-  // Testing
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
-  testImplementation(libs.robolectric)
-  
-  // Android Testing
   androidTestImplementation(platform(libs.androidx.compose.bom))
+  androidTestImplementation(libs.androidx.core)
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner)
-  
-  // Debug only
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
-  
-  // KSP for Room
   "ksp"(libs.androidx.room.compiler)
 }

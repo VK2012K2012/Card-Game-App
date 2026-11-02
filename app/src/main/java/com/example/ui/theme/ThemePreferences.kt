@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.toArgb
 
 object ThemePreferences {
     const val THEME_MODE_KEY = "theme_mode_v2"
+    const val APP_VISUAL_STYLE_KEY = "app_visual_style_v1"
     const val COLOR_PRESET_KEY = "color_preset_v2"
     const val PALETTE_ID_KEY = "palette_id_v1"
     const val CUSTOM_PRIMARY_KEY = "custom_primary_v1"
@@ -20,6 +21,13 @@ object ThemePreferences {
 
     fun writeMode(prefs: SharedPreferences, value: ThemeMode) {
         prefs.edit().putString(THEME_MODE_KEY, value.key).apply()
+    }
+
+    fun readVisualStyle(prefs: SharedPreferences): AppVisualStyle =
+        AppVisualStyle.fromKey(prefs.getString(APP_VISUAL_STYLE_KEY, null))
+
+    fun writeVisualStyle(prefs: SharedPreferences, value: AppVisualStyle) {
+        prefs.edit().putString(APP_VISUAL_STYLE_KEY, value.name).apply()
     }
 
     fun readSystemTheme(prefs: SharedPreferences): Boolean =

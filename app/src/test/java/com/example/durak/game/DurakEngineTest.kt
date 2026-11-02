@@ -6,6 +6,7 @@ import com.example.durak.model.GameMode
 import com.example.durak.model.Player
 import com.example.durak.model.Rank
 import com.example.durak.model.Suit
+import com.example.durak.model.TablePair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -37,6 +38,44 @@ class DurakEngineTest {
             botDifficulties = emptyList(),
             deckSize = 36
         )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `start game rejects a deck that cannot keep the trump card in the draw pile`() {
+        engine.startNewGame(
+            playerNames = listOf("You", "Bot 1", "Bot 2", "Bot 3"),
+            humanIsFirst = true,
+            botDifficulties = List(3) { BotDifficulty.MEDIUM },
+            deckSize = 24
+        )
+    }
+
+    @Test
+    fun `four player setup moves to a deck size that leaves a trump card in the draw pile`() {
+        val setup = com.example.durak.model.LocalMatchSetup(playerCount = 4, deckSize = 24).normalized()
+
+        assertEquals(36, setup.deckSize)
+        assertEquals(listOf(36, 52), com.example.durak.model.LocalMatchSetup.availableDeckSizes(4))
+    }
+
+    @Test
+    fun `every supported player and deck pairing keeps the trump card in the draw pile`() {
+        for (playerCount in 2..4) {
+            com.example.durak.model.LocalMatchSetup.availableDeckSizes(playerCount).forEach { deckSize ->
+                val state = engine.startNewGame(
+                    playerNames = List(playerCount) { index -> if (index == 0) "You" else "Bot $index" },
+                    humanIsFirst = true,
+                    botDifficulties = List(playerCount - 1) { BotDifficulty.MEDIUM },
+                    deckSize = deckSize,
+                )
+                val trumpId = state.trumpCard!!.id
+
+                assertTrue("$playerCount players with $deckSize cards retain trump in deck", state.deck.any { it.id == trumpId })
+                assertTrue("$playerCount players with $deckSize cards do not receive trump in a hand", state.players.none { player ->
+                    player.hand.any { it.id == trumpId }
+                })
+            }
+        }
     }
 
     @Test
@@ -169,6 +208,34 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `match ends when a player is eliminated after an earlier player was already out`() {
+        val attack = card("final_attack", Suit.HEARTS, Rank.SIX)
+        val defense = card("final_defense", Suit.HEARTS, Rank.SEVEN)
+        val previouslyOut = Player("p0", "Bot 1", false, hand = mutableListOf(), isOut = true)
+        val newlyOut = Player("p1", "Bot 2", false, hand = mutableListOf())
+        val lastPlayer = Player("p2", "You", true, hand = mutableListOf(card("last_card", Suit.CLUBS, Rank.EIGHT)))
+        val state = DurakGameState(
+            players = listOf(previouslyOut, newlyOut, lastPlayer),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 1,
+            defenderIndex = 2,
+            currentTurnPlayerIndex = 1,
+            tablePairs = listOf(com.example.durak.model.TablePair(attack, defense)),
+            defenderHandSizeAtRoundStart = 6,
+            throwInPasses = setOf(1),
+            gamePhase = GamePhase.WAITING_FOR_THROW_IN
+        )
+
+        val result = engine.executeBitoClear(state)
+
+        assertTrue(result.isGameOver)
+        assertEquals("You", result.durakPlayerName)
+        assertEquals(listOf("Bot 1", "Bot 2"), result.winnerPlayerNames)
+        assertTrue("Elimination must not mutate the input snapshot", !newlyOut.isOut)
+    }
+
+    @Test
     fun `stalled bot turn completes bito when every attacker already passed`() {
         val attack = card("attack", Suit.HEARTS, Rank.SIX)
         val defense = card("defense", Suit.HEARTS, Rank.SEVEN)
@@ -197,6 +264,53 @@ class DurakEngineTest {
     }
 
     @Test
+    fun `only players who joined the attack replenish and they draw before the defender`() {
+        fun fiveCardHand(prefix: String, suit: Suit) =
+            MutableList(5) { index -> card("$prefix-$index", suit, Rank.SIX) }
+
+        val attacker = Player("p0", "Attacker", false, hand = fiveCardHand("a", Suit.HEARTS))
+        val observer = Player("p1", "Observer", false, hand = fiveCardHand("o", Suit.CLUBS))
+        val helper = Player("p2", "Helper", false, hand = fiveCardHand("h", Suit.DIAMONDS))
+        val defender = Player("p3", "Defender", false, hand = fiveCardHand("d", Suit.CLUBS))
+        val drawForAttacker = card("draw-attacker", Suit.HEARTS, Rank.TEN)
+        val drawForHelper = card("draw-helper", Suit.CLUBS, Rank.JACK)
+        val drawForDefender = card("draw-defender", Suit.DIAMONDS, Rank.QUEEN)
+        val state = DurakGameState(
+            players = listOf(attacker, observer, helper, defender),
+            deck = listOf(drawForAttacker, drawForHelper, drawForDefender),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 0,
+            defenderIndex = 3,
+            currentTurnPlayerIndex = 0,
+            tablePairs = listOf(
+                com.example.durak.model.TablePair(
+                    card("table-attack", Suit.HEARTS, Rank.KING),
+                    card("table-defense", Suit.HEARTS, Rank.ACE),
+                )
+            ),
+            defenderHandSizeAtRoundStart = 6,
+            throwInPasses = setOf(0, 1, 2),
+            attackParticipants = setOf(0, 2),
+            gamePhase = GamePhase.WAITING_FOR_THROW_IN,
+        )
+
+        val nextRound = engine.executeBitoClear(state)
+
+        assertEquals(6, nextRound.players[0].hand.size)
+        assertEquals(5, nextRound.players[1].hand.size)
+        assertEquals(6, nextRound.players[2].hand.size)
+        assertEquals(6, nextRound.players[3].hand.size)
+        assertTrue(nextRound.players[0].hand.any { it.id == drawForAttacker.id })
+        assertTrue(nextRound.players[2].hand.any { it.id == drawForHelper.id })
+        assertTrue(nextRound.players[3].hand.any { it.id == drawForDefender.id })
+        assertTrue(nextRound.attackParticipants.isEmpty())
+        assertEquals("Replenishment must preserve the prior principal attacker's hand", 5, state.players[0].hand.size)
+        assertEquals("Replenishment must preserve the prior non-participant's hand", 5, state.players[1].hand.size)
+        assertEquals("Replenishment must preserve the prior defender's hand", 5, state.players[3].hand.size)
+        assertEquals(3, state.deck.size)
+    }
+
+    @Test
     fun `card beating follows same suit and trump hierarchy`() {
         val sixHearts = card("six_hearts", Suit.HEARTS, Rank.SIX)
         val sevenHearts = card("seven_hearts", Suit.HEARTS, Rank.SEVEN)
@@ -210,8 +324,103 @@ class DurakEngineTest {
     }
 
     @Test
-    fun `transfer mode is not silently exposed as a different playable rule`() {
-        assertEquals(GameMode.PODKIDNOY, com.example.durak.model.LocalMatchSetup(gameMode = GameMode.PEREVODNOY).normalized().gameMode)
+    fun `classic remains a standard alias while transfer requires at least three players`() {
+        assertEquals(
+            GameMode.PODKIDNOY,
+            com.example.durak.model.LocalMatchSetup(gameMode = GameMode.CLASSIC).normalized().gameMode,
+        )
+        val transferSetup = com.example.durak.model.LocalMatchSetup(gameMode = GameMode.PEREVODNOY).normalized()
+        assertEquals(GameMode.PEREVODNOY, transferSetup.gameMode)
+        assertEquals(3, transferSetup.playerCount)
+        assertEquals(
+            3,
+            com.example.durak.model.LocalMatchSetup(playerCount = 2, gameMode = GameMode.PEREVODNOY).normalized().playerCount,
+        )
+    }
+
+    @Test
+    fun `transfer redirects an unbeaten matching-rank attack and preserves the earlier snapshot`() {
+        val attack = card("transfer_attack", Suit.HEARTS, Rank.SIX)
+        val transfer = card("transfer_card", Suit.CLUBS, Rank.SIX)
+        val spare = card("transfer_spare", Suit.DIAMONDS, Rank.EIGHT)
+        val attacker = Player("attacker", "Attacker", false)
+        val defender = Player("defender", "Defender", true, hand = listOf(transfer, spare))
+        val nextDefender = Player(
+            "next", "Next player", false,
+            hand = listOf(card("next_one", Suit.HEARTS, Rank.SEVEN), card("next_two", Suit.CLUBS, Rank.NINE)),
+        )
+        val initial = DurakGameState(
+            players = listOf(attacker, defender, nextDefender),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 0,
+            defenderIndex = 1,
+            currentTurnPlayerIndex = 1,
+            tablePairs = listOf(TablePair(attack)),
+            defenderHandSizeAtRoundStart = 6,
+            gameMode = GameMode.PEREVODNOY,
+            gamePhase = GamePhase.DEFENDING,
+        )
+
+        val transferred = engine.playTransferCard(initial, transfer)
+
+        assertEquals(listOf(transfer, spare), initial.players[1].hand)
+        assertEquals(listOf(spare), transferred.players[1].hand)
+        assertEquals(1, transferred.attackerIndex)
+        assertEquals(2, transferred.defenderIndex)
+        assertEquals(2, transferred.currentTurnPlayerIndex)
+        assertEquals(setOf(1), transferred.attackParticipants)
+        assertEquals(2, transferred.tablePairs.size)
+        assertEquals(transfer, transferred.tablePairs.last().attackCard)
+        assertEquals(GamePhase.DEFENDING, transferred.gamePhase)
+    }
+
+    @Test
+    fun `transfer is rejected when no eligible next defender remains`() {
+        val attack = card("two_player_attack", Suit.HEARTS, Rank.SIX)
+        val transfer = card("two_player_transfer", Suit.CLUBS, Rank.SIX)
+        val initial = DurakGameState(
+            players = listOf(
+                Player("attacker", "Attacker", false),
+                Player("defender", "Defender", true, hand = listOf(transfer)),
+            ),
+            deck = emptyList(),
+            trumpSuit = Suit.SPADES,
+            attackerIndex = 0,
+            defenderIndex = 1,
+            currentTurnPlayerIndex = 1,
+            tablePairs = listOf(TablePair(attack)),
+            defenderHandSizeAtRoundStart = 6,
+            gameMode = GameMode.PEREVODNOY,
+            gamePhase = GamePhase.DEFENDING,
+        )
+
+        val rejected = engine.playTransferCard(initial, transfer)
+
+        assertEquals(initial.players[1].hand, rejected.players[1].hand)
+        assertEquals(initial.tablePairs, rejected.tablePairs)
+        assertTrue(rejected.lastActionMessage.contains("No eligible player"))
+    }
+
+    @Test
+    fun `attack and defense transitions leave every earlier snapshot unchanged`() {
+        val attack = card("immutable_attack", Suit.HEARTS, Rank.SIX)
+        val spare = card("immutable_spare", Suit.CLUBS, Rank.EIGHT)
+        val defense = card("immutable_defense", Suit.HEARTS, Rank.SEVEN)
+        val human = Player("human", "You", true, hand = listOf(attack, spare))
+        val bot = Player("bot", "Bot 1", false, hand = listOf(defense))
+        val initial = state(players = listOf(human, bot))
+
+        val afterAttack = engine.playAttackCard(initial, playerIndex = 0, card = attack)
+        val afterDefense = engine.playDefendCard(afterAttack, defendingCard = defense, pairIndexToDefend = 0)
+
+        assertEquals(listOf(attack, spare), initial.players[0].hand)
+        assertEquals(listOf(defense), initial.players[1].hand)
+        assertEquals(listOf(spare), afterAttack.players[0].hand)
+        assertEquals(listOf(defense), afterAttack.players[1].hand)
+        assertEquals(emptyList<Card>(), afterDefense.players[1].hand)
+        assertEquals(2, initial.players[0].hand.size)
+        assertEquals(1, initial.players[1].hand.size)
     }
 
     @Test
@@ -226,6 +435,7 @@ class DurakEngineTest {
         val afterDefense = engine.playDefendCard(afterAttack, defendingCard = defense, pairIndexToDefend = 0)
 
         assertEquals(GamePhase.DEFENDING, afterAttack.gamePhase)
+        assertEquals(setOf(0), afterAttack.attackParticipants)
         assertEquals(1, afterAttack.currentTurnPlayerIndex)
         assertEquals(GamePhase.WAITING_FOR_THROW_IN, afterDefense.gamePhase)
         assertEquals(0, afterDefense.currentTurnPlayerIndex)

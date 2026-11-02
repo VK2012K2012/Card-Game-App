@@ -12,6 +12,12 @@ class PaletteContrastTest {
         }
     }
 
+    @Test
+    fun fallbackSchemesKeepAccessibleMaterialPairs() {
+        assertSchemeAccessible("fallback", "light", DeepForestLightColors)
+        assertSchemeAccessible("fallback", "dark", DeepForestDarkColors)
+    }
+
     private fun assertSchemeAccessible(id: String, mode: String, scheme: androidx.compose.material3.ColorScheme) {
         assertTrue("$id/$mode primary pair", contrastRatio(scheme.onPrimary, scheme.primary) >= 4.5)
         assertTrue("$id/$mode primary container pair", contrastRatio(scheme.onPrimaryContainer, scheme.primaryContainer) >= 4.5)

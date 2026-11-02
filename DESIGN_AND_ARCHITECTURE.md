@@ -2,32 +2,37 @@
 
 ## Purpose
 
-Card Game Hub is a native Android card-game platform. **Durak is the first fully playable game**; the app structure must make future card games possible without making Durak feel like a temporary demo. The first release is intentionally offline-first: a player can always start a local match against deterministic bots. The app also exposes clear foundations for a future on-device AI opponent and online multiplayer, neither of which will block the core game.
+Card Game Hub is a native Android home for a growing collection of card games. Five titles are currently playable offline: Durak against deterministic bots, plus Crazy Eights, War, Go Fish, and Blackjack as pass-and-play sessions. The library, activity, appearance settings, and navigation belong to the hub; each game's rules and table remain game-specific. Durak match results are persisted; the four additional sessions are currently in-memory only. Online multiplayer and remote AI are not part of this release.
 
 ## Material 3 Expressive Direction
 
-The redesign applies Material 3 Expressive selectively, rather than placing every element in a large rounded card. The official guidance identifies **color, shape, size, motion, and containment** as the main expressive tools. It also recommends concentrating this treatment in one or two meaningful hero moments instead of making every surface compete for attention.[1] [2]
+The 1.1.5 redesign treats expression as hierarchy rather than a blanket decoration. Official Material guidance describes semantic color roles and theming, expressive component and motion updates, a shared typography scale, and a graduated shape system. The implementation concentrates game-specific identity in the library's featured card and custom card-fan artwork; repetitive navigation, setup, settings, history, and match actions remain familiar and legible.[1] [2] [3] [4]
+
+Material 3 Expressive remains the default. Design Customization also offers a locally persisted One UI-inspired shape treatment implemented with standard Android and Compose APIs; it is not an official Samsung component library. In M3E mode, low-contrast blurred ambient color is decorative and confined to the home backdrop, leaving text and controls sharp.
 
 | Design concern | Implementation decision |
 |---|---|
-| Identity | A dynamic-color, game-night interface. A large, editorial home header establishes the game hub as the emotional entry point; the play table stays calmer so card state remains legible. |
-| Hierarchy | The primary action is always a large, clearly labelled `Play Durak` / `Play selected card` control. Secondary actions live in a compact toolbar, chips, or a tonal button. |
-| Shape | Use an intentional mix of rounded containers and a distinctive spade-shaped mark only in the app identity/hero. Match-critical controls retain familiar, high-contrast Material shapes. |
-| Color | Dynamic system color remains supported on Android 12+, with a restrained deep-forest fallback palette. Semantic red is reserved for taking cards and invalid/error states; trump is a warm gold accent. |
-| Containment | Group match choices in a setup sheet, current-turn status in a small table-status rail, and cards within a dedicated table field. Do not surround every text block with a card. |
-| Motion | Use Material expressive motion only for card selection, table updates, and screen transitions. Interactions must remain readable and must not delay play. |
-| Accessibility | Preserve text labels, comfortable target sizes, dynamic colors, clear selected state, and visible turn/status language. |
+| Identity | A forest-and-ivory fallback palette with warm-gold accent communicates a game-night table; Android dynamic color remains supported on Android 12+. |
+| Hierarchy | The game-library screen has one featured playable action, a concise library listing, and a compact local record. Inside a match, contextual controls remain explicit: `Attack`, `Defend`, `Take`, or `Finish round`. |
+| Color | Themed controls use matched Material `on*` and container roles. Surface-container levels group content; red remains semantic for errors/taking cards, and gold is a complementary accent, never the only state cue. |
+| Typography | Display/headline styles are reserved for screen identity and hero content; title, body, and label roles cover sections, descriptions, and controls consistently across screens. |
+| Shape | Shared Material shape tokens form the geometry system; the larger expressive shape is reserved for the featured game and setup sheet. Standard controls keep recognizable component silhouettes. |
+| Containment | Match choices live in a native Material bottom sheet; current-turn information and the play area occupy clear regions; library and history use compact, subject-focused surfaces. Not every text block receives its own card. |
+| Motion | Material's expressive motion scheme remains in use for key interactions, while custom movement is limited so selection and gameplay remain immediate and readable. |
+| Accessibility | Native Material controls retain standard semantics and touch targets; decorative artwork is hidden from assistive technology; visible text and icon cues accompany game states and selections. |
+| Adaptivity | The shell uses its current window width: compact windows use a Material navigation bar; expanded windows use a Material navigation rail beside a width-constrained content area. |
 
 ## Screen Structure
 
 | Screen | Job | Primary action | Key state |
 |---|---|---|---|
-| **Home / Game library** | Make Durak immediately playable while showing the platform can expand. | `Play Durak` | Local game progress, recent stats, available games. |
+| **Home / Game library** | Present the card-game collection and make available local titles easy to start. | `Start a match` or browse games | Featured Durak, four pass-and-play titles, local record. |
 | **Durak setup sheet** | Configure a valid local match without overwhelming the home screen. | `Start match` | Player count, rules variant, deck size, difficulty, opponent engine. |
 | **Durak table** | Make turn, cards, legal actions, and game progress obvious at a glance. | Contextual `Attack`, `Defend`, `Take`, or `Finish round` | Current turn, table pairs, selected card, deck, trump, player hand. |
+| **Local game sessions** | Play Crazy Eights, War, Go Fish, or Blackjack on one device. | Select player count, then pass the device | Per-game engine state; not persisted to Durak history. |
 | **Match result** | End the match clearly and offer a next step. | `Play again` | Winner, Durak, rounds, stats save status. |
 | **Activity** | Show persistent stats and match history. | `Play a match` | Aggregated statistics and history. |
-| **Settings** | Describe local-first game modes and provide stable preferences as they are implemented. | Back/navigation | Theme information and future availability. |
+| **Settings** | Offer appearance preferences, release information, and a clear local-storage note. | Open design options or app details | Theme/palette, navigation labels, typography, local-first statement. |
 
 ## Offline, Smart AI, and Multiplayer Foundation
 
@@ -52,10 +57,12 @@ The local release has a reliable **Classic bot** engine with easy, standard, and
 
 ## Implementation Boundaries
 
-This work does not claim to ship an offline AI model or real multiplayer in the first rebuild. Those require model selection/packaging and a secure, server-authoritative multiplayer service respectively. The rebuild makes the product honest and technically ready for both while delivering a polished, fully offline Durak game now.
+This release ships four additional local game engines and pass-and-play screens alongside Durak. It does not ship Hearts or Spades (still planned), an on-device or remote AI model, or real nearby/online multiplayer. Those would require completed game rules and UI, model packaging or a protected backend, and a secure server-authoritative transport respectively.
 
 ## References
 
-[1]: https://m3.material.io/blog/building-with-m3-expressive "Material Design — Start building with Material 3 Expressive"
-[2]: https://design.google/library/expressive-material-design-google-research "Google Design — Better, Easier, Emotional UX"
-[3]: https://m3.material.io/develop/android/jetpack-compose "Material Design — Jetpack Compose"
+[1]: https://developer.android.com/develop/ui/compose/designsystems/material3 "Android Developers — Material 3 in Jetpack Compose"
+[2]: https://m3.material.io/styles/color/roles "Material Design — Color roles"
+[3]: https://m3.material.io/styles/motion/overview/how-it-works "Material Design — Motion physics system"
+[4]: https://developer.android.com/develop/ui/compose/accessibility/api-defaults "Android Developers — Accessibility API defaults in Compose"
+[5]: https://developer.android.com/develop/adaptive-apps/guides/support-different-display-sizes "Android Developers — Support different display sizes"

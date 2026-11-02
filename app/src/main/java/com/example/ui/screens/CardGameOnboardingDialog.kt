@@ -1,39 +1,30 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
 package com.example.ui.screens
 
 import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,64 +37,52 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import com.example.ui.components.BlurIntensity
-import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.components.blurEffect
-import com.example.ui.components.frostedGlass
-import com.example.ui.theme.AppShapes
-import com.example.ui.theme.MotionTokens
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.example.ui.theme.PaletteCatalog
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.ui.theme.PaletteOption
-import com.example.ui.theme.ShapeTokens
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.palettePreviewTones
 import com.example.ui.theme.previewOnColor
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
-/**
- * Card Game Onboarding Dialog
- * M3E Compliant with animated hero, blur effects, and proper transitions
- */
 @Composable
 fun CardGameOnboardingDialog(
     initialMode: ThemeMode,
@@ -117,7 +96,9 @@ fun CardGameOnboardingDialog(
     onFinish: () -> Unit,
 ) {
     var step by remember { mutableIntStateOf(0) }
-    var selectedMode by remember { mutableStateOf(initialMode) }
+    var selectedMode by remember {
+        mutableStateOf(if (initialMode == ThemeMode.DARK) ThemeMode.DARK else ThemeMode.LIGHT)
+    }
     var selectedSystemTheme by remember { mutableStateOf(initialSystemTheme) }
     var selectedAmoledBlack by remember { mutableStateOf(initialAmoledBlack) }
     var selectedPalette by remember { mutableStateOf(initialPalette) }
@@ -165,7 +146,6 @@ fun CardGameOnboardingDialog(
         val dialogView = LocalView.current
         val dialogWindow = (dialogView.parent as? DialogWindowProvider)?.window
         val dialogBackground = MaterialTheme.colorScheme.background
-        
         DisposableEffect(dialogWindow, dialogBackground) {
             dialogWindow?.let { window ->
                 WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -185,11 +165,10 @@ fun CardGameOnboardingDialog(
             }
             onDispose { }
         }
-
-        EnhancedTableFeltBackground(
-            modifier = Modifier
-                .fillMaxSize()
-                .blurEffect(BlurIntensity.MEDIUM)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
         ) {
             Column(
                 modifier = Modifier
@@ -198,7 +177,6 @@ fun CardGameOnboardingDialog(
                     .padding(horizontal = 24.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -209,30 +187,13 @@ fun CardGameOnboardingDialog(
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge,
                     )
-                    AnimatedContent(
-                        targetState = step,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                (slideInHorizontally { width -> width / 2 } + fadeIn()).togetherWith(
-                                    slideOutHorizontally { width -> -width / 2 } + fadeOut()
-                                )
-                            } else {
-                                (slideInHorizontally { width -> -width / 2 } + fadeIn()).togetherWith(
-                                    slideOutHorizontally { width -> width / 2 } + fadeOut()
-                                )
-                            }
-                        },
-                        label = "onboardingStepCounter"
-                    ) { currentStep ->
-                        Text(
-                            text = "${currentStep + 1} of 2",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
+                    Text(
+                        text = "${step + 1} of 2",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
 
-                // Content
                 AnimatedContent(
                     targetState = step,
                     modifier = Modifier.weight(1f),
@@ -240,12 +201,12 @@ fun CardGameOnboardingDialog(
                         val forward = targetState > initialState
                         (slideInHorizontally(
                             initialOffsetX = { width -> if (forward) width / 4 else -width / 4 },
-                            animationSpec = tween(MotionTokens.Natural),
-                        ) + fadeIn(tween(MotionTokens.Quick))).togetherWith(
+                            animationSpec = tween(160),
+                        ) + fadeIn(tween(120))).togetherWith(
                             slideOutHorizontally(
                                 targetOffsetX = { width -> if (forward) -width / 4 else width / 4 },
-                                animationSpec = tween(MotionTokens.Quick),
-                            ) + fadeOut(tween(MotionTokens.Responsive)),
+                                animationSpec = tween(130),
+                            ) + fadeOut(tween(90)),
                         )
                     },
                     label = "onboarding-step",
@@ -265,7 +226,6 @@ fun CardGameOnboardingDialog(
                     }
                 }
 
-                // Actions
                 OnboardingActions(
                     step = step,
                     onBack = { step = 0 },
@@ -276,9 +236,6 @@ fun CardGameOnboardingDialog(
     }
 }
 
-/**
- * Onboarding Actions with animated buttons
- */
 @Composable
 private fun OnboardingActions(
     step: Int,
@@ -290,30 +247,22 @@ private fun OnboardingActions(
     val continuePressed by continueInteractions.collectIsPressedAsState()
     val backPressed by backInteractions.collectIsPressedAsState()
     var clickPulse by remember { mutableStateOf(false) }
-    
     val groupActive = continuePressed || backPressed || clickPulse
-    
     val groupScale by animateFloatAsState(
         targetValue = if (groupActive) 0.965f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = tween(170, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "onboarding-group-scale",
     )
-    
-    val outerCorner by animateFloatAsState(
-        targetValue = if (groupActive) 32f else 38f,
-        animationSpec = tween(MotionTokens.Responsive, easing = FastOutSlowInEasing),
+    val outerCorner by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (groupActive) 32.dp else 38.dp,
+        animationSpec = tween(170, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "onboarding-group-outer-corner",
     )
-    
-    val innerCorner by animateFloatAsState(
-        targetValue = if (groupActive) 12f else 16f,
-        animationSpec = tween(MotionTokens.Responsive, easing = FastOutSlowInEasing),
+    val innerCorner by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (groupActive) 12.dp else 16.dp,
+        animationSpec = tween(170, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "onboarding-group-inner-corner",
     )
-    
     val scope = rememberCoroutineScope()
 
     fun trigger(action: () -> Unit) {
@@ -325,74 +274,55 @@ private fun OnboardingActions(
         action()
     }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(76.dp),
-        shape = RoundedCornerShape(outerCorner.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 4.dp,
-        shadowElevation = 2.dp
+    Row(
+        modifier = Modifier.fillMaxWidth().height(76.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { 
-                    scaleX = groupScale
-                    scaleY = groupScale 
-                },
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (step > 0) {
-                Button(
-                    modifier = Modifier
-                        .weight(0.82f)
-                        .fillMaxHeight(),
-                    onClick = { trigger(onBack) },
-                    shape = RoundedCornerShape(
-                        topStart = outerCorner.dp,
-                        bottomStart = outerCorner.dp,
-                        topEnd = innerCorner.dp,
-                        bottomEnd = innerCorner.dp,
-                    ),
-                    colors = ButtonDefaults.filledTonalButtonColors(),
-                    contentPadding = PaddingValues(0.dp),
-                    interactionSource = backInteractions,
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, 
-                        contentDescription = "Back"
-                    )
-                }
-            }
+        if (step > 0) {
             Button(
                 modifier = Modifier
-                    .weight(if (step > 0) 2f else 1f)
-                    .fillMaxHeight(),
-                onClick = { trigger(onContinue) },
-                shape = if (step > 0) {
-                    RoundedCornerShape(
-                        topStart = innerCorner.dp,
-                        bottomStart = innerCorner.dp,
-                        topEnd = outerCorner.dp,
-                        bottomEnd = outerCorner.dp,
-                    )
-                } else {
-                    RoundedCornerShape(outerCorner.dp)
-                },
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
-                interactionSource = continueInteractions,
+                    .weight(0.82f)
+                    .fillMaxHeight()
+                    .graphicsLayer { scaleX = groupScale; scaleY = groupScale },
+                onClick = { trigger(onBack) },
+                shape = RoundedCornerShape(
+                    topStart = outerCorner,
+                    bottomStart = outerCorner,
+                    topEnd = innerCorner,
+                    bottomEnd = innerCorner,
+                ),
+                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(),
+                contentPadding = PaddingValues(0.dp),
+                interactionSource = backInteractions,
             ) {
-                Text(if (step == 0) "Continue" else "Start playing")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
+        }
+        Button(
+            modifier = Modifier
+                .weight(if (step > 0) 2f else 1f)
+                .fillMaxHeight()
+                .graphicsLayer { scaleX = groupScale; scaleY = groupScale },
+            onClick = { trigger(onContinue) },
+            shape = if (step > 0) {
+                RoundedCornerShape(
+                    topStart = innerCorner,
+                    bottomStart = innerCorner,
+                    topEnd = outerCorner,
+                    bottomEnd = outerCorner,
+                )
+            } else {
+                RoundedCornerShape(outerCorner)
+            },
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
+            interactionSource = continueInteractions,
+        ) {
+            Text(if (step == 0) "Continue" else "Start playing")
         }
     }
 }
 
-/**
- * Welcome Step with animated hero cards
- */
 @Composable
 private fun WelcomeStep() {
     Column(
@@ -402,176 +332,69 @@ private fun WelcomeStep() {
     ) {
         WelcomeHero()
         Spacer(Modifier.height(28.dp))
-        AnimatedVisibility(
-            visible = true,
-            enter = slideInVertically(
-                initialOffsetY = { height -> height / 4 }
-            ) + fadeIn(tween(MotionTokens.Natural)),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Welcome to Card Game Hub",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-                Text(
-                    text = "A clean local card table, ready to play.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            }
-        }
+        Text(
+            text = "Welcome to Card Game Hub",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "A home for card games, with a great local table to start.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 
-/**
- * Welcome Hero with animated card stack
- */
 @Composable
 private fun WelcomeHero() {
-    val scope = rememberCoroutineScope()
-    var animationPhase by remember { mutableStateOf(0) }
-    
-    // Trigger animation sequence
-    LaunchedEffect(Unit) {
-        delay(200)
-        animationPhase = 1
-        delay(300)
-        animationPhase = 2
-    }
-    
-    val card1Scale by animateFloatAsState(
-        targetValue = if (animationPhase >= 1) 1f else 0.8f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "heroCard1Scale"
-    )
-    
-    val card2Scale by animateFloatAsState(
-        targetValue = if (animationPhase >= 2) 1f else 0.8f,
-        animationSpec = tween(
-            durationMillis = MotionTokens.Responsive,
-            delayMillis = 100,
-            easing = FastOutSlowInEasing,
-        ),
-        label = "heroCard2Scale"
-    )
-    
-    val card1OffsetY by animateFloatAsState(
-        targetValue = if (animationPhase >= 1) 0f else 20f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "heroCard1Offset"
-    )
-    
-    val card2OffsetY by animateFloatAsState(
-        targetValue = if (animationPhase >= 2) 0f else 20f,
-        animationSpec = tween(
-            durationMillis = MotionTokens.Responsive,
-            delayMillis = 100,
-            easing = FastOutSlowInEasing,
-        ),
-        label = "heroCard2Offset"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // Background card (Spade)
         Surface(
             modifier = Modifier
                 .size(width = 176.dp, height = 236.dp)
-                .graphicsLayer {
-                    scaleX = card1Scale
-                    scaleY = card1Scale
-                    translationY = card1OffsetY
-                }
-                .clip(RoundedCornerShape(ShapeTokens.HeroCorner)),
+                .clip(RoundedCornerShape(30.dp)),
             color = MaterialTheme.colorScheme.secondaryContainer,
-            tonalElevation = 4.dp,
-            shadowElevation = 4.dp
+            tonalElevation = 2.dp,
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.frostedGlass(
-                    blurRadius = 8f,
-                    gradientColors = listOf(
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-                    )
-                )
-            ) {
+            Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = "\u2660",
+                    text = "♠",
                     style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }
-        
-        // Foreground card (Heart)
         Surface(
             modifier = Modifier
                 .size(width = 176.dp, height = 236.dp)
-                .graphicsLayer {
-                    scaleX = card2Scale
-                    scaleY = card2Scale
-                    translationY = card2OffsetY
-                }
-                .clip(RoundedCornerShape(ShapeTokens.HeroCorner)),
+                .clip(RoundedCornerShape(30.dp)),
             color = MaterialTheme.colorScheme.primaryContainer,
-            tonalElevation = 6.dp,
-            shadowElevation = 6.dp
+            tonalElevation = 4.dp,
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-                    .frostedGlass(
-                        blurRadius = 12f,
-                        gradientColors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        )
-                    ),
+                modifier = Modifier.fillMaxSize().padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
+                Text("A", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Text(
-                    "A", 
-                    style = MaterialTheme.typography.headlineMedium, 
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "\u2665",
+                    text = "♥",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    "A", 
-                    style = MaterialTheme.typography.headlineMedium, 
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Text("A", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
     }
 }
 
-/**
- * Customize Step with theme selection
- */
 @Composable
 private fun CustomizeStep(
     selectedMode: ThemeMode,
@@ -587,248 +410,73 @@ private fun CustomizeStep(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(tween(MotionTokens.Natural)) + 
-                slideInVertically(
-                    initialOffsetY = { height -> height / 8 }
-                ),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Choose your look",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-                Text(
-                    "You can change this later in Settings.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Choose your look", style = MaterialTheme.typography.headlineMedium)
+            Text("You can change this later in Settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        SegmentedListItem(
+            onClick = { onSystemThemeChange(!systemTheme) },
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            supportingContent = { Text("Follow your phone appearance and colors") },
+            trailingContent = { Switch(checked = systemTheme, onCheckedChange = null) },
+            content = { Text("Adaptive theme") },
+        )
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            val modes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
+            modes.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = !systemTheme && selectedMode == mode,
+                    onClick = { onModeChange(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+                ) { Text(mode.title) }
             }
         }
-        
-        // Adaptive theme toggle
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(tween(MotionTokens.Responsive, delayMillis = 100)),
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.settingsCard,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSystemThemeChange(!systemTheme) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text("Adaptive theme")
-                        Text(
-                            "Follow your phone appearance and colors",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = systemTheme,
-                        onCheckedChange = null
-                    )
-                }
-            }
-        }
-        
-        // Theme mode selection
+        SegmentedListItem(
+            onClick = { onAmoledBlackChange(!amoledBlack) },
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            supportingContent = { Text("Use a true black background") },
+            trailingContent = { Switch(checked = amoledBlack, onCheckedChange = onAmoledBlackChange) },
+            content = { Text("AMOLED black") },
+        )
         if (!systemTheme) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(MotionTokens.Responsive, delayMillis = 150)),
+            Text("Palette", style = MaterialTheme.typography.titleMedium)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.height(170.dp),
+                contentPadding = PaddingValues(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.settingsCard,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 2.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "App theme",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val modes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
-                            modes.forEachIndexed { index, mode ->
-                                SegmentedButton(
-                                    selected = selectedMode == mode,
-                                    onClick = { onModeChange(mode) },
-                                    shape = SegmentedButtonDefaults.itemShape(index, modes.size),
-                                ) { 
-                                    Text(
-                                        mode.title,
-                                        style = MaterialTheme.typography.labelLarge
-                                    ) 
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // AMOLED black toggle
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(tween(MotionTokens.Responsive, delayMillis = 200)),
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.settingsCard,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onAmoledBlackChange(!amoledBlack) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text("AMOLED black")
-                        Text(
-                            "Use a true black background",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = amoledBlack,
-                        onCheckedChange = onAmoledBlackChange
+                items(PaletteCatalog.all, key = { it.id }) { option ->
+                    OnboardingPaletteTile(
+                        option = option,
+                        selected = selectedPalette.id == option.id,
+                        onClick = { onPaletteChange(option) },
                     )
-                }
-            }
-        }
-        
-        // Palette selection
-        if (!systemTheme) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(MotionTokens.Responsive, delayMillis = 250)),
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.settingsCard,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 2.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "Palette",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier.height(170.dp),
-                            contentPadding = PaddingValues(vertical = 2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            items(PaletteCatalog.all, key = { it.id }) { option ->
-                                OnboardingPaletteTile(
-                                    option = option,
-                                    selected = selectedPalette.id == option.id,
-                                    onClick = { onPaletteChange(option) },
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
     }
 }
 
-/**
- * Onboarding Palette Tile with animations
- */
 @Composable
 private fun OnboardingPaletteTile(
     option: PaletteOption,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = tween(MotionTokens.Responsive, easing = FastOutSlowInEasing),
-        label = "onboardingPaletteScale"
-    )
-    
-    val elevation by animateFloatAsState(
-        targetValue = if (selected) 4f else 2f,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "onboardingPaletteElevation"
-    )
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(AppShapes.paletteTile)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        shape = AppShapes.paletteTile,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = elevation.dp,
-        shadowElevation = elevation.dp
+            .height(76.dp)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.frostedGlass(
-                blurRadius = if (selected) 12f else 6f,
-                gradientColors = listOf(
-                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)
-                )
-            )
-        ) {
-            Canvas(modifier = Modifier.size(48.dp)) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(48.dp)) {
                 val tones = palettePreviewTones(option)
                 val sweep = 360f / tones.size
                 tones.forEachIndexed { index, color ->
@@ -840,27 +488,9 @@ private fun OnboardingPaletteTile(
                     )
                 }
             }
-            
-            AnimatedVisibility(
-                visible = selected,
-                enter = fadeIn(tween(MotionTokens.Quick)) + 
-                    slideInHorizontally(
-                        initialOffsetX = { fullWidth -> fullWidth / 2 },
-                        animationSpec = tween(MotionTokens.Responsive),
-                    ),
-                exit = fadeOut(tween(MotionTokens.Quick))
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = previewOnColor(option.seed),
-                    shadowElevation = 4.dp
-                ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Selected",
-                        modifier = Modifier.padding(6.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+            if (selected) {
+                Surface(shape = CircleShape, color = previewOnColor(option.seed)) {
+                    Icon(Icons.Default.Check, contentDescription = "Selected", modifier = Modifier.padding(7.dp))
                 }
             }
         }

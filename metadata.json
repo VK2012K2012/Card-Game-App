@@ -1,6 +1,6 @@
 {
   "name": "Card Game Hub",
-  "description": "M3 Expressive Durak card game hub with offline bots, AI model opponents, Material custom themes, and stats.",
+  "description": "A Material 3 card-game hub featuring Durak, Crazy Eights, War, Go Fish, and Blackjack as local pass-and-play games, with customizable themes and Durak match statistics.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

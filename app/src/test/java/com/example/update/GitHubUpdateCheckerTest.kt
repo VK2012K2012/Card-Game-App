@@ -27,4 +27,20 @@ class GitHubUpdateCheckerTest {
         assertEquals("sha256:abcdef", selected.digest)
         assertEquals(3456L, selected.size)
     }
+
+    @Test
+    fun explainsWhenInstalledBuildIsAheadOfGitHub() {
+        assertEquals(
+            "Installed build 1.1.7 is newer than the latest GitHub release v1.1.2; no newer update has been published yet.",
+            GitHubUpdateChecker.upToDateMessage("1.1.7", "v1.1.2"),
+        )
+    }
+
+    @Test
+    fun reportsLatestPublishedVersionWhenTagsMatch() {
+        assertEquals(
+            "You have the latest published version (v1.1.7).",
+            GitHubUpdateChecker.upToDateMessage("1.1.7", "v1.1.7"),
+        )
+    }
 }

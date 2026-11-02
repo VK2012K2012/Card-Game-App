@@ -1,20 +1,22 @@
 package com.example.ui.screens
 
+import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -27,14 +29,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -46,12 +48,15 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,68 +70,106 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.cardgames.CardGameCatalog
+import com.example.cardgames.CardGameId
+import com.example.cardgames.GameType
 import com.example.data.GameStatsEntity
 import com.example.durak.model.BotDifficulty
 import com.example.durak.model.GameMode
 import com.example.durak.model.LocalMatchSetup
 import com.example.durak.model.OpponentEngine
-import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.theme.AppShapes
+import com.example.ui.components.ExpressiveBackButton
+import com.example.ui.theme.AppVisualStyle
+import com.example.ui.theme.LocalAppVisualStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Home Hub Screen with Material 3 Expressive Design
- * 
- * Features:
- * - Hero welcome section with animated card display
- * - Expressive play button with morphing animations
- * - Settings inline menu with smooth transitions
- * - M3E compliant color and shape usage
- * - Proper semantic typography
- * - Blur background effects
- */
 private data class SettingsOption(val key: String, val label: String, val selected: Boolean)
 private data class SettingsCategory(val section: SettingsSection, val title: String, val value: String)
 
 private enum class SettingsSection(val title: String, val supportingText: String) {
+    GAME("Game", "Choose the card game for this table"),
+    TYPE("Type", "Choose the rules variant for this game"),
     PLAYERS("Players", "Choose how many players join the table"),
     DECK("Deck", "Choose the deck size for this table"),
-    GAME_MODE("Game mode", "Choose how the attack continues"),
     DIFFICULTY("Bot difficulty", "Choose how sharply local bots play")
 }
 
 @Composable
 fun HomeHubScreen(
     stats: GameStatsEntity,
-    onStartDurak: (LocalMatchSetup) -> Unit
+    onStartDurak: (LocalMatchSetup) -> Unit,
+    onStartCardGame: (CardGameId, Int) -> Unit,
 ) {
     var modeMenuExpanded by remember { mutableStateOf(false) }
+    var selectedGame by remember { mutableStateOf(CardGameId.DURAK) }
     var gameMode by remember { mutableStateOf(GameMode.PODKIDNOY) }
     var playerCount by remember { mutableIntStateOf(2) }
     var deckSize by remember { mutableIntStateOf(36) }
     var botDifficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
     var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
     val buttonScope = rememberCoroutineScope()
+    val visualStyle = LocalAppVisualStyle.current
 
-    EnhancedTableFeltBackground(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        if (visualStyle == AppVisualStyle.MATERIAL_3_EXPRESSIVE) {
+            val blurRadius = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 34.dp else 0.dp
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 64.dp, end = 10.dp)
+                    .size(210.dp)
+                    .blur(blurRadius)
+                    .background(
+                        brush = Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0f),
+                            ),
+                        ),
+                        shape = CircleShape,
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 8.dp, bottom = 150.dp)
+                    .size(156.dp)
+                    .blur(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 28.dp else 0.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                            ),
+                        ),
+                        shape = CircleShape,
+                    ),
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Spacer(Modifier.height(8.dp))
-            
-            // Header
             Text(
                 text = "CARD GAME HUB",
                 style = MaterialTheme.typography.labelLarge,
@@ -135,7 +178,7 @@ fun HomeHubScreen(
                 letterSpacing = 1.2.sp
             )
             Text(
-                text = "Durak,\nready when you are.",
+                text = "${selectedGame.title},\nready when you are.",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -149,11 +192,6 @@ fun HomeHubScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
-            // Hero Section with Animated Cards
-            HeroSection()
-            
-            // Main Action Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,9 +202,9 @@ fun HomeHubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 600.dp),
-                    shape = AppShapes.ExtraExtraLarge,
+                    shape = RoundedCornerShape(if (visualStyle == AppVisualStyle.MATERIAL_3_EXPRESSIVE) 32.dp else 24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 3.dp
+                    tonalElevation = 2.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(horizontal = 22.dp, vertical = 22.dp),
@@ -188,24 +226,29 @@ fun HomeHubScreen(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "A private offline table with local bots. Start now or tune the rules before you deal.",
+                            text = "A private local table with bots. Start now or tune the rules before you deal.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        
-                        // Current settings pills
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ModePill("$playerCount players", Modifier.weight(1f))
-                            ModePill("$deckSize cards", Modifier.weight(1f))
-                            ModePill(gameMode.title, Modifier.weight(1f))
+                            ModePill(if (selectedGame == CardGameId.DURAK) "$deckSize cards" else "Standard deck", Modifier.weight(1f))
+                            ModePill(
+                                if (selectedGame == CardGameId.DURAK) {
+                                    when (gameMode) {
+                                        GameMode.CLASSIC -> "Classic"
+                                        GameMode.PEREVODNOY -> "Transfer"
+                                        GameMode.PODKIDNOY -> "Standard"
+                                    }
+                                } else "Standard",
+                                Modifier.weight(1f)
+                            )
                         }
-                        
-                        // Action buttons
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -218,78 +261,76 @@ fun HomeHubScreen(
                                     .height(76.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val leadingInteractionSource = remember { MutableInteractionSource() }
-                                val trailingInteractionSource = remember { MutableInteractionSource() }
-                                val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
-                                val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
-                                var leadingClickToken by remember { mutableIntStateOf(0) }
-                                var trailingClickToken by remember { mutableIntStateOf(0) }
-                                var leadingClickPulse by remember { mutableStateOf(false) }
-                                var trailingClickPulse by remember { mutableStateOf(false) }
-                                
-                                LaunchedEffect(leadingClickToken) {
-                                    if (leadingClickToken == 0) return@LaunchedEffect
-                                    leadingClickPulse = true
-                                    delay(190)
-                                    leadingClickPulse = false
-                                }
-                                LaunchedEffect(trailingClickToken) {
-                                    if (trailingClickToken == 0) return@LaunchedEffect
-                                    trailingClickPulse = true
-                                    delay(190)
-                                    trailingClickPulse = false
-                                }
-                                
-                                val leadingActive = leadingPressed || leadingClickPulse
-                                val trailingActive = trailingPressed || trailingClickPulse
-                                
-                                val leadingScale by animateFloatAsState(
-                                    targetValue = if (leadingActive) 0.96f else 1f,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "leadingButtonPress"
-                                )
-                                val trailingScale by animateFloatAsState(
-                                    targetValue = if (trailingActive) 0.96f else 1f,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "trailingButtonPress"
-                                )
-                                val leadingOuterCorner by animateDpAsState(
-                                    targetValue = if (leadingActive) 24.dp else 38.dp,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "leadingButtonOuterCorner"
-                                )
-                                val leadingInnerCorner by animateDpAsState(
-                                    targetValue = if (leadingActive) 8.dp else 14.dp,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "leadingButtonInnerCorner"
-                                )
-                                val trailingOuterCorner by animateDpAsState(
-                                    targetValue = if (trailingActive) 24.dp else 38.dp,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "trailingButtonOuterCorner"
-                                )
-                                val trailingInnerCorner by animateDpAsState(
-                                    targetValue = if (trailingActive) 8.dp else 14.dp,
-                                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                                    label = "trailingButtonInnerCorner"
-                                )
-                                
+                            val leadingInteractionSource = remember { MutableInteractionSource() }
+                            val trailingInteractionSource = remember { MutableInteractionSource() }
+                            val leadingPressed by leadingInteractionSource.collectIsPressedAsState()
+                            val trailingPressed by trailingInteractionSource.collectIsPressedAsState()
+                            var leadingClickToken by remember { mutableIntStateOf(0) }
+                            var trailingClickToken by remember { mutableIntStateOf(0) }
+                            var leadingClickPulse by remember { mutableStateOf(false) }
+                            var trailingClickPulse by remember { mutableStateOf(false) }
+                            LaunchedEffect(leadingClickToken) {
+                                if (leadingClickToken == 0) return@LaunchedEffect
+                                leadingClickPulse = true
+                                delay(190)
+                                leadingClickPulse = false
+                            }
+                            LaunchedEffect(trailingClickToken) {
+                                if (trailingClickToken == 0) return@LaunchedEffect
+                                trailingClickPulse = true
+                                delay(190)
+                                trailingClickPulse = false
+                            }
+                            val leadingActive = leadingPressed || leadingClickPulse
+                            val trailingActive = trailingPressed || trailingClickPulse
+                            val leadingScale by animateFloatAsState(
+                                targetValue = if (leadingActive) 0.96f else 1f,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "leadingButtonPress"
+                            )
+                            val trailingScale by animateFloatAsState(
+                                targetValue = if (trailingActive) 0.96f else 1f,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "trailingButtonPress"
+                            )
+                            val leadingOuterCorner by animateDpAsState(
+                                targetValue = if (leadingActive) 24.dp else 38.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "leadingButtonOuterCorner"
+                            )
+                            val leadingInnerCorner by animateDpAsState(
+                                targetValue = if (leadingActive) 8.dp else 14.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "leadingButtonInnerCorner"
+                            )
+                            val trailingOuterCorner by animateDpAsState(
+                                targetValue = if (trailingActive) 24.dp else 38.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "trailingButtonOuterCorner"
+                            )
+                            val trailingInnerCorner by animateDpAsState(
+                                targetValue = if (trailingActive) 8.dp else 14.dp,
+                                animationSpec = tween(170, easing = FastOutSlowInEasing),
+                                label = "trailingButtonInnerCorner"
+                            )
                                 Row(
                                     modifier = Modifier.fillMaxSize(),
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Button(
-                                        modifier = Modifier
-                                            .weight(2f)
-                                            .fillMaxHeight()
-                                            .graphicsLayer {
-                                                scaleX = leadingScale
-                                                scaleY = leadingScale
-                                            },
-                                        onClick = {
-                                            leadingClickToken += 1
-                                            buttonScope.launch {
-                                                delay(90)
+                                Button(
+                                    modifier = Modifier
+                                        .weight(2f)
+                                        .fillMaxHeight()
+                                        .testTag("primary-play")
+                                        .graphicsLayer {
+                                            scaleX = leadingScale
+                                            scaleY = leadingScale
+                                        },
+                                    onClick = {
+                                        leadingClickToken += 1
+                                        buttonScope.launch {
+                                            delay(90)
+                                            if (selectedGame == CardGameId.DURAK) {
                                                 onStartDurak(
                                                     LocalMatchSetup(
                                                         playerCount = playerCount,
@@ -299,63 +340,58 @@ fun HomeHubScreen(
                                                         opponentEngine = OpponentEngine.CLASSIC
                                                     ).normalized()
                                                 )
+                                            } else {
+                                                onStartCardGame(selectedGame, playerCount)
                                             }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(
+                                        topStart = leadingOuterCorner,
+                                        bottomStart = leadingOuterCorner,
+                                        topEnd = leadingInnerCorner,
+                                        bottomEnd = leadingInnerCorner
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
+                                    interactionSource = leadingInteractionSource
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                    Spacer(Modifier.size(8.dp))
+                                    Text("Play", fontWeight = FontWeight.ExtraBold)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .graphicsLayer {
+                                            scaleX = trailingScale
+                                            scaleY = trailingScale
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Button(
+                                        modifier = Modifier.fillMaxSize().testTag("play-menu-arrow"),
+                                        onClick = {
+                                            trailingClickToken += 1
+                                            if (modeMenuExpanded) settingsSection = null
+                                            modeMenuExpanded = !modeMenuExpanded
                                         },
                                         shape = RoundedCornerShape(
-                                            topStart = leadingOuterCorner,
-                                            bottomStart = leadingOuterCorner,
-                                            topEnd = leadingInnerCorner,
-                                            bottomEnd = leadingInnerCorner
+                                            topStart = trailingInnerCorner,
+                                            bottomStart = trailingInnerCorner,
+                                            topEnd = trailingOuterCorner,
+                                            bottomEnd = trailingOuterCorner
                                         ),
-                                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
-                                        interactionSource = leadingInteractionSource
+                                        contentPadding = PaddingValues(0.dp),
+                                        interactionSource = trailingInteractionSource
                                     ) {
-                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                        Spacer(Modifier.size(8.dp))
-                                        Text("Start a match", fontWeight = FontWeight.ExtraBold)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .graphicsLayer {
-                                                scaleX = trailingScale
-                                                scaleY = trailingScale
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Button(
-                                            modifier = Modifier.fillMaxSize(),
-                                            onClick = {
-                                                trailingClickToken += 1
-                                                if (modeMenuExpanded) settingsSection = null
-                                                modeMenuExpanded = !modeMenuExpanded
-                                            },
-                                            shape = RoundedCornerShape(
-                                                topStart = trailingInnerCorner,
-                                                bottomStart = trailingInnerCorner,
-                                                topEnd = trailingOuterCorner,
-                                                bottomEnd = trailingOuterCorner
-                                            ),
-                                            contentPadding = PaddingValues(0.dp),
-                                            interactionSource = trailingInteractionSource
-                                        ) {
-                                            val arrowRotation by animateFloatAsState(
-                                                targetValue = if (modeMenuExpanded) 180f else 0f,
-                                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                                label = "modeMenuArrow"
-                                            )
-                                            Icon(
-                                                Icons.Default.ArrowDropDown,
-                                                contentDescription = if (modeMenuExpanded) "Close game mode menu" else "Open game mode menu",
-                                                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
-                                            )
-                                        }
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = if (modeMenuExpanded) "Close game menu" else "Open game menu"
+                                        )
                                     }
                                 }
+                                }
                             }
-                            
-                            // Settings menu
                             AnimatedVisibility(
                                 visible = modeMenuExpanded,
                                 enter = fadeIn(tween(180)) + expandVertically(
@@ -394,32 +430,55 @@ fun HomeHubScreen(
                                 ) { section ->
                                     if (section == null) {
                                         InlineSettingsMenu(
+                                            selectedGame = selectedGame,
                                             playerCount = playerCount,
                                             deckSize = deckSize,
                                             gameMode = gameMode,
                                             botDifficulty = botDifficulty,
-                                            onOpen = { settingsSection = it }
+                                            onOpen = { settingsSection = it },
+                                            onGameChange = { game ->
+                                                selectedGame = game
+                                                playerCount = playerCount.coerceIn(game.minPlayers, game.maxPlayers)
+                                                if (game != CardGameId.DURAK) gameMode = GameMode.PODKIDNOY
+                                            }
                                         )
                                     } else {
                                         SettingsDetailView(
                                             section = section,
+                                            selectedGame = selectedGame,
                                             playerCount = playerCount,
                                             deckSize = deckSize,
                                             gameMode = gameMode,
                                             botDifficulty = botDifficulty,
                                             onBack = { settingsSection = null },
-                                            onPlayerCountChange = { playerCount = it },
+                                            onPlayerCountChange = { count ->
+                                                val minimum = if (selectedGame == CardGameId.DURAK && gameMode == GameMode.PEREVODNOY) 3 else selectedGame.minPlayers
+                                                playerCount = count.coerceIn(minimum, selectedGame.maxPlayers)
+                                            },
                                             onDeckSizeChange = { deckSize = it },
-                                            onGameModeChange = { gameMode = it },
-                                            onDifficultyChange = { botDifficulty = it }
+                                            onTypeChange = { type ->
+                                                gameMode = when (type) {
+                                                    GameType.CLASSIC -> GameMode.CLASSIC
+                                                    GameType.TRANSFER -> GameMode.PEREVODNOY
+                                                    else -> GameMode.PODKIDNOY
+                                                }
+                                                if (gameMode == GameMode.PEREVODNOY) playerCount = playerCount.coerceAtLeast(3)
+                                            },
+                                            onDifficultyChange = { botDifficulty = it },
+                                                                                            onGameChange = { game ->
+                                                    selectedGame = game
+                                                    playerCount = playerCount.coerceIn(game.minPlayers, game.maxPlayers)
+                                                    if (game != CardGameId.DURAK) gameMode = GameMode.PODKIDNOY
+                                                    settingsSection = null
+                                                }
+
                                         )
                                     }
                                 }
                             }
                         }
-                        
                         Text(
-                            text = "Use the arrow to tune the table before you deal.",
+                            text = "Use the arrow to choose a game and tune the table before you deal.",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -429,133 +488,75 @@ fun HomeHubScreen(
             }
         }
     }
+
 }
 
-/**
- * Hero Section with animated card display
- */
-@Composable
-private fun HeroSection() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HeroCard(
-                    symbol = "\u2660",
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    onColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier
-                        .size(120.dp, 160.dp)
-                        .padding(end = 8.dp)
-                )
-                HeroCard(
-                    symbol = "\u2665",
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    onColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier
-                        .size(120.dp, 160.dp)
-                        .padding(start = 8.dp)
-                )
-            }
-        }
-    }
-}
 
-/**
- * Animated Hero Card
- */
-@Composable
-private fun HeroCard(
-    symbol: String,
-    color: Color,
-    onColor: Color,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.95f else 1f,
-        animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "heroCardScale"
-    )
-    
-    Surface(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(16.dp)),
-        color = color,
-        tonalElevation = 4.dp
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = symbol,
-                style = MaterialTheme.typography.displayLarge,
-                color = onColor
-            )
-        }
-    }
-}
-
-/**
- * Inline Settings Menu
- */
 @Composable
 private fun InlineSettingsMenu(
+    selectedGame: CardGameId,
     playerCount: Int,
     deckSize: Int,
     gameMode: GameMode,
     botDifficulty: BotDifficulty,
-    onOpen: (SettingsSection) -> Unit
+    onOpen: (SettingsSection) -> Unit,
+    onGameChange: (CardGameId) -> Unit,
 ) {
-    val categories = listOf(
-        SettingsCategory(SettingsSection.PLAYERS, "Players", "$playerCount players"),
-        SettingsCategory(SettingsSection.DECK, "Deck", "$deckSize cards"),
-        SettingsCategory(SettingsSection.GAME_MODE, "Game mode", gameMode.title),
-        SettingsCategory(SettingsSection.DIFFICULTY, "Bot difficulty", botDifficulty.displayName)
-    )
+    val categories = buildList {
+        add(SettingsCategory(SettingsSection.GAME, "Game", selectedGame.title))
+        val selectedType = if (selectedGame == CardGameId.DURAK) {
+            when (gameMode) {
+                GameMode.CLASSIC -> GameType.CLASSIC
+                GameMode.PEREVODNOY -> GameType.TRANSFER
+                GameMode.PODKIDNOY -> GameType.STANDARD
+            }
+        } else GameType.STANDARD
+        add(SettingsCategory(SettingsSection.TYPE, "Type", selectedType.title))
+        add(SettingsCategory(SettingsSection.PLAYERS, "Players", "$playerCount players"))
+        if (selectedGame == CardGameId.DURAK) {
+            add(SettingsCategory(SettingsSection.DECK, "Deck", "$deckSize cards"))
+            add(SettingsCategory(SettingsSection.DIFFICULTY, "Bot difficulty", botDifficulty.displayName))
+        }
+    }
+    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
     ) {
         categories.forEachIndexed { index, category ->
-            SettingsMenuItem(
-                category = category,
-                index = index,
-                count = categories.size,
-                onClick = { onOpen(category.section) }
+            SegmentedListItem(
+                onClick = { onOpen(category.section) },
+                shapes = ListItemDefaults.segmentedShapes(index = index, count = categories.size),
+                colors = colors,
+                leadingContent = {
+                    when (category.section) {
+                        SettingsSection.GAME -> Icon(Icons.Default.Style, contentDescription = null)
+                        SettingsSection.TYPE -> Icon(Icons.Default.Tune, contentDescription = null)
+                        SettingsSection.PLAYERS -> Icon(Icons.Default.Group, contentDescription = null)
+                        SettingsSection.DECK -> Icon(Icons.Default.Layers, contentDescription = null)
+                        SettingsSection.DIFFICULTY -> Icon(Icons.Default.SmartToy, contentDescription = null)
+                    }
+                },
+                supportingContent = { Text(category.value) },
+                trailingContent = {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Change ${category.title}"
+                    )
+                },
+                content = { Text(category.title) }
             )
         }
     }
 }
 
-/**
- * Settings Detail View
- */
 @Composable
 private fun SettingsDetailView(
     section: SettingsSection,
+    selectedGame: CardGameId,
     playerCount: Int,
     deckSize: Int,
     gameMode: GameMode,
@@ -563,19 +564,35 @@ private fun SettingsDetailView(
     onBack: () -> Unit,
     onPlayerCountChange: (Int) -> Unit,
     onDeckSizeChange: (Int) -> Unit,
-    onGameModeChange: (GameMode) -> Unit,
-    onDifficultyChange: (BotDifficulty) -> Unit
+    onTypeChange: (GameType) -> Unit,
+    onDifficultyChange: (BotDifficulty) -> Unit,
+    onGameChange: (CardGameId) -> Unit,
 ) {
-    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+    val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     val options = when (section) {
-        SettingsSection.PLAYERS -> listOf(2, 3, 4).map { count ->
-            SettingsOption(count.toString(), "$count players", playerCount == count)
+        SettingsSection.GAME -> CardGameCatalog.playable.map { game ->
+            SettingsOption(
+                game.name,
+                game.title,
+                selectedGame == game,
+            )
+        }
+        SettingsSection.TYPE -> CardGameCatalog.typesFor(selectedGame).map { type ->
+            SettingsOption(type.name, type.title, when (type) {
+                GameType.CLASSIC -> selectedGame == CardGameId.DURAK && gameMode == GameMode.CLASSIC
+                GameType.TRANSFER -> selectedGame == CardGameId.DURAK && gameMode == GameMode.PEREVODNOY
+                GameType.STANDARD -> selectedGame != CardGameId.DURAK || gameMode == GameMode.PODKIDNOY
+                GameType.SURVIVAL -> false
+            })
+        }
+        SettingsSection.PLAYERS -> {
+            val minimum = if (selectedGame == CardGameId.DURAK && gameMode == GameMode.PEREVODNOY) 3 else selectedGame.minPlayers
+            (minimum..selectedGame.maxPlayers).map { count ->
+                SettingsOption(count.toString(), "$count players", playerCount == count)
+            }
         }
         SettingsSection.DECK -> listOf(24, 36, 52).map { size ->
             SettingsOption(size.toString(), "$size cards", deckSize == size)
-        }
-        SettingsSection.GAME_MODE -> listOf(GameMode.PODKIDNOY, GameMode.CLASSIC).map { mode ->
-            SettingsOption(mode.name, mode.title, gameMode == mode)
         }
         SettingsSection.DIFFICULTY -> BotDifficulty.entries.map { difficulty ->
             SettingsOption(difficulty.name, difficulty.displayName, botDifficulty == difficulty)
@@ -586,7 +603,7 @@ private fun SettingsDetailView(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
     ) {
         Row(
             modifier = Modifier
@@ -594,9 +611,7 @@ private fun SettingsDetailView(
                 .padding(start = 4.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to settings")
-            }
+            ExpressiveBackButton(onClick = onBack, contentDescription = "Back to settings")
             Column(
                 modifier = Modifier.padding(start = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -608,159 +623,45 @@ private fun SettingsDetailView(
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = section.supportingText,
+                    text = if (section == SettingsSection.PLAYERS && selectedGame == CardGameId.DURAK && gameMode == GameMode.PEREVODNOY) {
+                        "Transfer Durak needs at least three players."
+                    } else {
+                        section.supportingText
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
         ) {
             options.forEachIndexed { index, option ->
-                SettingsMenuItem(
-                    title = option.label,
+                SegmentedListItem(
                     selected = option.selected,
-                    index = index,
-                    count = options.size,
                     onClick = {
                         when (section) {
+                            SettingsSection.GAME -> CardGameCatalog.find(option.key)
+                                ?.takeIf { it.status != com.example.cardgames.GameAvailability.PLANNED }
+                                ?.let(onGameChange)
+                            SettingsSection.TYPE -> onTypeChange(GameType.valueOf(option.key))
                             SettingsSection.PLAYERS -> onPlayerCountChange(option.key.toInt())
                             SettingsSection.DECK -> onDeckSizeChange(option.key.toInt())
-                            SettingsSection.GAME_MODE -> onGameModeChange(GameMode.valueOf(option.key))
                             SettingsSection.DIFFICULTY -> onDifficultyChange(BotDifficulty.valueOf(option.key))
                         }
-                    }
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(index = index, count = options.size),
+                    colors = colors,
+                    trailingContent = {
+                        RadioButton(selected = option.selected, onClick = null)
+                    },
+                    content = { Text(option.label) }
                 )
             }
         }
     }
 }
 
-/**
- * Settings Menu Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
- */
-@Composable
-private fun SettingsMenuItem(
-    category: SettingsCategory,
-    index: Int,
-    count: Int,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "settingsMenuItemScale"
-    )
-    
-    val shape = when {
-        count == 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        when (category.section) {
-            SettingsSection.PLAYERS -> Icon(Icons.Default.Group, contentDescription = null)
-            SettingsSection.DECK -> Icon(Icons.Default.Layers, contentDescription = null)
-            SettingsSection.GAME_MODE -> Icon(Icons.Default.Style, contentDescription = null)
-            SettingsSection.DIFFICULTY -> Icon(Icons.Default.SmartToy, contentDescription = null)
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(category.title)
-            Text(
-                category.value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            Icons.Default.ChevronRight,
-            contentDescription = "Change ${category.title}"
-        )
-    }
-}
-
-/**
- * Settings Menu Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
- */
-@Composable
-private fun SettingsMenuItem(
-    title: String,
-    selected: Boolean,
-    index: Int,
-    count: Int,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = tween(170, easing = FastOutSlowInEasing),
-        label = "settingsOptionScale"
-    )
-    
-    val shape = when {
-        count == 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(title)
-        }
-        RadioButton(selected = selected, onClick = null)
-    }
-}
-
-/**
- * Mode Pill for displaying current settings
- */
 @Composable
 private fun ModePill(label: String, modifier: Modifier = Modifier) {
     Surface(
@@ -774,6 +675,163 @@ private fun ModePill(label: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun MorphAction(
+    title: String,
+    subtitle: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 22.dp else 34.dp,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "cornerMorph"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
+        label = "pressScale"
+    )
+    val shape = RoundedCornerShape(corner)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(if (compact) 54.dp else 88.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(shape)
+            .background(containerColor)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = if (compact) 16.dp else 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(if (compact) 34.dp else 46.dp),
+            contentAlignment = Alignment.Center
+        ) { icon() }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = contentColor)
+            if (!compact) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = contentColor.copy(alpha = 0.82f))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DurakMatchSetupSheet(
+    gameMode: GameMode,
+    onDismiss: () -> Unit,
+    onStart: (LocalMatchSetup) -> Unit
+) {
+    var playerCount by remember { mutableIntStateOf(2) }
+    var deckSize by remember { mutableIntStateOf(36) }
+    var difficulty by remember { mutableStateOf(BotDifficulty.MEDIUM) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        LazyColumn(
+            contentPadding = PaddingValues(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("Build your table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Everything stays on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            item {
+                SetupGroup("Players") {
+                    SetupOption("2 players", playerCount == 2) { playerCount = 2 }
+                    SetupOption("3 players", playerCount == 3) { playerCount = 3 }
+                    SetupOption("4 players", playerCount == 4) { playerCount = 4 }
+                }
+            }
+            item {
+                SetupGroup("Deck") {
+                    SetupOption("24 cards", deckSize == 24) { deckSize = 24 }
+                    SetupOption("36 cards", deckSize == 36) { deckSize = 36 }
+                    SetupOption("52 cards", deckSize == 52) { deckSize = 52 }
+                }
+            }
+            item {
+                SetupGroup("Bot difficulty") {
+                    BotDifficulty.entries.forEach { level -> SetupOption(level.displayName, difficulty == level) { difficulty = level } }
+                }
+            }
+            item {
+                MorphAction(
+                    title = "Start match",
+                    subtitle = "",
+                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                    onClick = {
+                        onStart(
+                            LocalMatchSetup(
+                                playerCount = playerCount,
+                                deckSize = deckSize,
+                                botDifficulty = difficulty,
+                                gameMode = gameMode,
+                                opponentEngine = OpponentEngine.CLASSIC
+                            ).normalized()
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    compact = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetupGroup(title: String, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.SetupOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(if (pressed) 10.dp else 18.dp, label = "choiceMorph")
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "choicePress"
+    )
+    val shape = RoundedCornerShape(corner)
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .height(46.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(shape)
+            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

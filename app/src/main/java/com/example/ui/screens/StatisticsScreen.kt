@@ -1,22 +1,12 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -25,292 +15,237 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.GameStatsEntity
 import com.example.data.MatchHistoryEntity
-import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.theme.AppShapes
+import com.example.ui.theme.ExpressiveCorners
 
-/**
- * Statistics Screen with Material 3 Expressive Design
- * 
- * Features:
- * - Full M3E compliance
- * - Animated record summary
- * - Enhanced match history cards
- * - Proper semantic colors
- * - Blur background effects
- */
 @Composable
 fun StatisticsScreen(
     stats: GameStatsEntity,
-    matchHistory: List<MatchHistoryEntity>
+    matchHistory: List<MatchHistoryEntity>,
 ) {
     val winRate = if (stats.totalGamesPlayed == 0) 0 else stats.totalWins * 100 / stats.totalGamesPlayed
 
-    EnhancedTableFeltBackground(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            item {
-                Column(
-                    modifier = Modifier.statusBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "STATS",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.1.sp
-                    )
-                    Text(
-                        text = "Your table record.",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-            }
-            item {
-                RecordSummary(
-                    winRate = winRate,
-                    wins = stats.totalWins,
-                    games = stats.totalGamesPlayed,
-                    losses = stats.totalLossesDurak
-                )
-            }
-            item {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        item {
+            Column(
+                modifier = Modifier.statusBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
                 Text(
-                    text = "RECENT MATCHES",
+                    text = "YOUR ACTIVITY",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    letterSpacing = 1.1.sp,
+                )
+                Text(
+                    text = "Your game record.",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Every match, all in one place.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (matchHistory.isEmpty()) {
-                item { EmptyHistory() }
-            } else {
-                items(matchHistory.take(20), key = { it.matchId }) { match ->
-                    MatchHistoryRow(match)
-                }
+        }
+        item {
+            RecordSummary(
+                winRate = winRate,
+                wins = stats.totalWins,
+                games = stats.totalGamesPlayed,
+                losses = stats.totalLossesDurak,
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Recent matches", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                Text("${matchHistory.size.coerceAtMost(20)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+        if (matchHistory.isEmpty()) {
+            item { EmptyHistory() }
+        } else {
+            items(matchHistory.take(20), key = { it.matchId }) { match -> MatchHistoryRow(match) }
         }
     }
 }
 
-/**
- * Animated Record Summary Card
- */
 @Composable
 private fun RecordSummary(
     winRate: Int,
     wins: Int,
     games: Int,
-    losses: Int
+    losses: Int,
 ) {
-    var animated by remember { mutableStateOf(false) }
-    
     Card(
-        shape = AppShapes.ExtraExtraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier.fillMaxWidth(),
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = AppShapes.ExtraExtraLarge
-            )
     ) {
         Column(
-            modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = AppShapes.Full,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f)
+                    modifier = Modifier.size(46.dp),
+                    shape = ExpressiveCorners.Full,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.EmojiEvents,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
-                Column {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("All games", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
                     Text(
-                        "Durak record",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        if (games == 0) "Your first match starts the record." else "Keep the good hands coming.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
+                        if (games == 0) "Your first match starts the record." else "Your matches, together in one place.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) { Text("$winRate%") }
             }
-            
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    SummaryNumber("Win rate", "$winRate%")
-                    SummaryNumber("Wins", wins.toString())
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Win rate", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$wins of $games", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
                 }
-                Row(
+                LinearProgressIndicator(
+                    progress = { (winRate / 100f).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    SummaryNumber("Games", games.toString())
-                    SummaryNumber("Durak", losses.toString())
-                }
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                SummaryNumber("Games", games.toString())
+                SummaryNumber("Wins", wins.toString())
+                SummaryNumber("Durak losses", losses.toString())
             }
         }
     }
 }
 
-/**
- * Summary Number Display
- */
 @Composable
 private fun SummaryNumber(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.76f)
-        )
+        Text(value, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-/**
- * Empty History State
- */
 @Composable
 private fun EmptyHistory() {
     Surface(
-        shape = AppShapes.ExtraExtraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Surface(
-                modifier = Modifier.size(48.dp),
-                shape = AppShapes.Full,
-                color = MaterialTheme.colorScheme.primaryContainer
+                modifier = Modifier.size(52.dp),
+                shape = ExpressiveCorners.Full,
+                color = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Style,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
+            Text("No matches yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                text = "No matches yet",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Play a game of Durak and your results will appear here.",
+                "Play a card game and your results will appear here.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
-/**
- * Match History Row with M3E styling
- */
 @Composable
 private fun MatchHistoryRow(match: MatchHistoryEntity) {
-    val resultColor = if (match.isWin) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+    val isDraw = match.playerPosition == "Draw"
+    val resultText = if (match.isWin) "WIN" else if (isDraw) "DRAW" else "LOSS"
+    val resultContainer = when {
+        match.isWin -> MaterialTheme.colorScheme.primaryContainer
+        isDraw -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
-    val resultText = if (match.isWin) "WIN" else if (match.playerPosition == "Draw") "DRAW" else "LOSS"
-    
+    val resultContent = when {
+        match.isWin -> MaterialTheme.colorScheme.onPrimaryContainer
+        isDraw -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Card(
-        shape = AppShapes.ExtraLarge,
-        colors = CardDefaults.cardColors(containerColor = resultColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(13.dp),
         ) {
-            Surface(
-                shape = AppShapes.Full,
-                color = if (match.isWin) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                }
-            ) {
+            Badge(containerColor = resultContainer, contentColor = resultContent) { Text(resultText) }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("${match.gameType} · ${match.playerPosition}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
                 Text(
-                    text = resultText,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (match.isWin) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = match.playerPosition,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${match.opponentCount} bot${if (match.opponentCount == 1) "" else "s"} \u00b7 ${match.botDifficulty} \u00b7 ${match.roundsPlayed} rounds",
+                    "${match.opponentCount} bot${if (match.opponentCount == 1) "" else "s"} · ${match.botDifficulty} · ${match.roundsPlayed} rounds",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

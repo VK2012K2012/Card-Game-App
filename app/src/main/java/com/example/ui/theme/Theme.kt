@@ -8,29 +8,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-/**
- * Card Game Hub Theme with Material 3 Expressive Design
- * 
- * This theme strictly follows Material Design 3 Expressive guidelines from:
- * https://m3.material.io/
- * 
- * Features:
- * - Full M3E compliance with MaterialExpressiveTheme
- * - Dynamic color support (Android 12+)
- * - Custom color presets
- * - Expressive motion scheme
- * - Proper semantic color roles
- * - Animated color transitions
- */
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CardGameTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    visualStyle: AppVisualStyle = AppVisualStyle.MATERIAL_3_EXPRESSIVE,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
     colorPreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
@@ -46,7 +36,6 @@ fun CardGameTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    
     val colorScheme = androidx.compose.runtime.remember(
         themeMode,
         effectiveDark,
@@ -58,31 +47,25 @@ fun CardGameTheme(
         context,
     ) {
         when {
-            // Dynamic color from wallpaper (Android 12+)
-            themeMode == ThemeMode.SYSTEM && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-            // System theme with static colors
-            themeMode == ThemeMode.SYSTEM -> if (effectiveDark) DeepForestDarkColors else DeepForestLightColors
-            // Custom palette
-            customPalette != null -> if (effectiveDark) {
-                darkSchemeForCustom(customPalette).withManualDarkBackground(amoledBlack)
-            } else {
-                lightSchemeForCustom(customPalette).withManualLightBackground()
-            }
-            // Preset palette
-            paletteOption != null -> if (effectiveDark) {
-                darkSchemeForPalette(paletteOption).withManualDarkBackground(amoledBlack)
-            } else {
-                lightSchemeForPalette(paletteOption).withManualLightBackground()
-            }
-            // Color preset
-            effectiveDark -> darkColorsFor(colorPreset).withManualDarkBackground(amoledBlack)
+        themeMode == ThemeMode.SYSTEM && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        themeMode == ThemeMode.SYSTEM -> if (effectiveDark) DeepForestDarkColors else DeepForestLightColors
+        customPalette != null -> if (effectiveDark) {
+            darkSchemeForCustom(customPalette).withManualDarkBackground(amoledBlack)
+        } else {
+            lightSchemeForCustom(customPalette).withManualLightBackground()
+        }
+        paletteOption != null -> if (effectiveDark) {
+            darkSchemeForPalette(paletteOption).withManualDarkBackground(amoledBlack)
+        } else {
+            lightSchemeForPalette(paletteOption).withManualLightBackground()
+        }
+        effectiveDark -> darkColorsFor(colorPreset).withManualDarkBackground(amoledBlack)
             else -> lightColorsFor(colorPreset).withManualLightBackground()
         }
     }
 
-    // Animated color scheme for smooth transitions
     val transition = updateTransition(targetState = colorScheme, label = "theme-color-transition")
     val animatedScheme = transition.animateColor(label = "theme-primary") { it.primary }.let { primary ->
         colorScheme.copy(
@@ -115,25 +98,31 @@ fun CardGameTheme(
         )
     }
 
-    // Apply M3 theme
-    MaterialTheme(
-        colorScheme = animatedScheme,
-        typography = if (useRobotoFlex) GoogleSansFlexTypography else CardGameTypography,
-        shapes = CardGameShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalAppVisualStyle provides visualStyle) {
+        val typography = if (useRobotoFlex) GoogleSansFlexTypography else CardGameTypography
+        if (visualStyle == AppVisualStyle.MATERIAL_3_EXPRESSIVE) {
+            MaterialExpressiveTheme(
+                colorScheme = animatedScheme,
+                motionScheme = MotionScheme.expressive(),
+                typography = typography,
+                shapes = CardGameShapes,
+                content = content,
+            )
+        } else {
+            MaterialTheme(
+                colorScheme = animatedScheme,
+                typography = typography,
+                shapes = OneUiShapes,
+                content = content,
+            )
+        }
+    }
 }
 
-/**
- * Light background adjustments for M3E
- */
 private fun ColorScheme.withManualLightBackground(): ColorScheme = copy(
     surfaceContainerLowest = background,
 )
 
-/**
- * Dark background adjustments with AMOLED support
- */
 private fun ColorScheme.withManualDarkBackground(amoledBlack: Boolean): ColorScheme = if (amoledBlack) {
     copy(
         background = Color.Black,
@@ -148,9 +137,6 @@ private fun ColorScheme.withManualDarkBackground(amoledBlack: Boolean): ColorSch
     this
 }
 
-/**
- * Surface tinting for M3E depth effect
- */
 private fun tintSurface(base: Color, tint: Color, amount: Float): Color {
     val fraction = amount.coerceIn(0f, 1f)
     return Color(
@@ -161,19 +147,7 @@ private fun tintSurface(base: Color, tint: Color, amount: Float): Color {
     )
 }
 
-/**
- * Theme tokens for easy access
- */
 object CardGameThemeTokens {
-    val trumpGold: Color
+    val trumpGold: androidx.compose.ui.graphics.Color
         @Composable get() = TrumpGold
-    
-    val success: Color
-        @Composable get() = SemanticColors.Success
-    
-    val warning: Color
-        @Composable get() = SemanticColors.Warning
-    
-    val info: Color
-        @Composable get() = SemanticColors.Info
 }

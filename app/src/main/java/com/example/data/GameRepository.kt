@@ -15,4 +15,10 @@ class GameRepository(private val gameDao: GameDao) {
     ) = gameDao.recordFinishedMatch(match, humanWon, humanWasDurak)
 
     suspend fun clearHistory() = gameDao.clearMatchHistory()
+
+    suspend fun getActiveMatch(): ActiveMatchEntity? = gameDao.getActiveMatch()
+
+    suspend fun saveActiveMatch(match: ActiveMatchEntity) = gameDao.saveActiveMatch(match)
+
+    suspend fun clearActiveMatch() = gameDao.clearActiveMatch()
 }

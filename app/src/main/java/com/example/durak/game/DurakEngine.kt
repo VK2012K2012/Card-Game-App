@@ -27,6 +27,8 @@ data class DurakGameState(
     val throwInPasses: Set<Int> = emptySet(),
     /** Most recent non-defender to play or pass during the current throw-in rotation. */
     val lastThrowInActorIndex: Int? = null,
+    /** Players who contributed one or more attack cards during the current bout. */
+    val attackParticipants: Set<Int> = emptySet(),
     val lastActionMessage: String = ""
 )
 
@@ -67,82 +69,79 @@ class DurakEngine {
     ): DurakGameState {
         require(playerNames.size in 2..4) { "Durak supports 2 to 4 local players." }
         require(deckSize in setOf(24, 36, 52)) { "Use a 24, 36, or 52-card deck." }
+        require(deckSize > playerNames.size * 6) { "The deck must leave the trump card in the draw pile after dealing." }
         val rawDeck = createInitialDeck(deckSize)
         val trump = rawDeck.last()
         val trumpSuit = trump.suit
 
-        val players = mutableListOf<Player>()
-        for (i in playerNames.indices) {
+        val players = playerNames.mapIndexed { i, name ->
             val isHuman = (i == 0)
             val difficulty = if (isHuman) BotDifficulty.EASY else botDifficulties.getOrElse(i - 1) { BotDifficulty.MEDIUM }
-            players.add(
-                Player(
-                    id = "player_$i",
-                    name = playerNames[i],
-                    isHuman = isHuman,
-                    difficulty = difficulty,
-                    hand = mutableListOf(),
-                    avatarId = i
-                )
+            Player(
+                id = "player_$i",
+                name = name,
+                isHuman = isHuman,
+                difficulty = difficulty,
+                hand = emptyList(),
+                avatarId = i
             )
         }
 
         // Mark cards with trump status & Deal 6 cards to each player
         val updatedDeck = rawDeck.map { it.copy(isTrump = (it.suit == trumpSuit)) }.toMutableList()
 
+        val dealtHands = MutableList(players.size) { mutableListOf<Card>() }
         for (round in 0 until 6) {
-            for (p in players) {
+            for (playerIndex in players.indices) {
                 if (updatedDeck.isNotEmpty()) {
-                    p.hand.add(updatedDeck.removeAt(0))
+                    dealtHands[playerIndex].add(updatedDeck.removeAt(0))
                 }
             }
         }
 
-        // Sort player hands for nice display
-        for (p in players) {
-            sortHand(p.hand, trumpSuit)
+        val dealtPlayers = players.mapIndexed { index, player ->
+            player.copy(hand = sortHand(dealtHands[index], trumpSuit))
         }
 
         // Determine who has the lowest trump card to start attack
         var firstAttackerIndex = 0
         var lowestTrumpRank = Int.MAX_VALUE
 
-        for (i in players.indices) {
-            val minTrump = players[i].hand.filter { it.suit == trumpSuit }.minByOrNull { it.rank.value }
+        for (i in dealtPlayers.indices) {
+            val minTrump = dealtPlayers[i].hand.filter { it.suit == trumpSuit }.minByOrNull { it.rank.value }
             if (minTrump != null && minTrump.rank.value < lowestTrumpRank) {
                 lowestTrumpRank = minTrump.rank.value
                 firstAttackerIndex = i
             }
         }
 
-        val firstDefenderIndex = (firstAttackerIndex + 1) % players.size
+        val firstDefenderIndex = (firstAttackerIndex + 1) % dealtPlayers.size
 
         val log = mutableListOf("Game started! Trump suit is ${trumpSuit.symbol} ${trumpSuit.suitName}.")
-        val starterName = players[firstAttackerIndex].name
+        val starterName = dealtPlayers[firstAttackerIndex].name
         log.add("$starterName has the lowest trump card and attacks first!")
 
         return DurakGameState(
             deckSize = deckSize,
             gameMode = gameMode,
-            players = players,
-            deck = updatedDeck,
+            players = dealtPlayers.toList(),
+            deck = updatedDeck.toList(),
             trumpCard = trump.copy(isTrump = true),
             trumpSuit = trumpSuit,
             attackerIndex = firstAttackerIndex,
             defenderIndex = firstDefenderIndex,
             currentTurnPlayerIndex = firstAttackerIndex,
             tablePairs = emptyList(),
-            defenderHandSizeAtRoundStart = players[firstDefenderIndex].hand.size,
+            defenderHandSizeAtRoundStart = dealtPlayers[firstDefenderIndex].hand.size,
             bitoCount = 0,
             gamePhase = GamePhase.ATTACKING,
-            gameLog = log,
+            gameLog = log.toList(),
             roundCount = 1,
             lastActionMessage = "$starterName's turn to attack"
         )
     }
 
-    fun sortHand(hand: MutableList<Card>, trumpSuit: Suit) {
-        hand.sortWith(Comparator { c1, c2 ->
+    fun sortHand(hand: List<Card>, trumpSuit: Suit): List<Card> = hand.sortedWith(Comparator { c1, c2 ->
             if (c1.isTrump != c2.isTrump) {
                 if (c1.isTrump) 1 else -1
             } else if (c1.suit != c2.suit) {
@@ -151,7 +150,6 @@ class DurakEngine {
                 c1.rank.value.compareTo(c2.rank.value)
             }
         })
-    }
 
     /**
      * Standard Durak throw-in rule: the table may never hold more than 6 attack
@@ -208,10 +206,8 @@ class DurakEngine {
             return state.copy(lastActionMessage = "Cannot attack with ${card.rank.label} ${card.suit.symbol}!")
         }
 
-        val updatedHand = player.hand.toMutableList()
-        updatedHand.removeIf { it.id == card.id }
-        player.hand.clear()
-        player.hand.addAll(updatedHand)
+        val updatedPlayers = state.players.toMutableList()
+        updatedPlayers[playerIndex] = player.copy(hand = player.hand.filterNot { it.id == card.id })
 
         val updatedPairs = state.tablePairs.toMutableList()
         updatedPairs.add(TablePair(attackCard = card))
@@ -220,9 +216,11 @@ class DurakEngine {
         newLogs.add("${player.name} attacks with ${card.rank.label}${card.suit.symbol}")
 
         return state.copy(
+            players = updatedPlayers.toList(),
             tablePairs = updatedPairs,
             currentTurnPlayerIndex = state.defenderIndex,
             gamePhase = GamePhase.DEFENDING,
+            attackParticipants = state.attackParticipants + playerIndex,
             // Playing a card is not the same as passing. Keep a throw-in player eligible
             // until they explicitly select Pass throw-in after all desired legal cards.
             throwInPasses = if (state.gamePhase == GamePhase.WAITING_FOR_THROW_IN) state.throwInPasses else emptySet(),
@@ -249,7 +247,10 @@ class DurakEngine {
 
         val defender = state.players[state.defenderIndex]
         if (defender.hand.none { it.id == defendingCard.id }) return state
-        defender.hand.removeIf { it.id == defendingCard.id }
+        val updatedPlayers = state.players.toMutableList()
+        updatedPlayers[state.defenderIndex] = defender.copy(
+            hand = defender.hand.filterNot { it.id == defendingCard.id }
+        )
 
         val updatedPairs = state.tablePairs.toMutableList()
         updatedPairs[pairIndexToDefend] = targetPair.copy(defenseCard = defendingCard)
@@ -259,6 +260,7 @@ class DurakEngine {
 
         val allDefended = updatedPairs.all { it.isDefended }
         val defendedState = state.copy(
+            players = updatedPlayers.toList(),
             tablePairs = updatedPairs,
             currentTurnPlayerIndex = state.defenderIndex,
             gamePhase = if (allDefended) GamePhase.WAITING_FOR_THROW_IN else GamePhase.DEFENDING,
@@ -287,6 +289,53 @@ class DurakEngine {
         }
     }
 
+    /** Redirect an unbeaten attack to the next active player in Transfer Durak. */
+    fun playTransferCard(state: DurakGameState, card: Card): DurakGameState {
+        if (state.isGameOver || state.gameMode != GameMode.PEREVODNOY ||
+            state.players.isEmpty() || state.defenderIndex !in state.players.indices ||
+            state.currentTurnPlayerIndex != state.defenderIndex || state.gamePhase != GamePhase.DEFENDING
+        ) return state
+
+        val oldDefenderIndex = state.defenderIndex
+        val defender = state.players[oldDefenderIndex]
+        if (defender.hand.none { it.id == card.id }) return state
+        if (!canTransferWith(card, state.tablePairs)) {
+            return state.copy(lastActionMessage = "Can only transfer an unbeaten matching-rank attack.")
+        }
+
+        val nextDefenderIndex = getNextActivePlayerIndex(state.players, oldDefenderIndex)
+        if (nextDefenderIndex == oldDefenderIndex || nextDefenderIndex == state.attackerIndex) {
+            return state.copy(lastActionMessage = "No eligible player is left to transfer to.")
+        }
+        val nextDefender = state.players[nextDefenderIndex]
+        val pairsAfterTransfer = state.tablePairs.size + 1
+        if (nextDefender.hand.size < pairsAfterTransfer) {
+            return state.copy(lastActionMessage = "${nextDefender.name} does not hold enough cards to defend the transfer.")
+        }
+
+        val updatedPlayers = state.players.toMutableList()
+        updatedPlayers[oldDefenderIndex] = defender.copy(
+            hand = defender.hand.filterNot { it.id == card.id }
+        )
+        val newLogs = state.gameLog +
+            "${defender.name} transfers with ${card.rank.label}${card.suit.symbol} — ${nextDefender.name} must defend."
+
+        return state.copy(
+            players = updatedPlayers.toList(),
+            tablePairs = state.tablePairs + TablePair(attackCard = card),
+            attackerIndex = oldDefenderIndex,
+            defenderIndex = nextDefenderIndex,
+            currentTurnPlayerIndex = nextDefenderIndex,
+            defenderHandSizeAtRoundStart = nextDefender.hand.size,
+            attackParticipants = setOf(oldDefenderIndex),
+            gamePhase = GamePhase.DEFENDING,
+            throwInPasses = emptySet(),
+            lastThrowInActorIndex = null,
+            gameLog = newLogs,
+            lastActionMessage = "${nextDefender.name} must defend against the transferred ${card.rank.label}${card.suit.symbol}."
+        )
+    }
+
     fun executeBitoClear(state: DurakGameState): DurakGameState {
         if (state.isGameOver || state.players.size < 2 ||
             state.attackerIndex !in state.players.indices || state.defenderIndex !in state.players.indices ||
@@ -299,16 +348,18 @@ class DurakEngine {
         val newLogs = state.gameLog.toMutableList()
         newLogs.add("Bito! ${state.tablePairs.size} pairs cleared.")
 
-        val (nextPlayers, nextDeck) = replenishHands(state.players, state.deck, state.attackerIndex, state.defenderIndex, state.trumpSuit)
+        val (replenishedPlayers, nextDeck) = replenishHands(
+            state.players, state.deck, state.attackerIndex, state.defenderIndex, state.trumpSuit, state.attackParticipants
+        )
 
         // Winner check
-        val winners = checkWinners(nextPlayers, nextDeck)
-        val isOver = winners.size >= nextPlayers.size - 1
-        val isDraw = isOver && winners.size == nextPlayers.size
+        val (nextPlayers, winners) = checkWinners(replenishedPlayers, nextDeck)
+        val activePlayerCount = nextPlayers.count { !it.isOut }
+        val isOver = activePlayerCount <= 1
+        val isDraw = isOver && activePlayerCount == 0
         val durak = if (isOver && !isDraw) nextPlayers.firstOrNull { !it.isOut }?.name else null
 
         // Next turn: defender becomes attacker if they successfully defended!
-        val activeIndices = nextPlayers.indices.filter { !nextPlayers[it].isOut }
         val oldDefIndex = state.defenderIndex
         val nextAttackerIndex = if (nextPlayers[oldDefIndex].isOut) {
             getNextActivePlayerIndex(nextPlayers, oldDefIndex)
@@ -323,6 +374,7 @@ class DurakEngine {
             tablePairs = emptyList(),
             defenderHandSizeAtRoundStart = nextPlayers.getOrNull(nextDefenderIndex)?.hand?.size ?: 6,
             bitoCount = newBitoCount,
+            attackParticipants = emptySet(),
             attackerIndex = nextAttackerIndex,
             defenderIndex = nextDefenderIndex,
             currentTurnPlayerIndex = nextAttackerIndex,
@@ -357,17 +409,22 @@ class DurakEngine {
             pair.defenseCard?.let { cardsTaken.add(it) }
         }
 
-        defender.hand.addAll(cardsTaken)
-        sortHand(defender.hand, state.trumpSuit)
+        val playersWithTakenCards = state.players.toMutableList()
+        playersWithTakenCards[state.defenderIndex] = defender.copy(
+            hand = sortHand(defender.hand + cardsTaken, state.trumpSuit)
+        )
 
         val newLogs = state.gameLog.toMutableList()
         newLogs.add("${defender.name} takes ${cardsTaken.size} cards from table!")
 
-        val (nextPlayers, nextDeck) = replenishHands(state.players, state.deck, state.attackerIndex, state.defenderIndex, state.trumpSuit)
+        val (replenishedPlayers, nextDeck) = replenishHands(
+            playersWithTakenCards, state.deck, state.attackerIndex, state.defenderIndex, state.trumpSuit, state.attackParticipants
+        )
 
-        val winners = checkWinners(nextPlayers, nextDeck)
-        val isOver = winners.size >= nextPlayers.size - 1
-        val isDraw = isOver && winners.size == nextPlayers.size
+        val (nextPlayers, winners) = checkWinners(replenishedPlayers, nextDeck)
+        val activePlayerCount = nextPlayers.count { !it.isOut }
+        val isOver = activePlayerCount <= 1
+        val isDraw = isOver && activePlayerCount == 0
         val durak = if (isOver && !isDraw) nextPlayers.firstOrNull { !it.isOut }?.name else null
 
         // Defender took cards, so they skip their turn to attack. The player AFTER defender attacks next!
@@ -379,6 +436,7 @@ class DurakEngine {
             deck = nextDeck,
             tablePairs = emptyList(),
             defenderHandSizeAtRoundStart = nextPlayers.getOrNull(nextDefenderIndex)?.hand?.size ?: 6,
+            attackParticipants = emptySet(),
             attackerIndex = nextAttackerIndex,
             defenderIndex = nextDefenderIndex,
             currentTurnPlayerIndex = nextAttackerIndex,
@@ -504,43 +562,45 @@ class DurakEngine {
         deck: List<Card>,
         attackerIdx: Int,
         defenderIdx: Int,
-        trumpSuit: Suit
+        trumpSuit: Suit,
+        attackParticipants: Set<Int>
     ): Pair<List<Player>, List<Card>> {
         val mutableDeck = deck.toMutableList()
+        val updatedPlayers = players.toMutableList()
 
-        // Replenish in order: Attacker first, then secondary players, then defender last!
+        // Replenish the principal attacker, joined attackers clockwise, then the defender last.
         val order = mutableListOf<Int>()
-        order.add(attackerIdx)
-        for (i in players.indices) {
-            if (i != attackerIdx && i != defenderIdx) order.add(i)
+        if (attackerIdx in players.indices) order.add(attackerIdx)
+        for (offset in 1 until players.size) {
+            val playerIndex = (attackerIdx + offset) % players.size
+            if (playerIndex != defenderIdx && playerIndex in attackParticipants) {
+                order.add(playerIndex)
+            }
         }
-        order.add(defenderIdx)
+        if (defenderIdx in players.indices) order.add(defenderIdx)
 
         for (idx in order) {
-            val p = players[idx]
+            val p = updatedPlayers[idx]
             if (p.isOut) continue
-            while (p.hand.size < 6 && mutableDeck.isNotEmpty()) {
-                p.hand.add(mutableDeck.removeAt(0))
+            val hand = p.hand.toMutableList()
+            while (hand.size < 6 && mutableDeck.isNotEmpty()) {
+                hand.add(mutableDeck.removeAt(0))
             }
-            sortHand(p.hand, trumpSuit)
+            updatedPlayers[idx] = p.copy(hand = sortHand(hand, trumpSuit))
         }
 
-        return Pair(players, mutableDeck)
+        return Pair(updatedPlayers.toList(), mutableDeck.toList())
     }
 
-    private fun checkWinners(players: List<Player>, deck: List<Card>): List<String> {
-        val winners = mutableListOf<String>()
-        if (deck.isEmpty()) {
-            for (p in players) {
-                if (p.hand.isEmpty()) {
-                    p.isOut = true
-                    if (!winners.contains(p.name)) {
-                        winners.add(p.name)
-                    }
-                }
+    private fun checkWinners(players: List<Player>, deck: List<Card>): Pair<List<Player>, List<String>> {
+        val finishedPlayers = if (deck.isEmpty()) {
+            players.map { player ->
+                if (!player.isOut && player.hand.isEmpty()) player.copy(isOut = true) else player
             }
+        } else {
+            players.toList()
         }
-        return winners
+        return finishedPlayers to finishedPlayers.filter { it.isOut }.map { it.name }
     }
 
     private fun getNextActivePlayerIndex(players: List<Player>, currentIndex: Int): Int {

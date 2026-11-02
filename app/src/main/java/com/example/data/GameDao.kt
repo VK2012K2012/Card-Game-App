@@ -24,6 +24,15 @@ interface GameDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatchHistory(match: MatchHistoryEntity)
 
+    @Query("SELECT * FROM active_match WHERE id = 1")
+    suspend fun getActiveMatch(): ActiveMatchEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveActiveMatch(match: ActiveMatchEntity)
+
+    @Query("DELETE FROM active_match WHERE id = 1")
+    suspend fun clearActiveMatch()
+
     @Query("DELETE FROM match_history")
     suspend fun clearMatchHistory()
 

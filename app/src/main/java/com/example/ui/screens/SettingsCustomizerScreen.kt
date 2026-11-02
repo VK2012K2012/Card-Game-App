@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
 package com.example.ui.screens
 
 import android.content.Intent
@@ -7,112 +5,98 @@ import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
 import com.example.NavigationAppearance
-import com.example.ui.components.BlurIntensity
-import com.example.ui.components.EnhancedTableFeltBackground
-import com.example.ui.components.blurEffect
-import com.example.ui.components.frostedGlass
-import com.example.ui.theme.AppShapes
+import com.example.ui.theme.AppVisualStyle
 import com.example.ui.theme.CustomPalette
-import com.example.ui.theme.MotionTokens
+import com.example.ui.theme.ExpressiveCorners
 import com.example.ui.theme.PaletteCatalog
 import com.example.ui.theme.PaletteOption
-import com.example.ui.theme.ShapeTokens
 import com.example.ui.theme.ThemeMode
 import com.example.ui.components.ExpressiveBackButton
 import com.example.ui.theme.hsvColorForThemeEditor
@@ -120,104 +104,66 @@ import com.example.ui.theme.palettePreviewTones
 import com.example.ui.theme.previewOnColor
 import com.example.update.GitHubReleaseInfo
 import com.example.update.GitHubUpdateChecker
-import kotlinx.coroutines.delay
+import com.example.update.GITHUB_RELEASES_PAGE_URL
 import kotlinx.coroutines.launch
 
 private const val SOURCE_URL = "https://github.com/VK2012K2012/Card-Game-App"
 
-/**
- * Main Settings Screen
- * M3E Compliant with animated entries, blur effects, and proper hierarchy
- */
 @Composable
 fun SettingsCustomizerScreen(
     onOpenDesign: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
     val listState = rememberLazyListState()
-    val scrollState = rememberScrollState()
 
-    EnhancedTableFeltBackground {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .blurEffect(BlurIntensity.SUBTLE),
-            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                Column(
-                    modifier = Modifier.statusBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "SETTINGS",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.1.sp
-                    )
-                    Text(
-                        text = "Make it yours.",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-            }
-            
-            item {
-                SettingsCard {
-                    SettingsEntry(
-                        icon = Icons.Default.Tune,
-                        title = "Design customization",
-                        subtitle = "Colors, mode, navigation and type.",
-                        index = 0,
-                        count = 2,
-                        onClick = onOpenDesign,
-                    )
-                    SettingsEntry(
-                        icon = Icons.Default.Info,
-                        title = "About app",
-                        subtitle = "Version and updates.",
-                        index = 1,
-                        count = 2,
-                        onClick = onOpenAbout,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Settings Card with M3E styling and blur
- */
-@Composable
-private fun SettingsCard(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.settingsCard,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp,
-        shadowElevation = 1.dp
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            content()
+        item {
+            Column(
+                modifier = Modifier.statusBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "SETTINGS",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp
+                )
+                Text(
+                    text = "Make it yours.",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                SettingsEntry(
+                    icon = Icons.Default.Tune,
+                    title = "Design customization",
+                    subtitle = "Colors, mode, navigation and type.",
+                    index = 0,
+                    count = 2,
+                    onClick = onOpenDesign,
+                )
+                SettingsEntry(
+                    icon = Icons.Default.Info,
+                    title = "About app",
+                    subtitle = "Version and updates.",
+                    index = 1,
+                    count = 2,
+                    onClick = onOpenAbout,
+                )
+            }
         }
     }
 }
 
-/**
- * Design Customization Screen
- * M3E Compliant with animated transitions, blur effects, and proper color editing
- */
 @Composable
 fun DesignCustomizationScreen(
     currentMode: ThemeMode,
@@ -226,6 +172,7 @@ fun DesignCustomizationScreen(
     currentPalette: PaletteOption,
     currentCustom: CustomPalette?,
     currentAppearance: NavigationAppearance,
+    currentVisualStyle: AppVisualStyle,
     useGoogleSansFlex: Boolean,
     onModeChange: (ThemeMode) -> Unit,
     onSystemThemeChange: (Boolean) -> Unit,
@@ -233,12 +180,11 @@ fun DesignCustomizationScreen(
     onPaletteChange: (PaletteOption) -> Unit,
     onCustomApply: (CustomPalette) -> Unit,
     onAppearanceChange: (NavigationAppearance) -> Unit,
+    onVisualStyleChange: (AppVisualStyle) -> Unit,
     onGoogleSansFlexChange: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
-    var showCustom by remember(currentCustom, currentPalette.id) { 
-        mutableStateOf(currentCustom != null) 
-    }
+    var showCustom by remember(currentCustom, currentPalette.id) { mutableStateOf(currentCustom != null) }
     val primarySeed = remember(currentCustom, currentPalette.id) {
         currentCustom?.primary?.hsvForSettings() ?: currentPalette.seed.hsvForSettings()
     }
@@ -253,257 +199,273 @@ fun DesignCustomizationScreen(
     var primaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(primarySeed) }
     var secondaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(secondarySeed) }
     var tertiaryColor by remember(currentCustom, currentPalette.id) { mutableStateOf(tertiarySeed) }
-    val customPalette = CustomPalette(
-        primaryColor.toColor(), 
-        secondaryColor.toColor(), 
-        tertiaryColor.toColor()
-    )
+    val customPalette = CustomPalette(primaryColor.toColor(), secondaryColor.toColor(), tertiaryColor.toColor())
 
-    EnhancedTableFeltBackground {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .blurEffect(BlurIntensity.SUBTLE),
-            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            item {
-                SettingsHeader(
-                    eyebrow = "DESIGN CUSTOMIZATION",
-                    title = "Make it yours.",
-                    onBack = onBack
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        item {
+            SettingsHeader(eyebrow = "DESIGN CUSTOMIZATION", title = "Make it yours.", onBack = onBack)
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SettingsSectionLabel(icon = Icons.Default.Palette, title = "Visual style")
+                Text(
+                    "Choose the look used across the app. One UI-inspired is recreated with standard Android components.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            
-            item {
-                SettingsCard {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        SettingsSectionLabel(
-                            icon = Icons.Default.DarkMode, 
-                            title = "Appearance"
-                        )
-                        Text(
-                            "Choose the theme mode and one accent color.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        
-                        // System theme toggle
-                        SettingsListItem(
-                            title = "Use system theme",
-                            subtitle = "Follow your phone's light or dark mode",
-                            index = 0,
-                            count = 1,
-                            trailingContent = {
-                                AppearanceSwitch(
-                                    checked = systemTheme,
-                                    onCheckedChange = onSystemThemeChange,
-                                )
-                            },
-                            onClick = { onSystemThemeChange(!systemTheme) }
-                        )
-                        
-                        // Custom vs Preset palette
-                        AnimatedContent(
-                            targetState = showCustom,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(MotionTokens.Responsive)) + 
-                                    slideInHorizontally(animationSpec = tween(MotionTokens.Responsive)) { width -> 
-                                        width / 2 
-                                    }).togetherWith(
-                                    fadeOut(animationSpec = tween(MotionTokens.Quick)) + 
-                                        slideOutHorizontally(animationSpec = tween(MotionTokens.Quick)) { width -> 
-                                            -width / 2 
-                                        }
-                                )
-                            },
-                            label = "accentColorModeTransition",
-                        ) { customOpen ->
-                            if (customOpen) {
-                                CustomSettingsPaletteEditor(
-                                    primary = primaryColor,
-                                    secondary = secondaryColor,
-                                    tertiary = tertiaryColor,
-                                    onPrimaryChange = { primaryColor = it },
-                                    onSecondaryChange = { secondaryColor = it },
-                                    onTertiaryChange = { tertiaryColor = it },
-                                    palette = customPalette,
-                                    onChoosePreset = { showCustom = false },
-                                    onApply = { onCustomApply(customPalette) },
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        "Choose one color. You can create your own below.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    LazyVerticalGrid(
-                                        columns = GridCells.Fixed(4),
-                                        modifier = Modifier.height(180.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                                    ) {
-                                        itemsIndexed(
-                                            PaletteCatalog.all, 
-                                            key = { _, option -> option.id 
-                                        }) { index, option ->
-                                            SettingsPaletteTile(
-                                                option = option,
-                                                selected = currentCustom == null && currentPalette.id == option.id,
-                                                hasSelection = currentCustom == null,
-                                                entranceIndex = index,
-                                                onClick = { onPaletteChange(option) },
-                                            )
-                                        }
-                                    }
-                                    Button(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        onClick = { showCustom = true },
-                                        colors = ButtonDefaults.filledTonalButtonColors(),
-                                        shape = AppShapes.button
-                                    ) { 
-                                        Text("Create custom palette") 
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // App theme selection
-                        Text(
-                            "App theme",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant 
-                                   else MaterialTheme.colorScheme.onSurface,
-                        )
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val manualModes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
-                            manualModes.forEachIndexed { index, mode ->
-                                SegmentedButton(
-                                    selected = !systemTheme && currentMode == mode,
-                                    enabled = !systemTheme,
-                                    onClick = { onModeChange(mode) },
-                                    shape = SegmentedButtonDefaults.itemShape(index, manualModes.size),
-                                ) { 
-                                    Text(
-                                        mode.title, 
-                                        style = MaterialTheme.typography.labelLarge
-                                    ) 
-                                }
-                            }
-                        }
-                        
-                        // AMOLED black toggle
-                        SettingsListItem(
-                            title = "AMOLED black",
-                            subtitle = if (systemTheme) "Turn off system theme first" else "Black background with dark-gray surfaces",
-                            index = 0,
-                            count = 1,
-                            trailingContent = {
-                                AppearanceSwitch(
-                                    checked = amoledBlack,
-                                    onCheckedChange = if (systemTheme) null else onAmoledBlackChange,
-                                    enabled = !systemTheme,
-                                )
-                            },
-                            onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) })
-                        )
-                    }
-                }
-            }
-            
-            item {
-                SettingsCard {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        SettingsSectionLabel(
-                            icon = Icons.Default.Navigation, 
-                            title = "Navigation"
-                        )
-                        Text(
-                            "Choose how the bottom navigation bar looks.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            NavigationAppearanceListRow(
-                                title = "Material 3 Expressive",
-                                subtitle = "Labeled bottom navigation",
-                                selected = currentAppearance == NavigationAppearance.STANDARD,
-                                index = 0,
-                                count = 2,
-                                onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) },
-                            )
-                            NavigationAppearanceListRow(
-                                title = "Compact",
-                                subtitle = "Icons-only bottom navigation",
-                                selected = currentAppearance == NavigationAppearance.COMPACT,
-                                index = 1,
-                                count = 2,
-                                onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) },
-                            )
-                        }
-                    }
-                }
-            }
-            
-            item {
-                SettingsCard {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        SettingsSectionLabel(
-                            icon = Icons.Default.TextFields, 
-                            title = "Typography"
-                        )
-                        SettingsListItem(
-                            title = "Google Sans Flex",
-                            subtitle = "Google variable font",
-                            index = 0,
-                            count = 1,
-                            trailingContent = { 
-                                Switch(
-                                    checked = useGoogleSansFlex, 
-                                    onCheckedChange = onGoogleSansFlexChange
-                                ) 
-                            },
-                            onClick = { onGoogleSansFlexChange(!useGoogleSansFlex) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    AppVisualStyle.entries.forEach { style ->
+                        DesignStyleChoiceCard(
+                            modifier = Modifier.weight(1f),
+                            style = style,
+                            selected = currentVisualStyle == style,
+                            onSelected = { onVisualStyleChange(style) },
                         )
                     }
                 }
             }
         }
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                    SettingsSectionLabel(icon = Icons.Default.DarkMode, title = "Appearance")
+                    Text(
+                        "Choose the theme mode and one accent color.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SegmentedListItem(
+                        onClick = { onSystemThemeChange(!systemTheme) },
+                        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        supportingContent = { Text("Follow your phone's light or dark mode") },
+                        trailingContent = {
+                            AppearanceSwitch(
+                                checked = systemTheme,
+                                onCheckedChange = onSystemThemeChange,
+                            )
+                        },
+                        content = { Text("Use system theme") },
+                    )
+                    if (!systemTheme) {
+                        Text("Accent color", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    AnimatedContent(
+                        targetState = showCustom,
+                        transitionSpec = {
+                            fadeIn(tween(180)) togetherWith fadeOut(tween(120)) using
+                                androidx.compose.animation.SizeTransform(clip = false)
+                        },
+                        label = "accentColorModeTransition",
+                    ) { customOpen ->
+                        if (customOpen) {
+                            CustomSettingsPaletteEditor(
+                                primary = primaryColor,
+                                secondary = secondaryColor,
+                                tertiary = tertiaryColor,
+                                onPrimaryChange = { primaryColor = it },
+                                onSecondaryChange = { secondaryColor = it },
+                                onTertiaryChange = { tertiaryColor = it },
+                                palette = customPalette,
+                                onChoosePreset = { showCustom = false },
+                                onApply = { onCustomApply(customPalette) },
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "Choose a ready-made table palette or create your own.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    PaletteCatalog.all.chunked(2).forEachIndexed { rowIndex, row ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            row.forEachIndexed { columnIndex, option ->
+                                                SettingsPaletteTile(
+                                                    modifier = Modifier.weight(1f),
+                                                    option = option,
+                                                    selected = currentCustom == null && currentPalette.id == option.id,
+                                                    hasSelection = currentCustom == null,
+                                                    entranceIndex = rowIndex * 2 + columnIndex,
+                                                    onClick = { onPaletteChange(option) },
+                                                )
+                                            }
+                                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                                Button(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { showCustom = true },
+                                    colors = ButtonDefaults.filledTonalButtonColors(),
+                                ) { Text("Create custom palette") }
+                            }
+                        }
+                    }
+                    }
+                    Text(
+                        "App theme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        val manualModes = listOf(ThemeMode.LIGHT, ThemeMode.DARK)
+                        manualModes.forEachIndexed { index, mode ->
+                            SegmentedButton(
+                                selected = !systemTheme && currentMode == mode,
+                                enabled = !systemTheme,
+                                onClick = { onModeChange(mode) },
+                                shape = SegmentedButtonDefaults.itemShape(index, manualModes.size),
+                            ) { Text(mode.title, style = MaterialTheme.typography.labelLarge) }
+                        }
+                    }
+                    SegmentedListItem(
+                        onClick = if (systemTheme) ({}) else ({ onAmoledBlackChange(!amoledBlack) }),
+                        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            headlineColor = if (systemTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        ),
+                        supportingContent = { Text(if (systemTheme) "Turn off system theme first" else "Black background with dark-gray surfaces") },
+                        trailingContent = {
+                            AppearanceSwitch(
+                                checked = amoledBlack,
+                                onCheckedChange = if (systemTheme) null else onAmoledBlackChange,
+                                enabled = !systemTheme,
+                            )
+                        },
+                        content = { Text("AMOLED black") },
+                    )
+                }
+        }
+        item {
+            SettingsSectionLabel(icon = Icons.Default.Navigation, title = "Navigation")
+        }
+        item {
+            Text(
+                "Choose whether navigation shows destination labels.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+                NavigationAppearanceListRow(
+                    title = "Labeled",
+                    subtitle = "Show destination names",
+                    selected = currentAppearance == NavigationAppearance.STANDARD,
+                    index = 0,
+                    count = 2,
+                    onSelected = { onAppearanceChange(NavigationAppearance.STANDARD) },
+                )
+                NavigationAppearanceListRow(
+                    title = "Compact",
+                    subtitle = "Use icons without visible labels",
+                    selected = currentAppearance == NavigationAppearance.COMPACT,
+                    index = 1,
+                    count = 2,
+                    onSelected = { onAppearanceChange(NavigationAppearance.COMPACT) },
+                )
+            }
+        }
+        item {
+            SettingsSectionLabel(icon = Icons.Default.TextFields, title = "Typography")
+        }
+        item {
+            SegmentedListItem(
+                onClick = { onGoogleSansFlexChange(!useGoogleSansFlex) },
+                shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                supportingContent = { Text("Google variable font") },
+                trailingContent = { Switch(checked = useGoogleSansFlex, onCheckedChange = onGoogleSansFlexChange) },
+                content = { Text("Google Sans Flex") },
+            )
+        }
     }
 }
 
-/**
- * Settings Section Label with icon badge
- */
+@Composable
+private fun DesignStyleChoiceCard(
+    modifier: Modifier,
+    style: AppVisualStyle,
+    selected: Boolean,
+    onSelected: () -> Unit,
+) {
+    val expressive = style == AppVisualStyle.MATERIAL_3_EXPRESSIVE
+    val previewCorner = if (expressive) 18.dp else 10.dp
+    Surface(
+        modifier = modifier.selectable(
+            selected = selected,
+            onClick = onSelected,
+            role = Role.RadioButton,
+        ),
+        shape = RoundedCornerShape(if (expressive) 26.dp else 18.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = style.title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                RadioButton(selected = selected, onClick = null)
+            }
+            Text(
+                text = style.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                minLines = 2,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(previewCorner))
+                    .background(MaterialTheme.colorScheme.surface),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    modifier = Modifier.weight(1f).height(24.dp),
+                    shape = RoundedCornerShape(if (expressive) 16.dp else 8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {}
+                Surface(
+                    modifier = Modifier.weight(0.55f).height(24.dp),
+                    shape = RoundedCornerShape(if (expressive) 16.dp else 8.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                ) {}
+            }
+        }
+    }
+}
+
 @Composable
 private fun SettingsSectionLabel(icon: ImageVector, title: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Surface(
-            shape = AppShapes.badge,
+            shape = MaterialTheme.shapes.small,
             color = MaterialTheme.colorScheme.secondaryContainer,
         ) {
             Icon(
@@ -513,19 +475,13 @@ private fun SettingsSectionLabel(icon: ImageVector, title: String) {
                 modifier = Modifier.padding(6.dp).size(18.dp),
             )
         }
-        Text(
-            title, 
-            style = MaterialTheme.typography.titleLarge, 
-            fontWeight = FontWeight.Bold
-        )
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     }
 }
 
-/**
- * Settings Palette Tile with M3E styling and animations
- */
 @Composable
 private fun SettingsPaletteTile(
+    modifier: Modifier = Modifier,
     option: PaletteOption,
     selected: Boolean,
     hasSelection: Boolean,
@@ -534,101 +490,122 @@ private fun SettingsPaletteTile(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = tween(MotionTokens.Responsive, easing = MotionTokens.StandardEasing),
-        label = "paletteTileScale"
+    var entered by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(entranceIndex * 35L)
+        entered = true
+    }
+
+    val emphasis by animateFloatAsState(
+        targetValue = if (!hasSelection || selected) 1f else 0.86f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "paletteTileEmphasis",
     )
-    
-    val elevation by animateDpAsState(
-        targetValue = if (selected) 4.dp else 2.dp,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "paletteTileElevation"
+    val entryScale by animateFloatAsState(
+        targetValue = if (entered) 1f else 0.82f,
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        label = "paletteTileEntryScale",
     )
-    
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "paletteTilePressScale",
+    )
+    val corner by animateDpAsState(
+        targetValue = if (pressed) 22.dp else if (selected) 26.dp else 20.dp,
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        label = "paletteTileCorner",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "paletteTileContainer",
+    )
     val borderColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary 
-                      else MaterialTheme.colorScheme.outlineVariant,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "paletteTileBorder"
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "paletteTileBorder",
+    )
+    val previewScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "palettePreviewScale",
     )
 
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(104.dp)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = entryScale * pressScale
+                scaleY = entryScale * pressScale
+                alpha = if (entered) emphasis else 0f
             }
-            .clip(AppShapes.paletteTile)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
-            )
-            .then(
-                if (hasSelection) {
-                    Modifier.background(
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        shape = AppShapes.paletteTile
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .frostedGlass(
-                blurRadius = if (selected) 16f else 8f,
-                gradientColors = listOf(
-                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f)
-                )
+                onClick = onClick,
             ),
-        contentAlignment = Alignment.Center
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(corner),
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(2.dp, borderColor),
     ) {
-        Canvas(modifier = Modifier.size(48.dp)) {
-            val tones = palettePreviewTones(option)
-            val sweep = 360f / tones.size
-            tones.forEachIndexed { index, color ->
-                drawArc(
-                    color = color,
-                    startAngle = index * sweep - 90f,
-                    sweepAngle = sweep,
-                    useCenter = true,
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .graphicsLayer {
+                            scaleX = previewScale
+                            scaleY = previewScale
+                        }
+                        .clip(CircleShape),
+                ) {
+                    val tones = palettePreviewTones(option)
+                    val sweep = 360f / tones.size
+                    tones.forEachIndexed { index, color ->
+                        drawArc(
+                            color = color,
+                            startAngle = index * sweep - 90f,
+                            sweepAngle = sweep,
+                            useCenter = true,
+                        )
+                    }
+                }
+                Text(
+                    text = option.title,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        
-        if (selected && hasSelection) {
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
                 visible = selected,
-                enter = fadeIn(tween(MotionTokens.Quick)) + 
-                    slideInHorizontally(
-                        initialOffsetX = { fullWidth -> fullWidth / 2 },
-                        animationSpec = tween(MotionTokens.Responsive),
-                    ),
-                exit = fadeOut(tween(MotionTokens.Quick))
+                enter = fadeIn(tween(160)) + androidx.compose.animation.scaleIn(initialScale = 0.6f, animationSpec = tween(180)),
+                exit = fadeOut(tween(100)) + androidx.compose.animation.scaleOut(targetScale = 0.6f, animationSpec = tween(120)),
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = previewOnColor(option.seed),
-                    shadowElevation = 4.dp
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Selected",
-                        modifier = Modifier.padding(6.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.padding(5.dp).size(16.dp))
                 }
             }
         }
     }
 }
 
-/**
- * Custom Settings Palette Editor
- */
 @Composable
 private fun CustomSettingsPaletteEditor(
     primary: HsvControlState,
@@ -641,168 +618,171 @@ private fun CustomSettingsPaletteEditor(
     onChoosePreset: () -> Unit,
     onApply: () -> Unit,
 ) {
-    var selectedChannel by remember { mutableStateOf(CustomColorChannel.PRIMARY) }
-    val updateActive: (CustomColorChannel, HsvControlState) -> Unit = { channel, state ->
-        when (channel) {
-            CustomColorChannel.PRIMARY -> onPrimaryChange(state)
-            CustomColorChannel.SECONDARY -> onSecondaryChange(state)
-            CustomColorChannel.TERTIARY -> onTertiaryChange(state)
-        }
-    }
-    
-    val selectedState = when (selectedChannel) {
+    var activeChannel by remember { mutableStateOf(CustomColorChannel.PRIMARY) }
+    val activeState = when (activeChannel) {
         CustomColorChannel.PRIMARY -> primary
         CustomColorChannel.SECONDARY -> secondary
         CustomColorChannel.TERTIARY -> tertiary
     }
-    val selectedColor = selectedState.toColor()
+    val activeColor = activeState.toColor()
 
-    Column(
+    fun updateActive(update: (HsvControlState) -> HsvControlState) {
+        val next = update(activeState)
+        when (activeChannel) {
+            CustomColorChannel.PRIMARY -> onPrimaryChange(next)
+            CustomColorChannel.SECONDARY -> onSecondaryChange(next)
+            CustomColorChannel.TERTIARY -> onTertiaryChange(next)
+        }
+    }
+
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        shape = ExpressiveCorners.ExtraExtraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onChoosePreset,
-            colors = ButtonDefaults.outlinedButtonColors(),
-            shape = AppShapes.button
-        ) { Text("Choose from presets") }
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TextButton(onClick = onChoosePreset) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Choose preset colors")
+            }
+            Text("Custom colors", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Tap a color below, then adjust it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             CustomColorRoleRow(
                 label = "Primary",
                 color = primary.toColor(),
-                selected = selectedChannel == CustomColorChannel.PRIMARY,
-                onClick = { selectedChannel = CustomColorChannel.PRIMARY }
+                selected = activeChannel == CustomColorChannel.PRIMARY,
+                onClick = { activeChannel = CustomColorChannel.PRIMARY },
             )
             CustomColorRoleRow(
                 label = "Secondary",
                 color = secondary.toColor(),
-                selected = selectedChannel == CustomColorChannel.SECONDARY,
-                onClick = { selectedChannel = CustomColorChannel.SECONDARY }
+                selected = activeChannel == CustomColorChannel.SECONDARY,
+                onClick = { activeChannel = CustomColorChannel.SECONDARY },
             )
             CustomColorRoleRow(
                 label = "Tertiary",
                 color = tertiary.toColor(),
-                selected = selectedChannel == CustomColorChannel.TERTIARY,
-                onClick = { selectedChannel = CustomColorChannel.TERTIARY }
+                selected = activeChannel == CustomColorChannel.TERTIARY,
+                onClick = { activeChannel = CustomColorChannel.TERTIARY },
             )
-        }
-        
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                "${selectedChannel.title} controls",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            SettingsColorSlider(
-                label = "Hue",
-                value = selectedState.hue,
-                color = selectedColor,
-                valueRange = 0f..360f,
-                onValueChange = { hue -> 
-                    updateActive(selectedChannel, selectedState.copy(hue = hue)) 
+            AnimatedContent(
+                targetState = activeChannel,
+                transitionSpec = {
+                    (fadeIn(tween(180)) + androidx.compose.animation.slideInVertically(
+                        initialOffsetY = { it / 4 },
+                        animationSpec = tween(220),
+                    )) togetherWith
+                        (fadeOut(tween(120)) + androidx.compose.animation.slideOutVertically(
+                            targetOffsetY = { -it / 4 },
+                            animationSpec = tween(160),
+                        ))
                 },
-            )
-            SettingsColorSlider(
-                label = "Saturation",
-                value = selectedState.saturation,
-                color = selectedColor,
-                valueRange = 0f..1f,
-                onValueChange = { saturation -> 
-                    updateActive(selectedChannel, selectedState.copy(saturation = saturation)) 
-                },
-            )
-            SettingsColorSlider(
-                label = "Brightness",
-                value = selectedState.value,
-                color = selectedColor,
-                valueRange = 0f..1f,
-                onValueChange = { brightness -> 
-                    updateActive(selectedChannel, selectedState.copy(value = brightness)) 
-                },
-            )
-        }
-        
-        val lightPreview = com.example.ui.theme.lightSchemeForCustom(palette)
-        val darkPreview = com.example.ui.theme.darkSchemeForCustom(palette)
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Surface(
-                Modifier.weight(1f),
-                shape = AppShapes.previewCard,
-                color = lightPreview.primaryContainer,
-                contentColor = lightPreview.onPrimaryContainer,
-            ) {
-                Text(
-                    "Light preview",
-                    Modifier.padding(vertical = 12.dp),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+                label = "customColorRoleTransition",
+            ) { channel ->
+                val selectedState = when (channel) {
+                    CustomColorChannel.PRIMARY -> primary
+                    CustomColorChannel.SECONDARY -> secondary
+                    CustomColorChannel.TERTIARY -> tertiary
+                }
+                val selectedColor = selectedState.toColor()
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "${channel.title} controls",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    SettingsColorSlider(
+                        label = "Hue",
+                        value = selectedState.hue,
+                        color = selectedColor,
+                        valueRange = 0f..360f,
+                        onValueChange = { hue -> updateActive { state -> state.copy(hue = hue) } },
+                    )
+                    SettingsColorSlider(
+                        label = "Saturation",
+                        value = selectedState.saturation,
+                        color = selectedColor,
+                        valueRange = 0f..1f,
+                        onValueChange = { saturation -> updateActive { state -> state.copy(saturation = saturation) } },
+                    )
+                    SettingsColorSlider(
+                        label = "Brightness",
+                        value = selectedState.value,
+                        color = selectedColor,
+                        valueRange = 0f..1f,
+                        onValueChange = { brightness -> updateActive { state -> state.copy(value = brightness) } },
+                    )
+                }
             }
-            Surface(
-                Modifier.weight(1f),
-                shape = AppShapes.previewCard,
-                color = darkPreview.primaryContainer,
-                contentColor = darkPreview.onPrimaryContainer,
-            ) {
-                Text(
-                    "Dark preview",
-                    Modifier.padding(vertical = 12.dp),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+            val lightPreview = com.example.ui.theme.lightSchemeForCustom(palette)
+            val darkPreview = com.example.ui.theme.darkSchemeForCustom(palette)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(
+                    Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.medium,
+                    color = lightPreview.primaryContainer,
+                    contentColor = lightPreview.onPrimaryContainer,
+                ) {
+                    Text(
+                        "Light preview",
+                        Modifier.padding(vertical = 12.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Surface(
+                    Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.medium,
+                    color = darkPreview.primaryContainer,
+                    contentColor = darkPreview.onPrimaryContainer,
+                ) {
+                    Text(
+                        "Dark preview",
+                        Modifier.padding(vertical = 12.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onApply,
+                colors = ButtonDefaults.filledTonalButtonColors(),
+            ) { Text("Save custom palette") }
         }
-        
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onApply,
-            colors = ButtonDefaults.filledTonalButtonColors(),
-            shape = AppShapes.button
-        ) { Text("Save custom palette") }
     }
 }
 
-/**
- * Custom Color Role Row
- */
 @Composable
-private fun RowScope.CustomColorRoleRow(
+private fun CustomColorRoleRow(
     label: String,
     color: Color,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (selected) color.copy(alpha = 0.18f) 
-                      else MaterialTheme.colorScheme.surfaceContainer,
-        animationSpec = tween(MotionTokens.Responsive),
+        targetValue = if (selected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainer,
+        animationSpec = tween(180),
         label = "customRoleContainer",
     )
     val borderColor by animateColorAsState(
         targetValue = if (selected) color else Color.Transparent,
-        animationSpec = tween(MotionTokens.Responsive),
+        animationSpec = tween(180),
         label = "customRoleBorder",
     )
-    
     Surface(
         modifier = Modifier
-            .weight(1f)
+            .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = AppShapes.colorRole,
+        shape = MaterialTheme.shapes.large,
         color = containerColor,
         border = androidx.compose.foundation.BorderStroke(2.dp, borderColor),
     ) {
@@ -811,18 +791,9 @@ private fun RowScope.CustomColorRoleRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(
-                Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(color)
-            )
+            Box(Modifier.size(30.dp).clip(CircleShape).background(color))
             Column(Modifier.weight(1f)) {
-                Text(
-                    label, 
-                    style = MaterialTheme.typography.labelLarge, 
-                    fontWeight = FontWeight.Bold
-                )
+                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 Text(
                     color.toHexString(),
                     style = MaterialTheme.typography.bodySmall,
@@ -834,9 +805,6 @@ private fun RowScope.CustomColorRoleRow(
     }
 }
 
-/**
- * Settings Color Slider with M3E styling
- */
 @Composable
 private fun SettingsColorSlider(
     label: String,
@@ -845,15 +813,8 @@ private fun SettingsColorSlider(
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 4.dp)
-    ) {
-        Text(
-            label, 
-            Modifier.width(86.dp), 
-            style = MaterialTheme.typography.labelLarge
-        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.width(86.dp), style = MaterialTheme.typography.labelLarge)
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -865,8 +826,7 @@ private fun SettingsColorSlider(
             ),
         )
         Text(
-            text = if (valueRange.endInclusive > 1f) "${value.toInt()}\u00b0" 
-                  else "${(value * 100f).toInt()}%",
+            text = if (valueRange.endInclusive > 1f) "${value.toInt()}°" else "${(value * 100f).toInt()}%",
             modifier = Modifier.width(44.dp),
             textAlign = TextAlign.End,
             style = MaterialTheme.typography.labelSmall,
@@ -875,28 +835,43 @@ private fun SettingsColorSlider(
     }
 }
 
-/**
- * Update Status for About Screen
- */
-private enum class UpdateStatus {
-    Idle,
-    Checking,
-    Downloading,
-    Available,
-    UpToDate,
-    Failed
+private enum class CustomColorChannel(val title: String) {
+    PRIMARY("Primary"),
+    SECONDARY("Secondary"),
+    TERTIARY("Tertiary"),
 }
 
-/**
- * About App Screen with M3E styling and blur
- */
+private data class HsvControlState(
+    val hue: Float,
+    val saturation: Float,
+    val value: Float,
+) {
+    fun toColor(): Color = hsvColorForThemeEditor(hue, saturation, value)
+}
+
+private fun Color.hsvForSettings(): HsvControlState {
+    val hsv = FloatArray(3)
+    AndroidColor.colorToHSV(toArgb(), hsv)
+    return HsvControlState(hsv[0], hsv[1], hsv[2])
+}
+
+private fun Color.toHexString(): String = "#%08X".format(toArgb())
+
+private sealed interface UpdateStatus {
+    data object Idle : UpdateStatus
+    data object Checking : UpdateStatus
+    data object Downloading : UpdateStatus
+    data class Available(val release: GitHubReleaseInfo) : UpdateStatus
+    data class UpToDate(val release: GitHubReleaseInfo) : UpdateStatus
+    data class Failed(val message: String) : UpdateStatus
+}
+
 @Composable
 fun AboutAppScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var updateStatus by remember { mutableStateOf<UpdateStatus>(UpdateStatus.Idle) }
-    var updateMessage by remember { mutableStateOf("") }
-    val busy = updateStatus == UpdateStatus.Checking || updateStatus == UpdateStatus.Downloading
+    val busy = updateStatus is UpdateStatus.Checking || updateStatus is UpdateStatus.Downloading
 
     fun checkForUpdates() {
         if (busy) return
@@ -904,19 +879,14 @@ fun AboutAppScreen(onBack: () -> Unit) {
             updateStatus = UpdateStatus.Checking
             runCatching { GitHubUpdateChecker.fetchLatestRelease() }
                 .onSuccess { release ->
-                    updateStatus = if (GitHubUpdateChecker.isNewerVersion(
-                        release.tagName, 
-                        BuildConfig.VERSION_NAME
-                    )) {
-                        UpdateStatus.Available
+                    updateStatus = if (GitHubUpdateChecker.isNewerVersion(release.tagName, BuildConfig.VERSION_NAME)) {
+                        UpdateStatus.Available(release)
                     } else {
-                        UpdateStatus.UpToDate
+                        UpdateStatus.UpToDate(release)
                     }
-                    updateMessage = release.tagName
                 }
                 .onFailure { error ->
-                    updateStatus = UpdateStatus.Failed
-                    updateMessage = error.message ?: "Could not check for updates."
+                    updateStatus = UpdateStatus.Failed(error.message ?: "Could not check for updates.")
                 }
         }
     }
@@ -938,124 +908,135 @@ fun AboutAppScreen(onBack: () -> Unit) {
                     GitHubUpdateChecker.launchInstaller(context, it)
                 }
             }.onFailure { error ->
-                updateStatus = UpdateStatus.Failed
-                updateMessage = error.message ?: "Could not download the update."
+                updateStatus = UpdateStatus.Failed(error.message ?: "Could not download the update.")
             }
         }
     }
 
-    EnhancedTableFeltBackground {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .blurEffect(BlurIntensity.SUBTLE),
-            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            SettingsHeader(
+                eyebrow = "ABOUT APP",
+                title = "Card Game Hub.",
+                onBack = onBack
+            )
+        }
+        item {
+            AnimatedSettingsEntry(
+                icon = Icons.Default.Refresh,
+                title = "Check for updates",
+                subtitle = when (val status = updateStatus) {
+                    UpdateStatus.Idle -> "Look for a newer GitHub release."
+                    UpdateStatus.Checking -> "Checking GitHub releases…"
+                    UpdateStatus.Downloading -> "Downloading the update…"
+                    is UpdateStatus.Available -> "Version ${status.release.tagName} is available."
+                    is UpdateStatus.UpToDate -> GitHubUpdateChecker.upToDateMessage(
+                        BuildConfig.VERSION_NAME,
+                        status.release.tagName,
+                    )
+                    is UpdateStatus.Failed -> status.message
+                },
+                onClick = ::checkForUpdates,
+                trailing = if (busy) Icons.Default.Refresh else Icons.AutoMirrored.Filled.ArrowForward,
+                busy = busy,
+            )
+        }
+        if (updateStatus is UpdateStatus.Checking || updateStatus is UpdateStatus.Downloading) {
             item {
-                SettingsHeader(
-                    eyebrow = "ABOUT APP",
-                    title = "Card Game Hub.",
-                    onBack = onBack
-                )
-            }
-            
-            item {
-                SettingsCard {
-                    AnimatedSettingsEntry(
-                        icon = Icons.Default.Refresh,
-                        title = "Check for updates",
-                        subtitle = when (updateStatus) {
-                            UpdateStatus.Idle -> "Look for a newer GitHub release."
-                            UpdateStatus.Checking -> "Checking GitHub releases\u2026"
-                            UpdateStatus.Downloading -> "Downloading the update\u2026"
-                            UpdateStatus.Available -> "Version $updateMessage is available."
-                            UpdateStatus.UpToDate -> "You have the latest published version."
-                            UpdateStatus.Failed -> updateMessage
-                        },
-                        onClick = ::checkForUpdates,
-                        trailing = if (busy) Icons.Default.Refresh 
-                                  else Icons.AutoMirrored.Filled.ArrowForward,
-                        busy = busy,
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(
+                        text = if (updateStatus is UpdateStatus.Checking) "Checking GitHub…" else "Downloading APK…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            
-            if (busy) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Text(
-                            text = if (updateStatus == UpdateStatus.Checking) 
-                                "Checking GitHub\u2026" else "Downloading APK\u2026",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-            
+        }
+        val available = (updateStatus as? UpdateStatus.Available)?.release
+        if (available != null) {
             item {
-                SettingsCard {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = ExpressiveCorners.ExtraExtraLarge,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        Text(available.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(
-                            "Version ${BuildConfig.VERSION_NAME}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            "Build ${BuildConfig.VERSION_CODE}",
+                            text = available.notes.ifBlank { "A new version is ready to install." }.take(240),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Button(
+                            onClick = { startInstall(available) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Download and install")
+                        }
                     }
                 }
             }
-            
-            item {
-                SettingsCard {
-                    SettingsEntry(
-                        icon = Icons.Default.Code,
-                        title = "GitHub project",
-                        subtitle = "Source code and published releases.",
-                        onClick = { 
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))
-                            ) 
-                        },
-                        trailing = Icons.AutoMirrored.Filled.OpenInNew,
-                        index = 0,
-                        count = 1
+        }
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = ExpressiveCorners.ExtraExtraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerLow
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        "Build ${BuildConfig.VERSION_CODE}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+        }
+        item {
+            SettingsEntry(
+                icon = Icons.Default.Code,
+                title = "GitHub project",
+                subtitle = "Source code and published releases.",
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) },
+                trailing = Icons.AutoMirrored.Filled.OpenInNew,
+                index = 0,
+                count = 2
+            )
+        }
+        item {
+            SettingsEntry(
+                icon = Icons.Default.Download,
+                title = "GitHub releases",
+                subtitle = "Published versions, APKs, and release notes.",
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_RELEASES_PAGE_URL))) },
+                trailing = Icons.AutoMirrored.Filled.OpenInNew,
+                index = 1,
+                count = 2,
+            )
         }
     }
 }
 
-/**
- * Settings Header with back button and proper M3E styling
- */
 @Composable
-private fun SettingsHeader(
-    eyebrow: String,
-    title: String,
-    onBack: () -> Unit
-) {
+private fun SettingsHeader(eyebrow: String, title: String, onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1088,9 +1069,6 @@ private fun SettingsHeader(
     }
 }
 
-/**
- * Appearance Switch with M3E styling
- */
 @Composable
 private fun AppearanceSwitch(
     checked: Boolean,
@@ -1104,9 +1082,6 @@ private fun AppearanceSwitch(
     )
 }
 
-/**
- * Animated Settings Entry with spring animations
- */
 @Composable
 private fun AnimatedSettingsEntry(
     icon: ImageVector,
@@ -1118,22 +1093,19 @@ private fun AnimatedSettingsEntry(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    
     val corner by animateDpAsState(
-        targetValue = if (pressed) ShapeTokens.Medium else ShapeTokens.Large,
-        animationSpec = tween(MotionTokens.Responsive, easing = MotionTokens.StandardEasing),
+        targetValue = if (pressed) 18.dp else 28.dp,
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "updateEntryCorner",
     )
-    
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = tween(MotionTokens.Responsive, easing = MotionTokens.StandardEasing),
+        animationSpec = tween(170, easing = FastOutSlowInEasing),
         label = "updateEntryScale",
     )
-    
     val trailingRotation by animateFloatAsState(
         targetValue = if (busy) 180f else 0f,
-        animationSpec = tween(MotionTokens.Natural, easing = MotionTokens.StandardEasing),
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
         label = "updateEntryIconRotation",
     )
 
@@ -1146,11 +1118,7 @@ private fun AnimatedSettingsEntry(
             }
             .clip(RoundedCornerShape(corner))
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(
-                interactionSource = interactionSource, 
-                indication = null, 
-                onClick = onClick
-            )
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1182,70 +1150,6 @@ private fun AnimatedSettingsEntry(
     }
 }
 
-/**
- * Settings List Item - Replaces SegmentedListItem for M3 1.4.0 compatibility
- */
-@Composable
-private fun SettingsListItem(
-    title: String,
-    subtitle: String,
-    index: Int,
-    count: Int,
-    trailingContent: @Composable () -> Unit,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "settingsListItemScale"
-    )
-    
-    val shape = when {
-        count == 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(title)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        trailingContent()
-    }
-}
-
-/**
- * Settings Entry with M3E styling
- */
 @Composable
 private fun SettingsEntry(
     icon: ImageVector,
@@ -1256,68 +1160,28 @@ private fun SettingsEntry(
     onClick: () -> Unit,
     trailing: ImageVector = Icons.AutoMirrored.Filled.ArrowForward
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "settingsEntryScale"
-    )
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        leadingContent = {
+            Box(
+                modifier = Modifier.size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
             }
-            .clip(
-                when {
-                    count == 1 -> RoundedCornerShape(12.dp)
-                    index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-                    index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-                    else -> RoundedCornerShape(0.dp)
-                }
-            )
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            modifier = Modifier.size(40.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(title)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(trailing, contentDescription = null)
-    }
+        },
+        supportingContent = { Text(subtitle) },
+        trailingContent = { Icon(trailing, contentDescription = null) },
+        content = { Text(title) }
+    )
 }
 
-/**
- * Navigation Appearance List Row
- */
 @Composable
 private fun NavigationAppearanceListRow(
     title: String,
@@ -1327,76 +1191,13 @@ private fun NavigationAppearanceListRow(
     count: Int,
     onSelected: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = tween(MotionTokens.Responsive),
-        label = "navAppearanceScale"
+    SegmentedListItem(
+        selected = selected,
+        onClick = onSelected,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        supportingContent = { Text(subtitle) },
+        trailingContent = { RadioButton(selected = selected, onClick = null) },
+        content = { Text(title) }
     )
-    
-    val shape = when {
-        count == 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-        index == count - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onSelected
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(title)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        RadioButton(selected = selected, onClick = null)
-    }
 }
-
-/**
- * Helper data classes and enums
- */
-private enum class CustomColorChannel(val title: String) {
-    PRIMARY("Primary"),
-    SECONDARY("Secondary"),
-    TERTIARY("Tertiary"),
-}
-
-private data class HsvControlState(
-    val hue: Float,
-    val saturation: Float,
-    val value: Float,
-) {
-    fun toColor(): Color = hsvColorForThemeEditor(hue, saturation, value)
-}
-
-private fun Color.hsvForSettings(): HsvControlState {
-    val hsv = FloatArray(3)
-    AndroidColor.colorToHSV(toArgb(), hsv)
-    return HsvControlState(hsv[0], hsv[1], hsv[2])
-}
-
-private fun Color.toHexString(): String = "#%08X".format(toArgb())

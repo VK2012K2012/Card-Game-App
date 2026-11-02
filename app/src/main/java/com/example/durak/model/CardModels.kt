@@ -46,9 +46,15 @@ data class TablePair(
 }
 
 enum class GameMode(val title: String, val description: String) {
-    PODKIDNOY("Throw-in", "Match ranks already on the table to throw in cards"),
-    PEREVODNOY("Transfer", "Transfer an attack with a matching rank card"),
-    CLASSIC("Classic", "Standard Durak rules without transfer")
+    PODKIDNOY(
+        "Standard (Throw-in)",
+        "Any active non-defender may add matching ranks. Attacks are capped at six cards or the defender's starting hand size, whichever is lower."
+    ),
+    PEREVODNOY(
+        "Transfer",
+        "A distinct variant where the defender can pass an unbeaten attack to the next player using a card of the same rank."
+    ),
+    CLASSIC("Standard (Throw-in)", "Legacy alias of the standard throw-in ruleset.")
 }
 
 enum class BotDifficulty(val displayName: String, val description: String) {
@@ -74,15 +80,30 @@ data class LocalMatchSetup(
     val botDifficulty: BotDifficulty = BotDifficulty.MEDIUM,
     val opponentEngine: OpponentEngine = OpponentEngine.CLASSIC
 ) {
-    fun normalized(): LocalMatchSetup = copy(
-        playerCount = playerCount.coerceIn(2, 4),
-        deckSize = when (deckSize) {
-            24, 36, 52 -> deckSize
-            else -> 36
-        },
-        // Transfer requires its own state transition and is not yet exposed as a playable rule.
-        gameMode = if (gameMode == GameMode.PEREVODNOY) GameMode.PODKIDNOY else gameMode
-    )
+    fun normalized(): LocalMatchSetup {
+        val minimumPlayerCount = if (gameMode == GameMode.PEREVODNOY) 3 else 2
+        val normalizedPlayerCount = playerCount.coerceIn(minimumPlayerCount, 4)
+        val supportedSizes = availableDeckSizes(normalizedPlayerCount)
+        val requestedSize = deckSize.takeIf { it in STANDARD_DECK_SIZES } ?: 36
+        val normalizedDeckSize = supportedSizes.firstOrNull { it >= requestedSize } ?: supportedSizes.last()
+
+        return copy(
+            playerCount = normalizedPlayerCount,
+            deckSize = normalizedDeckSize,
+            // Classic remains a backwards-compatible alias; Transfer is a distinct playable ruleset.
+            gameMode = if (gameMode == GameMode.CLASSIC) GameMode.PODKIDNOY else gameMode
+        )
+    }
+
+    companion object {
+        private val STANDARD_DECK_SIZES = listOf(24, 36, 52)
+
+        /** A trump card must remain in the draw pile after the opening six-card deal. */
+        fun availableDeckSizes(playerCount: Int): List<Int> {
+            val normalizedCount = playerCount.coerceIn(2, 4)
+            return STANDARD_DECK_SIZES.filter { it > normalizedCount * 6 }
+        }
+    }
 
     fun botDifficulties(): List<BotDifficulty> =
         List((normalized().playerCount - 1).coerceAtLeast(1)) { botDifficulty }
@@ -93,8 +114,8 @@ data class Player(
     val name: String,
     val isHuman: Boolean,
     val difficulty: BotDifficulty = BotDifficulty.MEDIUM,
-    val hand: MutableList<Card> = mutableListOf(),
+    val hand: List<Card> = emptyList(),
     val avatarId: Int = 0,
-    var winsCount: Int = 0,
-    var isOut: Boolean = false
+    val winsCount: Int = 0,
+    val isOut: Boolean = false
 )

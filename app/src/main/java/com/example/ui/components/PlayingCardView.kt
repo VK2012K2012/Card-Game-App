@@ -36,16 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.example.durak.model.Card
 import com.example.ui.theme.TrumpGold
 
-/**
- * Playing card view with Material 3 Expressive design
- * 
- * Features:
- * - Expressive elevation and shadow
- * - Animated selection state with spring physics
- * - Proper semantic color usage
- * - Trump indicator with gold accent
- * - M3E compliant shape and styling
- */
 @Composable
 fun PlayingCardView(
     card: Card,
@@ -57,7 +47,7 @@ fun PlayingCardView(
     onClick: (() -> Unit)? = null
 ) {
     val lift by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 0.dp,
+        targetValue = if (isSelected) 6.dp else 0.dp,
         animationSpec = spring(
             dampingRatio = 0.82f,
             stiffness = Spring.StiffnessMediumLow
@@ -65,7 +55,7 @@ fun PlayingCardView(
         label = "cardLift"
     )
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.04f else 1f,
+        targetValue = if (isSelected) 1.02f else 1f,
         animationSpec = spring(
             dampingRatio = 0.84f,
             stiffness = Spring.StiffnessMediumLow
@@ -73,7 +63,7 @@ fun PlayingCardView(
         label = "cardScale"
     )
     val rotation by animateFloatAsState(
-        targetValue = if (isSelected) -1f else 0f,
+        targetValue = if (isSelected) -0.6f else 0f,
         animationSpec = spring(
             dampingRatio = 0.86f,
             stiffness = Spring.StiffnessLow
@@ -81,23 +71,21 @@ fun PlayingCardView(
         label = "cardRotation"
     )
     val shadowElevation by animateDpAsState(
-        targetValue = if (isSelected) 6.dp else 2.dp,
+        targetValue = if (isSelected) 3.dp else 1.dp,
         animationSpec = spring(
             dampingRatio = 0.86f,
             stiffness = Spring.StiffnessMediumLow
         ),
         label = "cardShadow"
     )
-    
-    val shape = RoundedCornerShape(14.dp)
-    
+    val shape = RoundedCornerShape(12.dp)
     val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
         card.isTrump && card.isFaceUp -> TrumpGold
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
     }
     val borderWidth = when {
-        isSelected -> 2.5.dp
+        isSelected -> 2.dp
         card.isTrump && card.isFaceUp -> 2.dp
         else -> 1.dp
     }
@@ -114,8 +102,8 @@ fun PlayingCardView(
             .shadow(
                 elevation = shadowElevation,
                 shape = shape,
-                ambientColor = Color.Black.copy(alpha = 0.14f),
-                spotColor = Color.Black.copy(alpha = 0.20f),
+                ambientColor = Color.Black.copy(alpha = 0.12f),
+                spotColor = Color.Black.copy(alpha = 0.16f),
             )
             .clip(shape)
             .border(borderWidth, borderColor, shape)
@@ -139,7 +127,7 @@ fun PlayingCardView(
             containerColor = if (card.isFaceUp) {
                 MaterialTheme.colorScheme.surfaceContainerLowest
             } else {
-                MaterialTheme.colorScheme.secondaryContainer
+                MaterialTheme.colorScheme.secondary
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -152,15 +140,12 @@ fun PlayingCardView(
     }
 }
 
-/**
- * Card face graphic with proper M3E typography and color usage
- */
 @Composable
 fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
     val suitColor = if (card.suit.isRed) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurface
     }
 
     Box(
@@ -189,21 +174,18 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
         }
 
         if (card.isTrump) {
-            Surface(
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = 4.dp, top = 4.dp),
-                shape = RoundedCornerShape(6.dp),
-                color = TrumpGold,
-                shadowElevation = 2.dp
+                    .background(TrumpGold, shape = RoundedCornerShape(5.dp))
+                    .padding(horizontal = 3.dp, vertical = 1.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "Trump",
                     tint = Color.Black,
-                    modifier = Modifier
-                        .size(12.dp)
-                        .padding(2.dp)
+                    modifier = Modifier.size(10.dp)
                 )
             }
         }
@@ -217,14 +199,14 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
         ) {
             Text(
                 text = card.rank.label,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Black,
                 color = suitColor,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = card.suit.symbol,
-                fontSize = 24.sp,
+                fontSize = 22.sp,
                 color = suitColor,
                 textAlign = TextAlign.Center
             )
@@ -252,10 +234,7 @@ fun CardFaceGraphic(card: Card, width: Dp, height: Dp) {
     }
 }
 
-/** 
- * Card back graphic with M3E compliant design
- * Single, polished card-back motif \u2014 deep secondary with a fine tertiary lattice and center emblem.
- */
+/** Single, polished card-back motif — deep navy with a fine gold lattice and center emblem. */
 @Composable
 fun CardBackGraphic(modifier: Modifier = Modifier) {
     val primaryColor = MaterialTheme.colorScheme.secondary
@@ -264,28 +243,26 @@ fun CardBackGraphic(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        
         drawRect(color = primaryColor)
-        
         drawRoundRect(
             color = accentColor.copy(alpha = 0.65f),
             topLeft = Offset(w * 0.08f, h * 0.08f),
             size = Size(w * 0.84f, h * 0.84f),
-            cornerRadius = CornerRadius(8f, 8f),
-            style = Stroke(width = 1.8f)
+            cornerRadius = CornerRadius(6f, 6f),
+            style = Stroke(width = 1.6f)
         )
 
-        val step = 16f
+        val step = 14f
         var x = 0f
         while (x < w) {
             drawLine(
-                color = accentColor.copy(alpha = 0.18f),
+                color = accentColor.copy(alpha = 0.16f),
                 start = Offset(x, 0f),
                 end = Offset(x + h, h),
                 strokeWidth = 1f
             )
             drawLine(
-                color = accentColor.copy(alpha = 0.18f),
+                color = accentColor.copy(alpha = 0.16f),
                 start = Offset(x, h),
                 end = Offset(x + h, 0f),
                 strokeWidth = 1f
@@ -295,16 +272,9 @@ fun CardBackGraphic(modifier: Modifier = Modifier) {
 
         drawCircle(
             color = accentColor.copy(alpha = 0.85f),
-            radius = w * 0.18f,
+            radius = w * 0.16f,
             center = Offset(w / 2f, h / 2f),
-            style = Stroke(width = 2.2f)
-        )
-        
-        drawCircle(
-            color = accentColor.copy(alpha = 0.45f),
-            radius = w * 0.08f,
-            center = Offset(w / 2f, h / 2f),
-            style = Stroke(width = 1.2f)
+            style = Stroke(width = 2f)
         )
     }
 }

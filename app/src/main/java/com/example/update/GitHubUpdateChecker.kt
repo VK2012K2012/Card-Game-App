@@ -18,6 +18,8 @@ const val GITHUB_OWNER = "VK2012K2012"
 const val GITHUB_REPOSITORY = "Card-Game-App"
 const val GITHUB_RELEASES_URL =
     "https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPOSITORY/releases/latest"
+const val GITHUB_RELEASES_PAGE_URL =
+    "https://github.com/$GITHUB_OWNER/$GITHUB_REPOSITORY/releases"
 
 const val APK_MIME_TYPE = "application/vnd.android.package-archive"
 
@@ -93,6 +95,13 @@ object GitHubUpdateChecker {
             ?: throw IOException("Release has no APK asset")
 
     fun isNewerVersion(remote: String, current: String): Boolean = compareVersions(remote, current) > 0
+
+    fun upToDateMessage(currentVersion: String, latestPublishedVersion: String): String =
+        if (compareVersions(currentVersion, latestPublishedVersion) > 0) {
+            "Installed build $currentVersion is newer than the latest GitHub release $latestPublishedVersion; no newer update has been published yet."
+        } else {
+            "You have the latest published version ($latestPublishedVersion)."
+        }
 
     fun compareVersions(left: String, right: String): Int {
         val a = versionParts(left)

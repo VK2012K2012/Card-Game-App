@@ -1,5 +1,4 @@
 [versions]
-# Updated to latest stable versions
 agp = "9.3.0"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -10,8 +9,8 @@ lifecycleViewmodelCompose = "2.11.0"
 lifecycleRuntimeCompose = "2.11.0"
 activityCompose = "1.13.0"
 kotlin = "2.2.10"
-composeBom = "2024.02.00"
-material3 = "1.2.1"
+composeBom = "2026.08.00"
+material3 = "1.5.0-alpha29"
 googleDevtoolsKsp = "2.3.11"
 roomRuntime = "2.8.4"
 roomKtx = "2.8.4"
@@ -21,7 +20,6 @@ core = "1.6.1"
 runner = "1.6.2"
 kotlinxCoroutinesAndroid = "1.10.2"
 kotlinxCoroutinesCore = "1.10.2"
-robolectric = "4.16.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,7 +48,6 @@ androidx-compose-material-icons-core = { group = "androidx.compose.material", na
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
-robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
